@@ -28,6 +28,22 @@ impl Bitboard {
     const fn new() -> Self {
         Self { data: 0 }
     }
+
+    const fn popcount(self) -> u32 {
+        self.data.count_ones()
+    }
+
+    const fn lsb(self) -> u32 {
+        self.data.trailing_zeros()
+    }
+
+    const fn lsb_as_bitboard(self) -> Self {
+        Self { data: self.data & ((!self.data) + 1) }
+    }
+
+    fn reset_lsb(&mut self) {
+        self.data = self.data & (self.data - 1);
+    }
 }
 
 impl BitAnd for Bitboard {
@@ -113,5 +129,20 @@ mod tests {
         let bitset = Square::A3.as_bitboard();
         let expected = Bitboard { data: 0b0001_0000_0000_0000_0000 };
         assert_eq!(bitset, expected);
+    }
+
+    #[test]
+    fn lsb_as_bitboard_works() {
+        let bb = Bitboard { data: 0b0111100111000 };
+        let expected = Bitboard { data: 0b01000 };
+        assert_eq!(bb.lsb_as_bitboard(), expected);
+    }
+
+    #[test]
+    fn reset_lsb_works() {
+        let mut bb = Bitboard { data: 0b0111100111000 };
+        bb.reset_lsb();
+        let expected = Bitboard { data: 0b0111100110000 };
+        assert_eq!(bb, expected);
     }
 }
