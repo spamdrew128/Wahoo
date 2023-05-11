@@ -98,6 +98,17 @@ mod tests {
     }
 
     #[test]
+    fn combinations_work() {
+        let data1: u64 = 894_378_932;
+        let data2: u64 = 18_981_928_111;
+
+        let bb1 = Bitboard { data: data1 };
+        let bb2 = Bitboard { data: data2 };
+        let expected = Bitboard { data: data1 & !data2 };
+        assert_eq!(bb1 & !bb2, expected);
+    }
+
+    #[test]
     fn sq_to_bb_works() {
         let bitset = Square::A3.as_bitboard();
         let expected = Bitboard { data: 0b0001_0000_0000_0000_0000 };
