@@ -1,4 +1,4 @@
-use std::ops;
+use std::ops::{BitAnd, BitOr, BitXor, Not};
 
 enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
@@ -8,17 +8,17 @@ enum Square {
     A5, B5, C5, D5, E5, F5, G5, H5,
     A6, B6, C6, D6, E6, F6, G6, H6,
     A7, B7, C7, D7, E7, F7, G7, H7,
-    A8, B8, C8, D8, E8, F8, G8, H8,
-    NumSquares
+    A8, B8, C8, D8, E8, F8, G8, H8
 }
+pub const NUM_SQUARES: u8 = 64;
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Bitboard {
     data: u64
 }
 
 impl Bitboard {
-    fn new() -> Self {
+    const fn new() -> Self {
         Bitboard { data: 0 }
     }
 }
@@ -47,10 +47,10 @@ impl BitXor for Bitboard {
     }
 }
 
-impl BitNot for Bitboard {
+impl Not for Bitboard {
     type Output = Self;
     
-    fn bitnot(self) -> Self::Output {
+    fn not(self) -> Self::Output {
         Self { data: !self.data }
     }
 }
@@ -65,5 +65,13 @@ mod tests {
         let bb2 = Bitboard { data: 0b101 };
         let expected = Bitboard { data: 0b101 };
         assert_eq!(bb1 & bb2, expected);
+    }
+
+    #[test]
+    fn bit_or_works() {
+        let bb1 = Bitboard { data: 0b011 };
+        let bb2 = Bitboard { data: 0b101 };
+        let expected = Bitboard { data: 0b111 };
+        assert_eq!(bb1 | bb2, expected);
     }
 }
