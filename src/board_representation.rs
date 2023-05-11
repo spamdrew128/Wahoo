@@ -26,7 +26,7 @@ pub struct Bitboard {
 
 impl Bitboard {
     const fn new() -> Self {
-        Bitboard { data: 0 }
+        Self { data: 0 }
     }
 }
 
