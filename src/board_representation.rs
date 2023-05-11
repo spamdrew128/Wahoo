@@ -1,5 +1,25 @@
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 
+pub const NUM_SQUARES: u8 = 64;
+pub const NUM_PIECES: u8 = 6;
+pub const NUM_COLORS: u8 = 2;
+
+#[derive(Copy, Clone)]
+pub enum Color {
+    White,
+    Black,
+}
+
+enum Piece {
+    Knight,
+    Bishop,
+    Rook,
+    Queen,
+    Pawn,
+    King,
+    None,
+}
+
 #[derive(Copy, Clone)]
 pub enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
@@ -9,9 +29,8 @@ pub enum Square {
     A5, B5, C5, D5, E5, F5, G5, H5,
     A6, B6, C6, D6, E6, F6, G6, H6,
     A7, B7, C7, D7, E7, F7, G7, H7,
-    A8, B8, C8, D8, E8, F8, G8, H8
+    A8, B8, C8, D8, E8, F8, G8, H8,
 }
-pub const NUM_SQUARES: u8 = 64;
 
 impl Square {
     const fn as_bitboard(self) -> Bitboard {
@@ -76,6 +95,11 @@ impl Not for Bitboard {
     fn not(self) -> Self::Output {
         Self { data: !self.data }
     }
+}
+
+pub struct Board {
+    all: [Bitboard; NUM_COLORS as usize],
+    pieces: [Bitboard; NUM_PIECES as usize],
 }
 
 #[cfg(test)]
