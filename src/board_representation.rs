@@ -92,15 +92,15 @@ mod tests {
 
     #[test]
     fn bit_not_works() {
-        let bb = Bitboard { data: 0xFFFF_0000_FFFF_0000 };
-        let expected = Bitboard { data: 0x0000_FFFF_0000_FFFF };
+        let bb = Bitboard { data: 0xFFFF0000FFFF0000 };
+        let expected = Bitboard { data: 0x0000FFFF0000FFFF };
         assert_eq!(!bb, expected);
     }
 
     #[test]
     fn combinations_work() {
-        let data1: u64 = 894_378_932;
-        let data2: u64 = 18_981_928_111;
+        let data1: u64 = 894378932;
+        let data2: u64 = 18981928111;
 
         let bb1 = Bitboard { data: data1 };
         let bb2 = Bitboard { data: data2 };
