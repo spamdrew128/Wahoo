@@ -10,6 +10,7 @@ pub enum Color {
     Black,
 }
 
+#[derive(Copy, Clone)]
 enum Piece {
     Knight,
     Bishop,
@@ -38,16 +39,12 @@ impl Square {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct Bitboard {
     data: u64
 }
 
 impl Bitboard {
-    const fn new() -> Self {
-        Self { data: 0 }
-    }
-
     const fn popcount(self) -> u32 {
         self.data.count_ones()
     }
@@ -97,6 +94,7 @@ impl Not for Bitboard {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct Board {
     all: [Bitboard; NUM_COLORS as usize],
     pieces: [Bitboard; NUM_PIECES as usize],
