@@ -1,5 +1,8 @@
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 
+type Rank = u8;
+type File = u8;
+
 pub const NUM_SQUARES: u8 = 64;
 pub const NUM_PIECES: u8 = 6;
 pub const NUM_COLORS: u8 = 2;
@@ -45,6 +48,10 @@ pub struct Bitboard {
 }
 
 impl Bitboard {
+    const fn not_empty(self) -> bool {
+        self.data > 0
+    }
+
     const fn popcount(self) -> u32 {
         self.data.count_ones()
     }
@@ -59,6 +66,11 @@ impl Bitboard {
 
     fn reset_lsb(&mut self) {
         self.data = self.data & (self.data - 1);
+    }
+
+    fn bit_is_set(self, pos: u32) -> bool {
+        let bitset = Self { data: 1 << pos };
+        (self & bitset).not_empty()
     }
 }
 
@@ -96,8 +108,8 @@ impl Not for Bitboard {
 
 #[derive(Debug, Default)]
 pub struct Board {
-    all: [Bitboard; NUM_COLORS as usize],
-    pieces: [Bitboard; NUM_PIECES as usize],
+    pub all: [Bitboard; NUM_COLORS as usize],
+    pub pieces: [Bitboard; NUM_PIECES as usize],
 }
 
 #[cfg(test)]
