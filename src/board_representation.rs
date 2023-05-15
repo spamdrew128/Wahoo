@@ -1,12 +1,13 @@
-use std::ops::{BitAnd, BitOr, BitXor, Not};
+use std::ops::{BitAnd, BitOr, BitXor, Not, BitOrAssign};
 
 type Rank = u8;
 type File = u8;
-type Fen = u8;
+type Fen = str;
 
 pub const NUM_SQUARES: u8 = 64;
 pub const NUM_PIECES: u8 = 6;
 pub const NUM_COLORS: u8 = 2;
+pub const START_FEN: &Fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 #[derive(Copy, Clone)]
 pub enum Color {
@@ -163,6 +164,12 @@ impl Not for Bitboard {
     }
 }
 
+impl BitOrAssign for Bitboard {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.data |= rhs.data;
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Board {
     pub all: [Bitboard; NUM_COLORS as usize],
@@ -175,12 +182,44 @@ const fn fen_index_as_bitboard(i: u8) -> Bitboard {
 
 impl Board {
     fn from_fen(fen: &Fen) {
-        let mut board = Board::default();
+        let mut board = Self::default();
         let mut i: u8 = 0;
+        let split_fen = fen.split_whitespace().collect::<Vec<&str>>();
+        let board_info_string = split_fen[0].chars();
 
-        while i < NUM_SQUARES {
+        for ch in board_info_string {
+            assert!(i < NUM_SQUARES);
             let bb = fen_index_as_bitboard(i);
-            
+
+            if  ch == '/' {
+                i += 1;
+
+            } else if ch.is_numeric() {
+                let digit = ch.to_digit(10).unwrap();
+                assert!((0..9).contains(&digit));
+                i += digit as u8;
+
+            } else if ch.is_alphabetic() {
+                match ch.to_lowercase().next().unwrap() {
+                    'n' => board.pieces[Piece::Knight as usize] |= bb,
+                    'b' => board.pieces[Piece::Bishop as usize] |= bb,
+                    'r' => board.pieces[Piece::Rook as usize] |= bb,
+                    'q' => board.pieces[Piece::Queen as usize] |= bb,
+                    'p' => board.pieces[Piece::Pawn as usize] |= bb,
+                    'k' => board.pieces[Piece::King as usize] |= bb,
+                    _ => panic!("Invalid FEN")
+                };
+                
+                if ch.is_uppercase() {
+                    board.all[Color::White as usize] |= bb; 
+                } else {
+                    board.all[Color::Black as usize] |= bb; 
+                }
+
+                i += 1;
+            } else {
+                panic!("Invalid FEN");
+            }
         }
     }
 }
