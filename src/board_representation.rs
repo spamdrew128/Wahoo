@@ -9,8 +9,9 @@ pub const NUM_PIECES: u8 = 6;
 pub const NUM_COLORS: u8 = 2;
 pub const START_FEN: &Fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub enum Color {
+    #[default]
     White,
     Black,
 }
@@ -174,6 +175,7 @@ impl BitOrAssign for Bitboard {
 pub struct Board {
     pub all: [Bitboard; NUM_COLORS as usize],
     pub pieces: [Bitboard; NUM_PIECES as usize],
+    pub color_to_move: Color,
 }
 
 const fn fen_index_as_bitboard(i: u8) -> Bitboard {
@@ -186,6 +188,7 @@ impl Board {
         let mut i: u8 = 0;
         let split_fen = fen.split_whitespace().collect::<Vec<&str>>();
         let board_info_string = split_fen[0].chars();
+        let color_char = split_fen[1].chars().next().unwrap();
 
         for ch in board_info_string {
             assert!(i < NUM_SQUARES);
@@ -196,7 +199,7 @@ impl Board {
 
             } else if ch.is_numeric() {
                 let digit = ch.to_digit(10).unwrap();
-                assert!((0..9).contains(&digit));
+                assert!((0..9).contains(&digit), "Invalid FEN number");
                 i += digit as u8;
 
             } else if ch.is_alphabetic() {
@@ -218,8 +221,13 @@ impl Board {
 
                 i += 1;
             } else {
-                panic!("Invalid FEN");
+                panic!("Invalid FEN character");
             }
+        }
+
+        assert!(color_char == 'w' || color_char == 'b', "Invalid color specifier");
+        if color_char == 'b' {
+            board.color_to_move = Color::Black;
         }
     }
 }
