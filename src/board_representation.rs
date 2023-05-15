@@ -97,10 +97,6 @@ impl Square {
     const fn as_bitboard(self) -> Bitboard {
         Bitboard { data: 1 << self.0 }
     }
-
-    const fn as_index(self) -> usize {
-        self.0 as usize
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
@@ -173,11 +169,21 @@ pub struct Board {
     pub pieces: [Bitboard; NUM_PIECES as usize],
 }
 
-// impl Board {
-//     fn from_fen(fen: &FEN) -> Self {
-//         let mut board = Board::default();
-//     }
-// }
+const fn fen_index_as_bitboard(i: u8) -> Bitboard {
+    Square((64 - (8 - i)) - (16 * (i / 8))).as_bitboard() 
+}
+
+impl Board {
+    fn from_fen(fen: &Fen) {
+        let mut board = Board::default();
+        let mut i: u8 = 0;
+
+        while i < NUM_SQUARES {
+            let bb = fen_index_as_bitboard(i);
+            
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
