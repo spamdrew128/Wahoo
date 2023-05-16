@@ -296,6 +296,17 @@ impl Board {
                     pos.push(ch);
                 }
             }
+
+            if (i + 1) % 8 == 0 {
+                if blank_space > 0 {
+                    pos.push(char::from_digit(blank_space.into(), 10).unwrap());
+                }
+                blank_space = 0;
+
+                if (i + 1) < NUM_SQUARES{
+                    pos.push('/');
+                }
+            }
         }
 
         let color_char = if self.color_to_move == Color::White { 'w' } else { 'b' };
@@ -304,7 +315,7 @@ impl Board {
         let castling_rights = "KQkq";
         let ep = "-";
         let halfmoves = "0";
-        let fullmoves = '0';
+        let fullmoves = '1';
 
         format!("{pos} {color_char} {castling_rights} {ep} {halfmoves} {fullmoves}")
     }
@@ -404,7 +415,7 @@ mod tests {
     #[test]
     fn to_fen_works_with_startpos() {
         let startpos_board = Board::from_fen(START_FEN);
-        let actual = startpos_board.to_fen().as_str().to_owned();
+        let actual = startpos_board.to_fen();
 
         let expected = START_FEN;
 
