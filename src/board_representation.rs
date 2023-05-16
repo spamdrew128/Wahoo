@@ -308,8 +308,8 @@ mod tests {
         let white = Bitboard { data: 0x000000000000ffff };
         let black = Bitboard { data: 0xffff000000000000 };
 
-        let knights = Bitboard { data: 0x2400000000000024 };
-        let bishops = Bitboard { data: 0x4200000000000042 };
+        let knights = Bitboard { data: 0x4200000000000042 };
+        let bishops = Bitboard { data: 0x2400000000000024 };
         let rooks = Bitboard { data: 0x8100000000000081 };
         let queens = Square::D1.as_bitboard() | Square::D8.as_bitboard();
         let pawns = Bitboard { data: 0x00ff00000000ff00 };
