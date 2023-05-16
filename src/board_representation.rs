@@ -300,6 +300,7 @@ impl Board {
 
         let color_char = if self.color_to_move == Color::White { 'w' } else { 'b' };
 
+        // TODO: handle these later
         let castling_rights = "KQkq";
         let ep = "-";
         let halfmoves = "0";
@@ -396,6 +397,16 @@ mod tests {
             pieces: [knights, bishops, rooks, queens, pawns, kings],
             color_to_move: Color::White,
         };
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn to_fen_works_with_startpos() {
+        let startpos_board = Board::from_fen(START_FEN);
+        let actual = startpos_board.to_fen().as_str().to_owned();
+
+        let expected = START_FEN;
 
         assert_eq!(actual, expected);
     }
