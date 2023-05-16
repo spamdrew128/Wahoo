@@ -261,6 +261,7 @@ impl Board {
                 }
 
                 i += 1;
+                
             } else if ch != '/' {
                 panic!("Invalid FEN character");
             }

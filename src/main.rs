@@ -2,7 +2,7 @@
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::cast_possible_truncation)]
 
-#![allow(dead_code)]
+#![allow(dead_code)] // remove later
 
 mod board_representation;
 fn main() {
