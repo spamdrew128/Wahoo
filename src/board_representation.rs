@@ -33,6 +33,17 @@ pub struct Board {
     pub color_to_move: Color,
 }
 
+impl Not for Color {
+    type Output = Self;
+    
+    fn not(self) -> Self::Output {
+        match self {
+            Self::White => Self::Black,
+            Self::Black => Self::White,
+        }
+    }
+}
+
 impl Piece {
     pub const KNIGHT: Self = Self(0);
     pub const BISHOP: Self = Self(1);
