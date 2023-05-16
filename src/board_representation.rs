@@ -303,7 +303,7 @@ impl Board {
                 }
                 blank_space = 0;
 
-                if (i + 1) < NUM_SQUARES{
+                if (i + 1) < NUM_SQUARES {
                     pos.push('/');
                 }
             }
