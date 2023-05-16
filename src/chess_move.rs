@@ -1,5 +1,6 @@
 use crate::board_representation::{Piece, Square};
 
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Move {
     data: u16,

@@ -61,7 +61,7 @@ impl Piece {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Square(pub u8);
 
 impl Square {
