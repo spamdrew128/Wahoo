@@ -136,12 +136,6 @@ impl Square {
     }
 }
 
-const fn fen_index_as_bitboard(i: u8) -> Bitboard {
-    let row = 7 - (i / 8);
-    let col = i % 8;
-    Square(row * 8 + col).as_bitboard() 
-}
-
 impl Bitboard {
     const fn is_not_empty(self) -> bool {
         self.data > 0
@@ -204,6 +198,12 @@ impl BitOrAssign for Bitboard {
     fn bitor_assign(&mut self, rhs: Self) {
         self.data |= rhs.data;
     }
+}
+
+const fn fen_index_as_bitboard(i: u8) -> Bitboard {
+    let row = 7 - (i / 8);
+    let col = i % 8;
+    Square(row * 8 + col).as_bitboard() 
 }
 
 impl Board {
