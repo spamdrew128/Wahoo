@@ -216,15 +216,15 @@ impl Board {
             
             for piece in 0..NUM_PIECES {
                 if (self.pieces[piece as usize] & bb).not_empty() {
-                    let color = if (self.pieces[Color::White as usize] & bb).not_empty() { Color::White } else { Color::Black };
+                    let color = if (self.all[Color::White as usize] & bb).not_empty() { Color::White } else { Color::Black };
                     ch = Piece(piece).as_char(color).unwrap();
                 }
             }
 
-            if i % 8 == 0 {
-                println!("{ch}");
+            if (i + 1) % 8 == 0 {
+                println!("{ch} ");
             } else {
-                print!("{ch}");
+                print!("{ch} ");
             }
         }
     }
@@ -363,7 +363,7 @@ mod tests {
             pieces: [knights, bishops, rooks, queens, pawns, kings],
             color_to_move: Color::White,
         };
-
+        
         assert_eq!(actual, expected);
     }
 }
