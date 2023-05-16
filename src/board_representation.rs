@@ -193,15 +193,13 @@ impl Board {
         let color_char = split_fen[1].chars().next().unwrap();
 
         for ch in board_info_string {
+            println!("{i}");
             assert!(i < NUM_SQUARES);
             let bb = fen_index_as_bitboard(i);
 
-            if  ch == '/' {
-                i += 1;
-
-            } else if ch.is_numeric() {
+            if ch.is_numeric() {
                 let digit = ch.to_digit(10).unwrap();
-                assert!((0..9).contains(&digit), "Invalid FEN number");
+                assert!((1..9).contains(&digit), "Invalid FEN number");
                 i += digit as u8;
 
             } else if ch.is_alphabetic() {
@@ -222,7 +220,7 @@ impl Board {
                 }
 
                 i += 1;
-            } else {
+            } else if ch != '/' {
                 panic!("Invalid FEN character");
             }
         }
