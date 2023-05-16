@@ -62,11 +62,38 @@ impl Move {
         (self.data & Self::FLAGS_BITFIELD) == Self::CASTLE_FLAG
     }
 
-    const fn is_promotion(self) -> bool {
+    const fn is_promo(self) -> bool {
         (self.data & Self::FLAGS_BITFIELD) == Self::PROMO_FLAG
     }
 
-    const fn is_en_passant(self) -> bool {
+    const fn is_ep(self) -> bool {
         (self.data & Self::FLAGS_BITFIELD) == Self::EP_FLAG
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::{Move, Square, Piece};
+
+    #[test]
+    fn test_simple_move() {
+        let m = Move::new_default(Square::B1, Square::H8);
+        assert_eq!(m.to(), Square::B1);
+        assert_eq!(m.from(), Square::H8);
+        assert!(!m.is_ep());
+        assert!(!m.is_castle());
+        assert!(!m.is_promo());
+    }
+
+    #[test]
+    fn test_promotion() {
+        let m = Move::new_promo(Square::A7, Square::A8, Piece::QUEEN);
+        assert_eq!(m.to(), Square::A7);
+        assert_eq!(m.from(), Square::A8);
+        assert!(m.is_promo());
+        assert!(!m.is_ep());
+        assert!(!m.is_castle());
+        assert_eq!(m.promo_piece(), Piece::QUEEN);
     }
 }
