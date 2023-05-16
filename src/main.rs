@@ -4,7 +4,7 @@
 #![allow(dead_code)] // remove later
 
 mod board_representation;
-mod movegen;
+mod moves;
 fn main() {
     println!("Hello, world!");
 }

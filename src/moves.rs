@@ -24,6 +24,27 @@ impl Move {
         }
     }
 
+    const fn new_promo(to: Square, from: Square, promo_piece: Piece) -> Self {
+        Self {
+            data: (to.0 as u16)
+                | ((from.0 as u16) << Self::FROM_OFFSET)
+                | ((promo_piece.0 as u16) << Self::PROMO_OFFSET)
+                | Self::PROMO_FLAG,
+        }
+    }
+
+    const fn new_castle(to: Square, from: Square) -> Self {
+        Self {
+            data: (to.0 as u16) | ((from.0 as u16) << Self::FROM_OFFSET) | Self::CASTLE_FLAG,
+        }
+    }
+
+    const fn new_ep(to: Square, from: Square) -> Self {
+        Self {
+            data: (to.0 as u16) | ((from.0 as u16) << Self::FROM_OFFSET) | Self::EP_FLAG,
+        }
+    }
+
     const fn to(self) -> Square {
         Square((self.data & Self::TO_BITFIELD) as u8)
     }
