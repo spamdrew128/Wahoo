@@ -193,7 +193,6 @@ impl Board {
         let color_char = split_fen[1].chars().next().unwrap();
 
         for ch in board_info_string {
-            println!("{i}");
             assert!(i < NUM_SQUARES);
             let bb = fen_index_as_bitboard(i);
 
