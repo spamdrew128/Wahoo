@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, Not};
+use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, Not, Shl, Shr};
 
 type Rank = u8;
 type File = u8;
@@ -209,6 +209,26 @@ impl Not for Bitboard {
 impl BitOrAssign for Bitboard {
     fn bitor_assign(&mut self, rhs: Self) {
         self.data |= rhs.data;
+    }
+}
+
+impl Shl<u8> for Bitboard {
+    type Output = Self;
+
+    fn shl(self, rhs: u8) -> Self::Output {
+        Self {
+            data: self.data << rhs,
+        }
+    }
+}
+
+impl Shr<u8> for Bitboard {
+    type Output = Self;
+
+    fn shr(self, rhs: u8) -> Self::Output {
+        Self {
+            data: self.data >> rhs,
+        }
     }
 }
 

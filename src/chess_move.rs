@@ -1,6 +1,5 @@
 use crate::board_representation::{Piece, Square};
 
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Move {
     data: u16,
@@ -71,10 +70,9 @@ impl Move {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use super::{Move, Square, Piece};
+    use super::{Move, Piece, Square};
 
     #[test]
     fn test_simple_move() {
