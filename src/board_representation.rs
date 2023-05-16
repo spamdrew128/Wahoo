@@ -16,19 +16,55 @@ pub enum Color {
     Black,
 }
 
-#[derive(Copy, Clone)]
-enum Piece {
-    Knight,
-    Bishop,
-    Rook,
-    Queen,
-    Pawn,
-    King,
-    None,
-}
+#[derive(Copy, Clone, PartialEq, Eq,)]
+struct Piece(u8);
 
 #[derive(Copy, Clone)]
 struct Square(u8);
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub struct Bitboard {
+    data: u64
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Board {
+    pub all: [Bitboard; NUM_COLORS as usize],
+    pub pieces: [Bitboard; NUM_PIECES as usize],
+    pub color_to_move: Color,
+}
+
+impl Piece {
+    pub const KNIGHT: Self = Self(0);
+    pub const BISHOP: Self = Self(1);
+    pub const ROOK: Self = Self(2);
+    pub const QUEEN: Self = Self(3);
+    pub const PAWN: Self = Self(4);
+    pub const KING: Self = Self(5);
+    pub const NONE_PIECE: Self = Self(6);
+
+    fn as_char(self, color: Color) -> Option<char> {
+        let mut ch = match self {
+            Self::KNIGHT => 'n',
+            Self::BISHOP => 'b',
+            Self::ROOK => 'r',
+            Self::QUEEN => 'q',
+            Self::PAWN => 'p',
+            Self::KING => 'k',
+            _ => return None,
+        };
+        
+        if color == Color::White {
+            ch = ch.to_uppercase().next().unwrap();
+        }
+
+        Some(ch)
+    }
+
+    const fn as_index(self) -> usize {
+        self.0 as usize
+    }
+}
 
 impl Square {
     pub const A1: Self = Self(0);
@@ -101,9 +137,10 @@ impl Square {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-pub struct Bitboard {
-    data: u64
+const fn fen_index_as_bitboard(i: u8) -> Bitboard {
+    let row = 7 - (i / 8);
+    let col = i % 8;
+    Square(row * 8 + col).as_bitboard() 
 }
 
 impl Bitboard {
@@ -171,20 +208,27 @@ impl BitOrAssign for Bitboard {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
-pub struct Board {
-    pub all: [Bitboard; NUM_COLORS as usize],
-    pub pieces: [Bitboard; NUM_PIECES as usize],
-    pub color_to_move: Color,
-}
-
-const fn fen_index_as_bitboard(i: u8) -> Bitboard {
-    let row = 7 - (i / 8);
-    let col = i % 8;
-    Square(row * 8 + col).as_bitboard() 
-}
-
 impl Board {
+    fn print(&self) {
+        for i in 0..NUM_SQUARES {
+            let bb = fen_index_as_bitboard(i);
+            let mut ch = '.';
+            
+            for piece in 0..NUM_PIECES {
+                if (self.pieces[piece as usize] & bb).not_empty() {
+                    let color = if (self.pieces[Color::White as usize] & bb).not_empty() { Color::White } else { Color::Black };
+                    ch = Piece(piece).as_char(color).unwrap();
+                }
+            }
+
+            if i % 8 == 0 {
+                println!("{ch}");
+            } else {
+                print!("{ch}");
+            }
+        }
+    }
+
     fn from_fen(fen: &Fen) -> Self {
         let mut board = Self::default();
         let mut i: u8 = 0;
@@ -203,12 +247,12 @@ impl Board {
 
             } else if ch.is_alphabetic() {
                 match ch.to_lowercase().next().unwrap() {
-                    'n' => board.pieces[Piece::Knight as usize] |= bb,
-                    'b' => board.pieces[Piece::Bishop as usize] |= bb,
-                    'r' => board.pieces[Piece::Rook as usize] |= bb,
-                    'q' => board.pieces[Piece::Queen as usize] |= bb,
-                    'p' => board.pieces[Piece::Pawn as usize] |= bb,
-                    'k' => board.pieces[Piece::King as usize] |= bb,
+                    'n' => board.pieces[Piece::KNIGHT.as_index()] |= bb,
+                    'b' => board.pieces[Piece::BISHOP.as_index()] |= bb,
+                    'r' => board.pieces[Piece::ROOK.as_index()] |= bb,
+                    'q' => board.pieces[Piece::QUEEN.as_index()] |= bb,
+                    'p' => board.pieces[Piece::PAWN.as_index()] |= bb,
+                    'k' => board.pieces[Piece::KING.as_index()] |= bb,
                     _ => panic!("Invalid FEN")
                 };
                 
@@ -281,7 +325,7 @@ mod tests {
     #[test]
     fn sq_to_bb_works() {
         let bitset = Square::A3.as_bitboard();
-        let expected = Bitboard { data: 0b0001_0000_0000_0000_0000 };
+        let expected = Bitboard { data: 0b00010000000000000000 };
         assert_eq!(bitset, expected);
     }
 
