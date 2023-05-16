@@ -2,12 +2,11 @@ use std::ops::{BitAnd, BitOr, BitXor, Not, BitOrAssign};
 
 type Rank = u8;
 type File = u8;
-type Fen = str;
 
 pub const NUM_SQUARES: u8 = 64;
 pub const NUM_PIECES: u8 = 6;
 pub const NUM_COLORS: u8 = 2;
-pub const START_FEN: &Fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+pub const START_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub enum Color {
@@ -16,7 +15,7 @@ pub enum Color {
     Black,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq,)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 struct Piece(u8);
 
 #[derive(Copy, Clone)]
@@ -228,7 +227,7 @@ impl Board {
         }
     }
 
-    fn from_fen(fen: &Fen) -> Self {
+    fn from_fen(fen: &str) -> Self {
         let mut board = Self::default();
         let mut i: u8 = 0;
         let split_fen = fen.split_whitespace().collect::<Vec<&str>>();
@@ -271,7 +270,42 @@ impl Board {
         if color_char == 'b' {
             board.color_to_move = Color::Black;
         }
+
         board
+    }
+
+    fn to_fen(&self) -> String {
+        let mut pos = String::new();
+        let mut blank_space: u8 = 0;
+        
+        for i in 0..NUM_SQUARES {
+            let bitset = fen_index_as_bitboard(i);
+            blank_space += 1;
+
+            for piece in 0..NUM_PIECES {
+                if bitset.overlaps(self.pieces[piece as usize]) {
+                    let color = if bitset.overlaps(self.all[Color::White as usize]) { Color::White } else { Color::Black };
+                    let ch = Piece(piece).as_char(color).unwrap();
+                    blank_space -= 1;
+
+                    if blank_space > 0 {
+                        pos.push(char::from_digit(blank_space.into(), 10).unwrap());
+                    }
+
+                    blank_space = 0;
+                    pos.push(ch);
+                }
+            }
+        }
+
+        let color_char = if self.color_to_move == Color::White { 'w' } else { 'b' };
+
+        let castling_rights = "KQkq";
+        let ep = "-";
+        let halfmoves = "0";
+        let fullmoves = '0';
+
+        format!("{pos} {color_char} {castling_rights} {ep} {halfmoves} {fullmoves}")
     }
 }
 
