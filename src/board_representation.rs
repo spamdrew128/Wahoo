@@ -9,7 +9,7 @@ pub const NUM_PIECES: u8 = 6;
 pub const NUM_COLORS: u8 = 2;
 pub const START_FEN: &Fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub enum Color {
     #[default]
     White,
@@ -171,7 +171,7 @@ impl BitOrAssign for Bitboard {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct Board {
     pub all: [Bitboard; NUM_COLORS as usize],
     pub pieces: [Bitboard; NUM_PIECES as usize],
@@ -179,11 +179,13 @@ pub struct Board {
 }
 
 const fn fen_index_as_bitboard(i: u8) -> Bitboard {
-    Square((64 - (8 - i)) - (16 * (i / 8))).as_bitboard() 
+    let row = 7 - (i / 8);
+    let col = i % 8;
+    Square(row * 8 + col).as_bitboard() 
 }
 
 impl Board {
-    fn from_fen(fen: &Fen) {
+    fn from_fen(fen: &Fen) -> Self {
         let mut board = Self::default();
         let mut i: u8 = 0;
         let split_fen = fen.split_whitespace().collect::<Vec<&str>>();
@@ -229,12 +231,13 @@ impl Board {
         if color_char == 'b' {
             board.color_to_move = Color::Black;
         }
+        board
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Bitboard, Square};
+    use super::{Bitboard, Square, Board, START_FEN, Color};
 
     #[test]
     fn bit_and_works() {
@@ -298,5 +301,28 @@ mod tests {
         bb.reset_lsb();
         let expected = Bitboard { data: 0b0111100110000 };
         assert_eq!(bb, expected);
+    }
+
+    #[test]
+    fn correctly_interprets_startpos_fen() {
+        let actual = Board::from_fen(START_FEN);
+
+        let white = Bitboard { data: 0x000000000000ffff };
+        let black = Bitboard { data: 0xffff000000000000 };
+
+        let knights = Bitboard { data: 0x2400000000000024 };
+        let bishops = Bitboard { data: 0x4200000000000042 };
+        let rooks = Bitboard { data: 0x8100000000000081 };
+        let queens = Square::D1.as_bitboard() | Square::D8.as_bitboard();
+        let pawns = Bitboard { data: 0x00ff00000000ff00 };
+        let kings = Square::E1.as_bitboard() | Square::E8.as_bitboard();
+
+        let expected = Board {
+            all: [white, black],
+            pieces: [knights, bishops, rooks, queens, pawns, kings],
+            color_to_move: Color::White,
+        };
+
+        assert_eq!(actual, expected);
     }
 }
