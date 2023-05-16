@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitOr, BitXor, Not, BitOrAssign};
+use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, Not};
 
 type Rank = u8;
 type File = u8;
@@ -17,7 +17,7 @@ pub enum Color {
 
 impl Not for Color {
     type Output = Self;
-    
+
     fn not(self) -> Self::Output {
         match self {
             Self::White => Self::Black,
@@ -27,7 +27,7 @@ impl Not for Color {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
-pub struct Piece(u8);
+pub struct Piece(pub u8);
 
 impl Piece {
     pub const KNIGHT: Self = Self(0);
@@ -37,10 +37,6 @@ impl Piece {
     pub const PAWN: Self = Self(4);
     pub const KING: Self = Self(5);
     pub const NONE_PIECE: Self = Self(6);
-
-    pub const fn new(n: u8) -> Self {
-        Self(n)
-    }
 
     fn as_char(self, color: Color) -> Option<char> {
         let mut ch = match self {
@@ -52,7 +48,7 @@ impl Piece {
             Self::KING => 'k',
             _ => return None,
         };
-        
+
         if color == Color::White {
             ch = ch.to_uppercase().next().unwrap();
         }
@@ -66,7 +62,7 @@ impl Piece {
 }
 
 #[derive(Copy, Clone)]
-pub struct Square(u8);
+pub struct Square(pub u8);
 
 impl Square {
     pub const A1: Self = Self(0);
@@ -78,17 +74,17 @@ impl Square {
     pub const G1: Self = Self(6);
     pub const H1: Self = Self(7);
     pub const A2: Self = Self(8);
-    pub const B2: Self = Self(9); 
-    pub const C2: Self = Self(10); 
+    pub const B2: Self = Self(9);
+    pub const C2: Self = Self(10);
     pub const D2: Self = Self(11);
-    pub const E2: Self = Self(12); 
-    pub const F2: Self = Self(13); 
-    pub const G2: Self = Self(14); 
+    pub const E2: Self = Self(12);
+    pub const F2: Self = Self(13);
+    pub const G2: Self = Self(14);
     pub const H2: Self = Self(15);
     pub const A3: Self = Self(16);
-    pub const B3: Self = Self(17); 
-    pub const C3: Self = Self(18); 
-    pub const D3: Self = Self(19); 
+    pub const B3: Self = Self(17);
+    pub const C3: Self = Self(18);
+    pub const D3: Self = Self(19);
     pub const E3: Self = Self(20);
     pub const F3: Self = Self(21);
     pub const G3: Self = Self(22);
@@ -134,10 +130,6 @@ impl Square {
     pub const G8: Self = Self(62);
     pub const H8: Self = Self(63);
 
-    pub const fn new(n: u8) -> Self {
-        Self(n)
-    }
-
     pub const fn as_bitboard(self) -> Bitboard {
         Bitboard { data: 1 << self.0 }
     }
@@ -145,7 +137,7 @@ impl Square {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct Bitboard {
-    data: u64
+    data: u64,
 }
 
 impl Bitboard {
@@ -162,7 +154,9 @@ impl Bitboard {
     }
 
     const fn lsb_as_bitboard(self) -> Self {
-        Self { data: self.data & ((!self.data) + 1) }
+        Self {
+            data: self.data & ((!self.data) + 1),
+        }
     }
 
     fn reset_lsb(&mut self) {
@@ -176,31 +170,37 @@ impl Bitboard {
 
 impl BitAnd for Bitboard {
     type Output = Self;
-    
+
     fn bitand(self, rhs: Self) -> Self::Output {
-        Self { data: self.data & rhs.data }
+        Self {
+            data: self.data & rhs.data,
+        }
     }
 }
 
 impl BitOr for Bitboard {
     type Output = Self;
-    
+
     fn bitor(self, rhs: Self) -> Self::Output {
-        Self{ data: self.data | rhs.data }
+        Self {
+            data: self.data | rhs.data,
+        }
     }
 }
 
 impl BitXor for Bitboard {
     type Output = Self;
-    
+
     fn bitxor(self, rhs: Self) -> Self::Output {
-        Self{ data: self.data ^ rhs.data }
+        Self {
+            data: self.data ^ rhs.data,
+        }
     }
 }
 
 impl Not for Bitboard {
     type Output = Self;
-    
+
     fn not(self) -> Self::Output {
         Self { data: !self.data }
     }
@@ -222,7 +222,7 @@ pub struct Board {
 const fn fen_index_as_bitboard(i: u8) -> Bitboard {
     let row = 7 - (i / 8);
     let col = i % 8;
-    Square(row * 8 + col).as_bitboard() 
+    Square(row * 8 + col).as_bitboard()
 }
 
 impl Board {
@@ -230,10 +230,14 @@ impl Board {
         for i in 0..NUM_SQUARES {
             let bitset = fen_index_as_bitboard(i);
             let mut ch = '.';
-            
+
             for piece in 0..NUM_PIECES {
                 if bitset.overlaps(self.pieces[piece as usize]) {
-                    let color = if bitset.overlaps(self.all[Color::White as usize]) { Color::White } else { Color::Black };
+                    let color = if bitset.overlaps(self.all[Color::White as usize]) {
+                        Color::White
+                    } else {
+                        Color::Black
+                    };
                     ch = Piece(piece).as_char(color).unwrap();
                 }
             }
@@ -261,7 +265,6 @@ impl Board {
                 let digit = ch.to_digit(10).unwrap();
                 assert!((1..9).contains(&digit), "Invalid FEN number");
                 i += digit as u8;
-
             } else if ch.is_alphabetic() {
                 match ch.to_lowercase().next().unwrap() {
                     'n' => board.pieces[Piece::KNIGHT.as_index()] |= bitset,
@@ -270,23 +273,25 @@ impl Board {
                     'q' => board.pieces[Piece::QUEEN.as_index()] |= bitset,
                     'p' => board.pieces[Piece::PAWN.as_index()] |= bitset,
                     'k' => board.pieces[Piece::KING.as_index()] |= bitset,
-                    _ => panic!("Invalid FEN")
+                    _ => panic!("Invalid FEN"),
                 };
-                
+
                 if ch.is_uppercase() {
-                    board.all[Color::White as usize] |= bitset; 
+                    board.all[Color::White as usize] |= bitset;
                 } else {
-                    board.all[Color::Black as usize] |= bitset; 
+                    board.all[Color::Black as usize] |= bitset;
                 }
 
                 i += 1;
-                
             } else if ch != '/' {
                 panic!("Invalid FEN character");
             }
         }
 
-        assert!(color_char == 'w' || color_char == 'b', "Invalid color specifier");
+        assert!(
+            color_char == 'w' || color_char == 'b',
+            "Invalid color specifier"
+        );
         if color_char == 'b' {
             board.color_to_move = Color::Black;
         }
@@ -297,14 +302,18 @@ impl Board {
     fn to_fen(&self) -> String {
         let mut pos = String::new();
         let mut blank_space: u8 = 0;
-        
+
         for i in 0..NUM_SQUARES {
             let bitset = fen_index_as_bitboard(i);
             blank_space += 1;
 
             for piece in 0..NUM_PIECES {
                 if bitset.overlaps(self.pieces[piece as usize]) {
-                    let color = if bitset.overlaps(self.all[Color::White as usize]) { Color::White } else { Color::Black };
+                    let color = if bitset.overlaps(self.all[Color::White as usize]) {
+                        Color::White
+                    } else {
+                        Color::Black
+                    };
                     let ch = Piece(piece).as_char(color).unwrap();
                     blank_space -= 1;
 
@@ -329,7 +338,11 @@ impl Board {
             }
         }
 
-        let color_char = if self.color_to_move == Color::White { 'w' } else { 'b' };
+        let color_char = if self.color_to_move == Color::White {
+            'w'
+        } else {
+            'b'
+        };
 
         // TODO: handle these later
         let castling_rights = "KQkq";
@@ -343,7 +356,7 @@ impl Board {
 
 #[cfg(test)]
 mod tests {
-    use super::{Bitboard, Square, Board, START_FEN, Color};
+    use super::{Bitboard, Board, Color, Square, START_FEN};
 
     #[test]
     fn bit_and_works() {
@@ -371,8 +384,12 @@ mod tests {
 
     #[test]
     fn bit_not_works() {
-        let bb = Bitboard { data: 0xFFFF0000FFFF0000 };
-        let expected = Bitboard { data: 0x0000FFFF0000FFFF };
+        let bb = Bitboard {
+            data: 0xFFFF0000FFFF0000,
+        };
+        let expected = Bitboard {
+            data: 0x0000FFFF0000FFFF,
+        };
         assert_eq!(!bb, expected);
     }
 
@@ -383,29 +400,39 @@ mod tests {
 
         let bb1 = Bitboard { data: data1 };
         let bb2 = Bitboard { data: data2 };
-        let expected = Bitboard { data: data1 & !data2 };
+        let expected = Bitboard {
+            data: data1 & !data2,
+        };
         assert_eq!(bb1 & !bb2, expected);
     }
 
     #[test]
     fn sq_to_bb_works() {
         let bitset = Square::A3.as_bitboard();
-        let expected = Bitboard { data: 0b00010000000000000000 };
+        let expected = Bitboard {
+            data: 0b00010000000000000000,
+        };
         assert_eq!(bitset, expected);
     }
 
     #[test]
     fn lsb_as_bitboard_works() {
-        let bb = Bitboard { data: 0b0111100111000 };
+        let bb = Bitboard {
+            data: 0b0111100111000,
+        };
         let expected = Bitboard { data: 0b01000 };
         assert_eq!(bb.lsb_as_bitboard(), expected);
     }
 
     #[test]
     fn reset_lsb_works() {
-        let mut bb = Bitboard { data: 0b0111100111000 };
+        let mut bb = Bitboard {
+            data: 0b0111100111000,
+        };
         bb.reset_lsb();
-        let expected = Bitboard { data: 0b0111100110000 };
+        let expected = Bitboard {
+            data: 0b0111100110000,
+        };
         assert_eq!(bb, expected);
     }
 
@@ -413,14 +440,26 @@ mod tests {
     fn correctly_interprets_startpos_fen() {
         let actual = Board::from_fen(START_FEN);
 
-        let white = Bitboard { data: 0x000000000000ffff };
-        let black = Bitboard { data: 0xffff000000000000 };
+        let white = Bitboard {
+            data: 0x000000000000ffff,
+        };
+        let black = Bitboard {
+            data: 0xffff000000000000,
+        };
 
-        let knights = Bitboard { data: 0x4200000000000042 };
-        let bishops = Bitboard { data: 0x2400000000000024 };
-        let rooks = Bitboard { data: 0x8100000000000081 };
+        let knights = Bitboard {
+            data: 0x4200000000000042,
+        };
+        let bishops = Bitboard {
+            data: 0x2400000000000024,
+        };
+        let rooks = Bitboard {
+            data: 0x8100000000000081,
+        };
         let queens = Square::D1.as_bitboard() | Square::D8.as_bitboard();
-        let pawns = Bitboard { data: 0x00ff00000000ff00 };
+        let pawns = Bitboard {
+            data: 0x00ff00000000ff00,
+        };
         let kings = Square::E1.as_bitboard() | Square::E8.as_bitboard();
 
         let expected = Board {
