@@ -6,7 +6,7 @@ type File = u8;
 pub const NUM_SQUARES: u8 = 64;
 pub const NUM_PIECES: u8 = 6;
 pub const NUM_COLORS: u8 = 2;
-pub const START_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+pub const START_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0";
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub enum Color {
@@ -315,7 +315,7 @@ impl Board {
         let castling_rights = "KQkq";
         let ep = "-";
         let halfmoves = "0";
-        let fullmoves = '1';
+        let fullmoves = '0';
 
         format!("{pos} {color_char} {castling_rights} {ep} {halfmoves} {fullmoves}")
     }
