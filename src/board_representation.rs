@@ -144,7 +144,7 @@ const fn fen_index_as_bitboard(i: u8) -> Bitboard {
 }
 
 impl Bitboard {
-    const fn not_empty(self) -> bool {
+    const fn is_not_empty(self) -> bool {
         self.data > 0
     }
 
@@ -164,9 +164,8 @@ impl Bitboard {
         self.data = self.data & (self.data - 1);
     }
 
-    fn bit_is_set(self, pos: u32) -> bool {
-        let bitset = Self { data: 1 << pos };
-        (self & bitset).not_empty()
+    fn overlaps(self, rhs: Self) -> bool {
+        (self & rhs).is_not_empty()
     }
 }
 
@@ -211,12 +210,12 @@ impl BitOrAssign for Bitboard {
 impl Board {
     fn print(&self) {
         for i in 0..NUM_SQUARES {
-            let bb = fen_index_as_bitboard(i);
+            let bitset = fen_index_as_bitboard(i);
             let mut ch = '.';
             
             for piece in 0..NUM_PIECES {
-                if (self.pieces[piece as usize] & bb).not_empty() {
-                    let color = if (self.all[Color::White as usize] & bb).not_empty() { Color::White } else { Color::Black };
+                if bitset.overlaps(self.pieces[piece as usize]) {
+                    let color = if bitset.overlaps(self.all[Color::White as usize]) { Color::White } else { Color::Black };
                     ch = Piece(piece).as_char(color).unwrap();
                 }
             }
@@ -238,7 +237,7 @@ impl Board {
 
         for ch in board_info_string {
             assert!(i < NUM_SQUARES);
-            let bb = fen_index_as_bitboard(i);
+            let bitset = fen_index_as_bitboard(i);
 
             if ch.is_numeric() {
                 let digit = ch.to_digit(10).unwrap();
@@ -247,19 +246,19 @@ impl Board {
 
             } else if ch.is_alphabetic() {
                 match ch.to_lowercase().next().unwrap() {
-                    'n' => board.pieces[Piece::KNIGHT.as_index()] |= bb,
-                    'b' => board.pieces[Piece::BISHOP.as_index()] |= bb,
-                    'r' => board.pieces[Piece::ROOK.as_index()] |= bb,
-                    'q' => board.pieces[Piece::QUEEN.as_index()] |= bb,
-                    'p' => board.pieces[Piece::PAWN.as_index()] |= bb,
-                    'k' => board.pieces[Piece::KING.as_index()] |= bb,
+                    'n' => board.pieces[Piece::KNIGHT.as_index()] |= bitset,
+                    'b' => board.pieces[Piece::BISHOP.as_index()] |= bitset,
+                    'r' => board.pieces[Piece::ROOK.as_index()] |= bitset,
+                    'q' => board.pieces[Piece::QUEEN.as_index()] |= bitset,
+                    'p' => board.pieces[Piece::PAWN.as_index()] |= bitset,
+                    'k' => board.pieces[Piece::KING.as_index()] |= bitset,
                     _ => panic!("Invalid FEN")
                 };
                 
                 if ch.is_uppercase() {
-                    board.all[Color::White as usize] |= bb; 
+                    board.all[Color::White as usize] |= bitset; 
                 } else {
-                    board.all[Color::Black as usize] |= bb; 
+                    board.all[Color::Black as usize] |= bitset; 
                 }
 
                 i += 1;
@@ -363,7 +362,7 @@ mod tests {
             pieces: [knights, bishops, rooks, queens, pawns, kings],
             color_to_move: Color::White,
         };
-        
+
         assert_eq!(actual, expected);
     }
 }
