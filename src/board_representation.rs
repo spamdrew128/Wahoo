@@ -15,24 +15,6 @@ pub enum Color {
     Black,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
-struct Piece(u8);
-
-#[derive(Copy, Clone)]
-struct Square(u8);
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-pub struct Bitboard {
-    data: u64
-}
-
-#[derive(Debug, Default, PartialEq, Eq)]
-pub struct Board {
-    pub all: [Bitboard; NUM_COLORS as usize],
-    pub pieces: [Bitboard; NUM_PIECES as usize],
-    pub color_to_move: Color,
-}
-
 impl Not for Color {
     type Output = Self;
     
@@ -43,6 +25,9 @@ impl Not for Color {
         }
     }
 }
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+struct Piece(u8);
 
 impl Piece {
     pub const KNIGHT: Self = Self(0);
@@ -75,6 +60,9 @@ impl Piece {
         self.0 as usize
     }
 }
+
+#[derive(Copy, Clone)]
+struct Square(u8);
 
 impl Square {
     pub const A1: Self = Self(0);
@@ -147,6 +135,11 @@ impl Square {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub struct Bitboard {
+    data: u64
+}
+
 impl Bitboard {
     const fn is_not_empty(self) -> bool {
         self.data > 0
@@ -209,6 +202,13 @@ impl BitOrAssign for Bitboard {
     fn bitor_assign(&mut self, rhs: Self) {
         self.data |= rhs.data;
     }
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Board {
+    pub all: [Bitboard; NUM_COLORS as usize],
+    pub pieces: [Bitboard; NUM_PIECES as usize],
+    pub color_to_move: Color,
 }
 
 const fn fen_index_as_bitboard(i: u8) -> Bitboard {
