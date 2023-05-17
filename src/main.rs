@@ -5,6 +5,7 @@
 
 mod board_representation;
 mod chess_move;
+mod util_macros;
 fn main() {
     println!("Hello, world!");
 }

@@ -20,41 +20,41 @@ impl Move {
 
     const fn new_default(to: Square, from: Square) -> Self {
         Self {
-            data: (to.0 as u16) | ((from.0 as u16) << Self::FROM_OFFSET),
+            data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET),
         }
     }
 
     const fn new_promo(to: Square, from: Square, promo_piece: Piece) -> Self {
         Self {
-            data: (to.0 as u16)
-                | ((from.0 as u16) << Self::FROM_OFFSET)
-                | ((promo_piece.0 as u16) << Self::PROMO_OFFSET)
+            data: to.as_u16()
+                | (from.as_u16() << Self::FROM_OFFSET)
+                | ((promo_piece.as_u16()) << Self::PROMO_OFFSET)
                 | Self::PROMO_FLAG,
         }
     }
 
     const fn new_castle(to: Square, from: Square) -> Self {
         Self {
-            data: (to.0 as u16) | ((from.0 as u16) << Self::FROM_OFFSET) | Self::CASTLE_FLAG,
+            data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET) | Self::CASTLE_FLAG,
         }
     }
 
     const fn new_ep(to: Square, from: Square) -> Self {
         Self {
-            data: (to.0 as u16) | ((from.0 as u16) << Self::FROM_OFFSET) | Self::EP_FLAG,
+            data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET) | Self::EP_FLAG,
         }
     }
 
     const fn to(self) -> Square {
-        Square((self.data & Self::TO_BITFIELD) as u8)
+        Square::new((self.data & Self::TO_BITFIELD) as u8)
     }
 
     const fn from(self) -> Square {
-        Square(((self.data & Self::FROM_BITFIELD) >> Self::FROM_OFFSET) as u8)
+        Square::new(((self.data & Self::FROM_BITFIELD) >> Self::FROM_OFFSET) as u8)
     }
 
     const fn promo_piece(self) -> Piece {
-        Piece(((self.data & Self::PROMO_BITFIELD) >> Self::PROMO_OFFSET) as u8)
+        Piece::new(((self.data & Self::PROMO_BITFIELD) >> Self::PROMO_OFFSET) as u8)
     }
 
     const fn is_castle(self) -> bool {

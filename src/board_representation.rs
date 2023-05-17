@@ -27,7 +27,7 @@ impl Not for Color {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct Piece(pub u8);
+pub struct Piece(u8);
 
 impl Piece {
     pub const KNIGHT: Self = Self(0);
@@ -37,6 +37,10 @@ impl Piece {
     pub const PAWN: Self = Self(4);
     pub const KING: Self = Self(5);
     pub const NONE_PIECE: Self = Self(6);
+
+    pub const fn new(data: u8) -> Self {
+        Self(data)
+    }
 
     fn as_char(self, color: Color) -> Option<char> {
         let mut ch = match self {
@@ -59,10 +63,14 @@ impl Piece {
     const fn as_index(self) -> usize {
         self.0 as usize
     }
+
+    pub const fn as_u16(self) -> u16 {
+        self.0 as u16
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct Square(pub u8);
+pub struct Square(u8);
 
 impl Square {
     pub const A1: Self = Self(0);
@@ -130,8 +138,16 @@ impl Square {
     pub const G8: Self = Self(62);
     pub const H8: Self = Self(63);
 
+    pub const fn new(data: u8) -> Self {
+        Self(data)
+    }
+
     pub const fn as_bitboard(self) -> Bitboard {
         Bitboard { data: 1 << self.0 }
+    }
+
+    pub const fn as_u16(self) -> u16 {
+        self.0 as u16
     }
 }
 
