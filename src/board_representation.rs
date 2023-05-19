@@ -244,7 +244,7 @@ impl Not for Bitboard {
 
 impl BitOrAssign for Bitboard {
     fn bitor_assign(&mut self, rhs: Self) {
-        *self = self.union(rhs);
+        self.data |= rhs.data;
     }
 }
 
