@@ -95,7 +95,7 @@ impl Square {
     }
 
     pub const fn as_bitboard(self) -> Bitboard {
-        Bitboard { data: 1 << self.0 }
+        Bitboard::new(1 << self.0)
     }
 
     pub const fn as_u16(self) -> u16 {
@@ -109,12 +109,12 @@ pub struct Bitboard {
 }
 
 impl Bitboard {
-    pub const A_FILE: Self = Self {
-        data: 0x0101010101010101,
-    };
-    pub const H_FILE: Self = Self {
-        data: 0x8080808080808080,
-    };
+    pub const A_FILE: Self = Self::new(0x0101010101010101);
+    pub const H_FILE: Self = Self::new(0x8080808080808080);
+
+    const fn new(data: u64) -> Self {
+        Self { data }
+    }
 
     // redundant implementations for const operations
     const fn complement(self) -> Self {
