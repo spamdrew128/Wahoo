@@ -116,7 +116,7 @@ impl Bitboard {
         data: 0x8080808080808080,
     };
 
-    // redundant implementations are needed for const operations
+    // redundant implementations for const operations
     const fn complement(self) -> Self {
         Self { data: !self.data }
     }
@@ -192,15 +192,15 @@ impl Bitboard {
     }
 
     const fn southwest_one(self) -> Self {
-        self.intersection(Self::H_FILE.complement()).r_shift(9)
+        self.intersection(Self::A_FILE.complement()).r_shift(9)
     }
 
     const fn west_one(self) -> Self {
-        self.intersection(Self::H_FILE.complement()).r_shift(1)
+        self.intersection(Self::A_FILE.complement()).r_shift(1)
     }
 
     const fn northwest_one(self) -> Self {
-        self.intersection(Self::H_FILE.complement()).l_shift(7)
+        self.intersection(Self::A_FILE.complement()).l_shift(7)
     }
 }
 
