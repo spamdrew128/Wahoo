@@ -133,6 +133,12 @@ impl Bitboard {
         }
     }
 
+    const fn xor(self, rhs: Self) -> Self {
+        Self {
+            data: self.data ^ rhs.data,
+        }
+    }
+
     const fn l_shift(self, shift: u8) -> Self {
         Self {
             data: self.data << shift,
@@ -208,9 +214,7 @@ impl BitAnd for Bitboard {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
-        Self {
-            data: self.data & rhs.data,
-        }
+        self.intersection(rhs)
     }
 }
 
@@ -218,9 +222,7 @@ impl BitOr for Bitboard {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
-        Self {
-            data: self.data | rhs.data,
-        }
+        self.union(rhs)
     }
 }
 
@@ -228,9 +230,7 @@ impl BitXor for Bitboard {
     type Output = Self;
 
     fn bitxor(self, rhs: Self) -> Self::Output {
-        Self {
-            data: self.data ^ rhs.data,
-        }
+        self.xor(rhs)
     }
 }
 
@@ -238,13 +238,13 @@ impl Not for Bitboard {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        Self { data: !self.data }
+        self.complement()
     }
 }
 
 impl BitOrAssign for Bitboard {
     fn bitor_assign(&mut self, rhs: Self) {
-        self.data |= rhs.data;
+        *self = self.union(rhs);
     }
 }
 
