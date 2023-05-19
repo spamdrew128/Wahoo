@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, Not, Shl, Shr};
+use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, Not};
 
 use crate::tuple_constants_enum;
 
@@ -109,8 +109,48 @@ pub struct Bitboard {
 }
 
 impl Bitboard {
+    pub const A_FILE: Self = Self {
+        data: 0x0101010101010101,
+    };
+    pub const H_FILE: Self = Self {
+        data: 0x8080808080808080,
+    };
+
+    // redundant implementations are needed for const operations
+    const fn complement(self) -> Self {
+        Self { data: !self.data }
+    }
+
+    const fn union(self, rhs: Self) -> Self {
+        Self {
+            data: self.data | rhs.data,
+        }
+    }
+
+    const fn intersection(self, rhs: Self) -> Self {
+        Self {
+            data: self.data & rhs.data,
+        }
+    }
+
+    const fn l_shift(self, shift: u8) -> Self {
+        Self {
+            data: self.data << shift,
+        }
+    }
+
+    const fn r_shift(self, shift: u8) -> Self {
+        Self {
+            data: self.data >> shift,
+        }
+    }
+
     const fn is_not_empty(self) -> bool {
         self.data > 0
+    }
+
+    const fn overlaps(self, rhs: Self) -> bool {
+        self.intersection(rhs).is_not_empty()
     }
 
     const fn popcount(self) -> u32 {
@@ -131,8 +171,36 @@ impl Bitboard {
         self.data = self.data & (self.data - 1);
     }
 
-    fn overlaps(self, rhs: Self) -> bool {
-        (self & rhs).is_not_empty()
+    const fn north_one(self) -> Self {
+        self.l_shift(8)
+    }
+
+    const fn northeast_one(self) -> Self {
+        self.intersection(Self::H_FILE.complement()).l_shift(9)
+    }
+
+    const fn east_one(self) -> Self {
+        self.intersection(Self::H_FILE.complement()).l_shift(1)
+    }
+
+    const fn southeast_one(self) -> Self {
+        self.intersection(Self::H_FILE.complement()).r_shift(7)
+    }
+
+    const fn south_one(self) -> Self {
+        self.r_shift(8)
+    }
+
+    const fn southwest_one(self) -> Self {
+        self.intersection(Self::H_FILE.complement()).r_shift(9)
+    }
+
+    const fn west_one(self) -> Self {
+        self.intersection(Self::H_FILE.complement()).r_shift(1)
+    }
+
+    const fn northwest_one(self) -> Self {
+        self.intersection(Self::H_FILE.complement()).l_shift(7)
     }
 }
 
@@ -177,26 +245,6 @@ impl Not for Bitboard {
 impl BitOrAssign for Bitboard {
     fn bitor_assign(&mut self, rhs: Self) {
         self.data |= rhs.data;
-    }
-}
-
-impl Shl<u8> for Bitboard {
-    type Output = Self;
-
-    fn shl(self, rhs: u8) -> Self::Output {
-        Self {
-            data: self.data << rhs,
-        }
-    }
-}
-
-impl Shr<u8> for Bitboard {
-    type Output = Self;
-
-    fn shr(self, rhs: u8) -> Self::Output {
-        Self {
-            data: self.data >> rhs,
-        }
     }
 }
 
