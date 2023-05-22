@@ -167,20 +167,15 @@ impl Bitboard {
         self.data.count_ones()
     }
 
-    fn lsb_as_square(self) -> Square {
-        debug_assert!(self.is_not_empty());
-        Square::new(self.data.trailing_zeros() as u8)
-    }
-
-    fn lsb_as_bitboard(self) -> Self {
-        debug_assert!(self.is_not_empty());
-        Self {
-            data: self.data & ((!self.data) + 1),
-        }
-    }
-
     fn reset_lsb(&mut self) {
         self.data = self.data & (self.data - 1);
+    }
+
+    fn pop_lsb(&mut self) -> Square {
+        debug_assert!(self.is_not_empty());
+        let sq = Square::new(self.data.trailing_zeros() as u8);
+        self.reset_lsb();
+        sq
     }
 
     pub const fn north_one(self) -> Self {
@@ -427,39 +422,40 @@ impl Board {
 #[cfg(test)]
 mod tests {
     use super::{Bitboard, Board, Color, Square, START_FEN};
+    use crate::bb_from_squares;
 
     #[test]
     fn bit_and_works() {
-        let bb1 = Bitboard { data: 0b111 };
-        let bb2 = Bitboard { data: 0b101 };
-        let expected = Bitboard { data: 0b101 };
+        let bb1 = Bitboard::new(0b111);
+        let bb2 = Bitboard::new(0b101);
+        let expected = Bitboard::new(0b101);
+
         assert_eq!(bb1 & bb2, expected);
     }
 
     #[test]
     fn bit_or_works() {
-        let bb1 = Bitboard { data: 0b011 };
-        let bb2 = Bitboard { data: 0b101 };
-        let expected = Bitboard { data: 0b111 };
+        let bb1 = Bitboard::new(0b011);
+        let bb2 = Bitboard::new(0b101);
+        let expected = Bitboard::new(0b111);
+
         assert_eq!(bb1 | bb2, expected);
     }
 
     #[test]
     fn bit_xor_works() {
-        let bb1 = Bitboard { data: 0b011 };
-        let bb2 = Bitboard { data: 0b101 };
-        let expected = Bitboard { data: 0b110 };
+        let bb1 = Bitboard::new(0b011);
+        let bb2 = Bitboard::new(0b101);
+        let expected = Bitboard::new(0b110);
+
         assert_eq!(bb1 ^ bb2, expected);
     }
 
     #[test]
     fn bit_not_works() {
-        let bb = Bitboard {
-            data: 0xFFFF0000FFFF0000,
-        };
-        let expected = Bitboard {
-            data: 0x0000FFFF0000FFFF,
-        };
+        let bb = Bitboard::new(0xFFFF0000FFFF0000);
+        let expected = Bitboard::new(0x0000FFFF0000FFFF);
+
         assert_eq!(!bb, expected);
     }
 
@@ -468,69 +464,46 @@ mod tests {
         let data1: u64 = 894378932;
         let data2: u64 = 18981928111;
 
-        let bb1 = Bitboard { data: data1 };
-        let bb2 = Bitboard { data: data2 };
-        let expected = Bitboard {
-            data: data1 & !data2,
-        };
+        let bb1 = Bitboard::new(data1);
+        let bb2 = Bitboard::new(data2);
+        let expected = Bitboard::new(data1 & !data2);
+
         assert_eq!(bb1 & !bb2, expected);
     }
 
     #[test]
     fn sq_to_bb_works() {
         let bitset = Square::A3.as_bitboard();
-        let expected = Bitboard {
-            data: 0b00010000000000000000,
-        };
+        let expected = Bitboard::new(0b00010000000000000000);
+
         assert_eq!(bitset, expected);
     }
 
     #[test]
-    fn lsb_as_bitboard_works() {
-        let bb = Bitboard {
-            data: 0b0111100111000,
-        };
-        let expected = Bitboard { data: 0b01000 };
-        assert_eq!(bb.lsb_as_bitboard(), expected);
-    }
+    fn pop_lsb_works() {
+        let mut bb = Bitboard::new(0b0111100111000);
+        let sq = bb.pop_lsb();
 
-    #[test]
-    fn reset_lsb_works() {
-        let mut bb = Bitboard {
-            data: 0b0111100111000,
-        };
-        bb.reset_lsb();
-        let expected = Bitboard {
-            data: 0b0111100110000,
-        };
-        assert_eq!(bb, expected);
+        let expected_bb = Bitboard::new(0b0111100110000);
+        let expected_sq = Square::new(3);
+
+        assert_eq!(bb, expected_bb);
+        assert_eq!(sq, expected_sq);
     }
 
     #[test]
     fn correctly_interprets_startpos_fen() {
         let actual = Board::from_fen(START_FEN);
 
-        let white = Bitboard {
-            data: 0x000000000000ffff,
-        };
-        let black = Bitboard {
-            data: 0xffff000000000000,
-        };
+        let white = Bitboard::new(0x000000000000ffff);
+        let black = Bitboard::new(0xffff000000000000);
 
-        let knights = Bitboard {
-            data: 0x4200000000000042,
-        };
-        let bishops = Bitboard {
-            data: 0x2400000000000024,
-        };
-        let rooks = Bitboard {
-            data: 0x8100000000000081,
-        };
-        let queens = Square::D1.as_bitboard() | Square::D8.as_bitboard();
-        let pawns = Bitboard {
-            data: 0x00ff00000000ff00,
-        };
-        let kings = Square::E1.as_bitboard() | Square::E8.as_bitboard();
+        let knights = Bitboard::new(0x4200000000000042);
+        let bishops = Bitboard::new(0x2400000000000024);
+        let rooks = Bitboard::new(0x8100000000000081);
+        let queens = bb_from_squares!(D1, D8);
+        let pawns = Bitboard::new(0x00ff00000000ff00);
+        let kings = bb_from_squares!(E1, E8);
 
         let expected = Board {
             all: [white, black],
