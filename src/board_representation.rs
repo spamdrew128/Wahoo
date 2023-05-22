@@ -112,7 +112,7 @@ impl Bitboard {
     pub const A_FILE: Self = Self::new(0x0101010101010101);
     pub const H_FILE: Self = Self::new(0x8080808080808080);
 
-    const fn new(data: u64) -> Self {
+    pub const fn new(data: u64) -> Self {
         Self { data }
     }
 
@@ -121,7 +121,7 @@ impl Bitboard {
         Self { data: !self.data }
     }
 
-    const fn union(self, rhs: Self) -> Self {
+    pub const fn union(self, rhs: Self) -> Self {
         Self {
             data: self.data | rhs.data,
         }
@@ -177,35 +177,35 @@ impl Bitboard {
         self.data = self.data & (self.data - 1);
     }
 
-    const fn north_one(self) -> Self {
+    pub const fn north_one(self) -> Self {
         self.l_shift(8)
     }
 
-    const fn northeast_one(self) -> Self {
+    pub const fn northeast_one(self) -> Self {
         self.intersection(Self::H_FILE.complement()).l_shift(9)
     }
 
-    const fn east_one(self) -> Self {
+    pub const fn east_one(self) -> Self {
         self.intersection(Self::H_FILE.complement()).l_shift(1)
     }
 
-    const fn southeast_one(self) -> Self {
+    pub const fn southeast_one(self) -> Self {
         self.intersection(Self::H_FILE.complement()).r_shift(7)
     }
 
-    const fn south_one(self) -> Self {
+    pub const fn south_one(self) -> Self {
         self.r_shift(8)
     }
 
-    const fn southwest_one(self) -> Self {
+    pub const fn southwest_one(self) -> Self {
         self.intersection(Self::A_FILE.complement()).r_shift(9)
     }
 
-    const fn west_one(self) -> Self {
+    pub const fn west_one(self) -> Self {
         self.intersection(Self::A_FILE.complement()).r_shift(1)
     }
 
-    const fn northwest_one(self) -> Self {
+    pub const fn northwest_one(self) -> Self {
         self.intersection(Self::A_FILE.complement()).l_shift(7)
     }
 }
