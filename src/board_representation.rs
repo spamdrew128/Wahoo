@@ -212,7 +212,7 @@ impl Bitboard {
     pub const fn shift_north(self, shift: u8) -> Self {
         self.l_shift(8 * shift)
     }
-    
+
     pub const fn shift_south(self, shift: u8) -> Self {
         self.r_shift(8 * shift)
     }

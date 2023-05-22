@@ -26,12 +26,9 @@ pub const KING_ATTACKS: [Bitboard; NUM_SQUARES as usize] = init_lookup!(|sq|, {
 
 pub const KNIGHT_ATTACKS: [Bitboard; NUM_SQUARES as usize] = init_lookup!(|sq|, {
     let bitset = Square::new(sq).as_bitboard();
-    bitset.north_one()
-        .union(bitset.northeast_one())
-        .union(bitset.east_one())
-        .union(bitset.southeast_one())
-        .union(bitset.south_one())
-        .union(bitset.southwest_one())
-        .union(bitset.west_one())
-        .union(bitset.northwest_one())
+    let vert = bitset.shift_north(2).union(bitset.shift_south(2));
+    let horiz = bitset.no_wrap_shift_east(2).union(bitset.no_wrap_shift_west(2));
+
+    vert.west_one().union(vert.east_one())
+        .union(horiz.north_one().union(horiz.south_one()))
 });
