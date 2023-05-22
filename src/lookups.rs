@@ -12,7 +12,7 @@ macro_rules! init_lookup {
     }};
 }
 
-pub const KING_ATTACKS: [Bitboard; NUM_SQUARES as usize] = init_lookup!(|sq|, {
+const KING_ATTACKS: [Bitboard; NUM_SQUARES as usize] = init_lookup!(|sq|, {
     let bitset = Square::new(sq).as_bitboard();
     bitset.north_one()
         .union(bitset.northeast_one())
@@ -24,7 +24,7 @@ pub const KING_ATTACKS: [Bitboard; NUM_SQUARES as usize] = init_lookup!(|sq|, {
         .union(bitset.northwest_one())
 });
 
-pub const KNIGHT_ATTACKS: [Bitboard; NUM_SQUARES as usize] = init_lookup!(|sq|, {
+const KNIGHT_ATTACKS: [Bitboard; NUM_SQUARES as usize] = init_lookup!(|sq|, {
     let bitset = Square::new(sq).as_bitboard();
     let vert = bitset.shift_north(2).union(bitset.shift_south(2));
     let horiz = bitset.no_wrap_shift_east(2).union(bitset.no_wrap_shift_west(2));
