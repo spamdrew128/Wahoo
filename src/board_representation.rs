@@ -101,6 +101,10 @@ impl Square {
     pub const fn as_u16(self) -> u16 {
         self.0 as u16
     }
+
+    pub const fn as_index(self) -> usize {
+        self.0 as usize
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
@@ -163,11 +167,13 @@ impl Bitboard {
         self.data.count_ones()
     }
 
-    const fn lsb(self) -> u32 {
-        self.data.trailing_zeros()
+    fn lsb_as_square(self) -> Square {
+        debug_assert!(self.is_not_empty());
+        Square::new(self.data.trailing_zeros() as u8)
     }
 
-    const fn lsb_as_bitboard(self) -> Self {
+    fn lsb_as_bitboard(self) -> Self {
+        debug_assert!(self.is_not_empty());
         Self {
             data: self.data & ((!self.data) + 1),
         }
