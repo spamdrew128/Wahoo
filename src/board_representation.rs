@@ -208,6 +208,34 @@ impl Bitboard {
     pub const fn northwest_one(self) -> Self {
         self.intersection(Self::A_FILE.complement()).l_shift(7)
     }
+
+    pub const fn shift_north(self, shift: u8) -> Self {
+        self.l_shift(8 * shift)
+    }
+    
+    pub const fn shift_south(self, shift: u8) -> Self {
+        self.r_shift(8 * shift)
+    }
+
+    pub const fn no_wrap_shift_east(self, count: u8) -> Self {
+        let mut result = self;
+        let mut i = 0;
+        while i < count {
+            result = result.east_one();
+            i += 1;
+        }
+        result
+    }
+
+    pub const fn no_wrap_shift_west(self, count: u8) -> Self {
+        let mut result = self;
+        let mut i = 0;
+        while i < count {
+            result = result.west_one();
+            i += 1;
+        }
+        result
+    }
 }
 
 impl BitAnd for Bitboard {
