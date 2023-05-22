@@ -38,33 +38,33 @@ pub const fn king_attacks(sq: Square) -> Bitboard {
 }
 
 pub const fn knight_attacks(sq: Square) -> Bitboard {
-    KING_ATTACKS[sq.as_index()]
+    KNIGHT_ATTACKS[sq.as_index()]
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Bitboard, Square, KING_ATTACKS, KNIGHT_ATTACKS};
+    use super::{king_attacks, knight_attacks, Bitboard, Square};
     use crate::bb_from_squares;
 
     #[test]
     fn king_lookup_test() {
         let pos_1 = Square::A1;
         let expected_1 = bb_from_squares!(A2, B2, B1);
-        assert_eq!(KING_ATTACKS[pos_1.as_index()], expected_1);
+        assert_eq!(king_attacks(pos_1), expected_1);
 
         let pos_2 = Square::E4;
         let expected_2 = bb_from_squares!(E3, E5, D3, D4, D5, F3, F4, F5);
-        assert_eq!(KING_ATTACKS[pos_2.as_index()], expected_2);
+        assert_eq!(king_attacks(pos_2), expected_2);
     }
 
     #[test]
     fn knight_lookup_test() {
         let pos_1 = Square::A1;
         let expected_1 = bb_from_squares!(C2, B3);
-        assert_eq!(KNIGHT_ATTACKS[pos_1.as_index()], expected_1);
+        assert_eq!(knight_attacks(pos_1), expected_1);
 
         let pos_2 = Square::E4;
         let expected_2 = bb_from_squares!(D2, F2, C3, G3, C5, G5, D6, F6);
-        assert_eq!(KNIGHT_ATTACKS[pos_2.as_index()], expected_2);
+        assert_eq!(knight_attacks(pos_2), expected_2);
     }
 }
