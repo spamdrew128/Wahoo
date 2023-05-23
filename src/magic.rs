@@ -345,22 +345,31 @@ pub const fn init_magic_lookup() -> MagicLookup {
 
         lookup.rook_entries[index].mask = rook_mask;
         lookup.rook_entries[index].magic = ROOK_MAGICS[index];
-        lookup.rook_entries[index].offset = ((NUM_SQUARES as u32) - rook_mask.popcount()) as usize;
+        lookup.rook_entries[index].shift = NUM_SQUARES - (rook_mask.popcount() as u8);
         let offset = offset_from_mask(rook_mask) + prev_offset;
         lookup.rook_entries[index].offset = offset;
         prev_offset = offset;
 
-        populate_magic_hash!(sq, lookup.rook_entries[index], lookup.hash_table, rook_attacks_from_blockers);
+        populate_magic_hash!(
+            sq,
+            lookup.rook_entries[index],
+            lookup.hash_table,
+            rook_attacks_from_blockers
+        );
 
         lookup.bishop_entries[index].mask = bishop_mask;
         lookup.bishop_entries[index].magic = BISHOP_MAGICS[index];
-        lookup.bishop_entries[index].offset =
-            ((NUM_SQUARES as u32) - bishop_mask.popcount()) as usize;
+        lookup.bishop_entries[index].shift = NUM_SQUARES - (bishop_mask.popcount() as u8);
         let offset = offset_from_mask(bishop_mask) + prev_offset;
         lookup.bishop_entries[index].offset = offset;
         prev_offset = offset;
 
-        populate_magic_hash!(sq, lookup.bishop_entries[index], lookup.hash_table, bishop_attacks_from_blockers);
+        populate_magic_hash!(
+            sq,
+            lookup.bishop_entries[index],
+            lookup.hash_table,
+            bishop_attacks_from_blockers
+        );
 
         i += 1;
     }
