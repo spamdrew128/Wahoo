@@ -1,4 +1,5 @@
 use crate::board_representation::{Bitboard, Square, NUM_SQUARES};
+use crate::magic;
 
 macro_rules! init_lookup {
     (|$sq:ident|, $body:expr) => {{
@@ -32,6 +33,8 @@ const KNIGHT_ATTACKS: [Bitboard; NUM_SQUARES as usize] = init_lookup!(|sq|, {
     vert.west_one().union(vert.east_one())
         .union(horiz.north_one().union(horiz.south_one()))
 });
+
+const MAGIC_LOOKUPS: magic::MagicLookup = magic::init_magic_lookup();
 
 pub const fn king_attacks(sq: Square) -> Bitboard {
     KING_ATTACKS[sq.as_index()]

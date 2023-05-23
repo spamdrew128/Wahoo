@@ -156,12 +156,12 @@ impl MagicEntry {
     }
 
     const fn hash_index(self, blockers: Bitboard) -> usize {
-        ((blockers.as_u64() * self.magic) >> self.shift) as usize
+        ((blockers.as_u64().wrapping_mul(self.magic)) >> self.shift) as usize
     }
 }
 
 #[derive(Debug)]
-struct MagicLookup {
+pub struct MagicLookup {
     rook_entries: [MagicEntry; NUM_SQUARES as usize],
     bishop_entries: [MagicEntry; NUM_SQUARES as usize],
     hash_table: [Bitboard; NUM_HASH_ENTRIES],
@@ -332,7 +332,7 @@ macro_rules! populate_magic_hash {
     };
 }
 
-const fn init_magic_lookup() {
+pub const fn init_magic_lookup() -> MagicLookup {
     let mut lookup = MagicLookup::new();
 
     let mut prev_offset = 0;
@@ -364,4 +364,6 @@ const fn init_magic_lookup() {
 
         i += 1;
     }
+
+    lookup
 }
