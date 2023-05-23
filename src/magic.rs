@@ -1,6 +1,7 @@
 use crate::board_representation::{Bitboard, NUM_SQUARES};
 
 type Magic = u64;
+const NUM_HASH_ENTRIES: usize = 107648;
 
 const fn rook_magics() -> [Magic; NUM_SQUARES as usize] {
     [
@@ -139,3 +140,40 @@ const fn bishop_magics() -> [Magic; NUM_SQUARES as usize] {
         0xc1021202020450,
     ]
 }
+
+#[derive(Debug, Copy, Clone)]
+struct MagicEntry {
+    mask: Bitboard,
+    magic: Magic,
+    shift: u8,
+    offset: usize,
+}
+
+impl MagicEntry {
+    const fn new() -> Self {
+        Self {
+            mask: Bitboard::new(0),
+            magic: 0,
+            shift: 0,
+            offset: 0,
+        }
+    }
+}
+
+#[derive(Debug)]
+struct MagicLookup {
+    rook_entries: [MagicEntry; NUM_SQUARES as usize],
+    bishop_entries: [MagicEntry; NUM_SQUARES as usize],
+    hash_table: [Bitboard; NUM_HASH_ENTRIES],
+}
+
+impl MagicLookup {
+    const fn new() -> Self {
+        Self {
+            rook_entries: [MagicEntry::new(); NUM_SQUARES as usize],
+            bishop_entries: [MagicEntry::new(); NUM_SQUARES as usize],
+            hash_table: [Bitboard::new(0); NUM_HASH_ENTRIES]
+        }
+    }
+}
+
