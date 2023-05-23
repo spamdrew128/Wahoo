@@ -177,6 +177,7 @@ const fn blocker_mask_incomplete(d1: Bitboard, d2: Bitboard, d3: Bitboard, d4: B
     d1.union(d2).union(d3).union(d4).is_not_empty()
 }
 
+#[rustfmt::skip]
 const fn rook_blocker_mask(sq: Square) -> Bitboard {
     let mut north = sq.as_bitboard().north_one();
     let mut east = sq.as_bitboard().east_one();
@@ -189,18 +190,27 @@ const fn rook_blocker_mask(sq: Square) -> Bitboard {
         north = north
             .north_one()
             .intersection(Bitboard::RANK_8.complement());
-        east = east.east_one().intersection(Bitboard::H_FILE.complement());
+        east = east
+            .east_one()
+            .intersection(Bitboard::H_FILE.complement());
         south = south
             .south_one()
             .intersection(Bitboard::RANK_1.complement());
-        west = west.west_one().intersection(Bitboard::A_FILE.complement());
+        west = west
+            .west_one()
+            .intersection(Bitboard::A_FILE.complement());
 
-        result = result.union(north).union(east).union(south).union(west);
+        result = result
+            .union(north)
+            .union(east)
+            .union(south)
+            .union(west);
     }
 
     result
 }
 
+#[rustfmt::skip]
 const fn bishop_blocker_mask(sq: Square) -> Bitboard {
     let mut northeast = sq.as_bitboard().northeast_one();
     let mut southeast = sq.as_bitboard().southeast_one();
