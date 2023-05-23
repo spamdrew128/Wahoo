@@ -243,6 +243,68 @@ const fn bishop_blocker_mask(sq: Square) -> Bitboard {
     result
 }
 
+#[rustfmt::skip]
+const fn rook_attacks_from_blockers(sq: Square, blockers: Bitboard) -> Bitboard {
+    let mut north = sq.as_bitboard();
+    let mut east = sq.as_bitboard();
+    let mut south = sq.as_bitboard();
+    let mut west = sq.as_bitboard();
+
+    let mut result = Bitboard::new(0);
+
+    let non_blocked = blockers.complement();
+    while blocker_mask_incomplete(north, east, south, west) {
+        north = north.north_one();
+        east = east.east_one();
+        south = south.south_one();
+        west = west.west_one();
+
+        result = result
+            .union(north)
+            .union(east)
+            .union(south)
+            .union(west);
+
+        north = north.intersection(non_blocked);
+        east = east.intersection(non_blocked);
+        south = south.intersection(non_blocked);
+        west = west.intersection(non_blocked);
+    }
+
+    result
+}
+
+#[rustfmt::skip]
+const fn bishop_attacks_from_blockers(sq: Square, blockers: Bitboard) -> Bitboard {
+    let mut northeast = sq.as_bitboard();
+    let mut southeast = sq.as_bitboard();
+    let mut southwest = sq.as_bitboard();
+    let mut northwest = sq.as_bitboard();
+
+    let mut result = Bitboard::new(0);
+
+    let non_blocked = blockers.complement();
+    while blocker_mask_incomplete(northeast, southeast, southwest, northwest) {
+        northeast = northeast.northeast_one();
+        southeast = southeast.southeast_one();
+        southwest = southwest.southwest_one();
+        northwest = northwest.northwest_one();
+
+        result = result
+            .union(northeast)
+            .union(southeast)
+            .union(southwest)
+            .union(northwest);
+
+        northeast = northeast.intersection(non_blocked);
+        southeast = southeast.intersection(non_blocked);
+        southwest = southwest.intersection(non_blocked);
+        northwest = northwest.intersection(non_blocked);
+    }
+
+    result
+}
+
 const fn offset_from_mask(mask: Bitboard) -> usize {
     let base: u32 = 2;
     base.pow(mask.popcount()) as usize
@@ -261,8 +323,7 @@ const fn init_magic_lookup() {
 
         lookup.rook_entries[index].mask = rook_mask;
         lookup.rook_entries[index].magic = ROOK_MAGICS[index];
-        lookup.rook_entries[index].offset =
-            ((NUM_SQUARES as u32) - rook_mask.popcount()) as usize;
+        lookup.rook_entries[index].offset = ((NUM_SQUARES as u32) - rook_mask.popcount()) as usize;
         lookup.rook_entries[index].offset = offset_from_mask(rook_mask) + prev_offset;
         prev_offset = lookup.rook_entries[index].offset;
 
