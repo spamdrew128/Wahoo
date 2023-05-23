@@ -315,13 +315,14 @@ const fn offset_from_mask(mask: Bitboard) -> usize {
 }
 
 macro_rules! populate_magic_hash {
-    ($sq:ident, $entry:ident, $hash_table:ident, $fun:ident) => {
-        let set = <$entry>.mask.as_u64();
+    ($sq:ident, $entry:expr, $hash_table:expr, $fun:ident) => {
+        let set = $entry.mask.as_u64();
         let mut subset: u64 = 0;
         loop {
-            let attack_set = <$fun>($sq, $subset);
-            let index = <$entry>.hash_index(subset);
-            <$hash_table>[index] = attack_set;
+            let blockers = Bitboard::new(subset);
+            let attack_set = $fun($sq, blockers);
+            let index = $entry.hash_index(blockers);
+            $hash_table[index] = attack_set;
 
             subset = subset.wrapping_sub(set) & set;
             if subset == 0 {
@@ -349,6 +350,8 @@ const fn init_magic_lookup() {
         lookup.rook_entries[index].offset = offset;
         prev_offset = offset;
 
+        populate_magic_hash!(sq, lookup.rook_entries[index], lookup.hash_table, rook_attacks_from_blockers);
+
         lookup.bishop_entries[index].mask = bishop_mask;
         lookup.bishop_entries[index].magic = BISHOP_MAGICS[index];
         lookup.bishop_entries[index].offset =
@@ -356,6 +359,8 @@ const fn init_magic_lookup() {
         let offset = offset_from_mask(bishop_mask) + prev_offset;
         lookup.bishop_entries[index].offset = offset;
         prev_offset = offset;
+
+        populate_magic_hash!(sq, lookup.bishop_entries[index], lookup.hash_table, bishop_attacks_from_blockers);
 
         i += 1;
     }
