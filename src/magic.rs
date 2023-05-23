@@ -179,12 +179,12 @@ const fn blocker_mask_incomplete(d1: Bitboard, d2: Bitboard, d3: Bitboard, d4: B
 
 #[rustfmt::skip]
 const fn rook_blocker_mask(sq: Square) -> Bitboard {
-    let mut north = sq.as_bitboard().north_one();
-    let mut east = sq.as_bitboard().east_one();
-    let mut south = sq.as_bitboard().south_one();
-    let mut west = sq.as_bitboard().west_one();
+    let mut north = sq.as_bitboard();
+    let mut east = sq.as_bitboard();
+    let mut south = sq.as_bitboard();
+    let mut west = sq.as_bitboard();
 
-    let mut result = north.union(east).union(south).union(west);
+    let mut result = Bitboard::new(0);
 
     while blocker_mask_incomplete(north, east, south, west) {
         north = north
@@ -212,12 +212,12 @@ const fn rook_blocker_mask(sq: Square) -> Bitboard {
 
 #[rustfmt::skip]
 const fn bishop_blocker_mask(sq: Square) -> Bitboard {
-    let mut northeast = sq.as_bitboard().northeast_one();
-    let mut southeast = sq.as_bitboard().southeast_one();
-    let mut southwest = sq.as_bitboard().southwest_one();
-    let mut northwest = sq.as_bitboard().northwest_one();
+    let mut northeast = sq.as_bitboard();
+    let mut southeast = sq.as_bitboard();
+    let mut southwest = sq.as_bitboard();
+    let mut northwest = sq.as_bitboard();
 
-    let mut result = northeast.union(southeast).union(southwest).union(northwest);
+    let mut result = Bitboard::new(0);
 
     while blocker_mask_incomplete(northeast, southeast, southwest, northwest) {
         northeast = northeast
