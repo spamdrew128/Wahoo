@@ -255,22 +255,23 @@ const fn init_magic_lookup() {
     let mut i = 0;
     while i < NUM_SQUARES {
         let sq = Square::new(i);
+        let index = i as usize;
         let rook_mask = rook_blocker_mask(sq);
         let bishop_mask = bishop_blocker_mask(sq);
 
-        lookup.rook_entries[i as usize].mask = rook_mask;
-        lookup.rook_entries[i as usize].magic = ROOK_MAGICS[i as usize];
-        lookup.rook_entries[i as usize].offset =
+        lookup.rook_entries[index].mask = rook_mask;
+        lookup.rook_entries[index].magic = ROOK_MAGICS[index];
+        lookup.rook_entries[index].offset =
             ((NUM_SQUARES as u32) - rook_mask.popcount()) as usize;
-        lookup.rook_entries[i as usize].offset = offset_from_mask(rook_mask) + prev_offset;
-        prev_offset = lookup.rook_entries[i as usize].offset;
+        lookup.rook_entries[index].offset = offset_from_mask(rook_mask) + prev_offset;
+        prev_offset = lookup.rook_entries[index].offset;
 
-        lookup.bishop_entries[i as usize].mask = bishop_mask;
-        lookup.bishop_entries[i as usize].magic = BISHOP_MAGICS[i as usize];
-        lookup.bishop_entries[i as usize].offset =
+        lookup.bishop_entries[index].mask = bishop_mask;
+        lookup.bishop_entries[index].magic = BISHOP_MAGICS[index];
+        lookup.bishop_entries[index].offset =
             ((NUM_SQUARES as u32) - bishop_mask.popcount()) as usize;
-        lookup.bishop_entries[i as usize].offset = offset_from_mask(bishop_mask) + prev_offset;
-        prev_offset = lookup.bishop_entries[i as usize].offset;
+        lookup.bishop_entries[index].offset = offset_from_mask(bishop_mask) + prev_offset;
+        prev_offset = lookup.bishop_entries[index].offset;
 
         i += 1;
     }
