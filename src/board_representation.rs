@@ -116,12 +116,15 @@ impl Bitboard {
     pub const A_FILE: Self = Self::new(0x0101010101010101);
     pub const H_FILE: Self = Self::new(0x8080808080808080);
 
+    pub const RANK_1: Self = Self::new(0x00000000000000ff);
+    pub const RANK_8: Self = Self::new(0xff00000000000000);
+
     pub const fn new(data: u64) -> Self {
         Self { data }
     }
 
     // redundant implementations for const operations
-    const fn complement(self) -> Self {
+    pub const fn complement(self) -> Self {
         Self { data: !self.data }
     }
 
@@ -131,7 +134,7 @@ impl Bitboard {
         }
     }
 
-    const fn intersection(self, rhs: Self) -> Self {
+    pub const fn intersection(self, rhs: Self) -> Self {
         Self {
             data: self.data & rhs.data,
         }
@@ -155,7 +158,7 @@ impl Bitboard {
         }
     }
 
-    const fn is_not_empty(self) -> bool {
+    pub const fn is_not_empty(self) -> bool {
         self.data > 0
     }
 
@@ -163,7 +166,7 @@ impl Bitboard {
         self.intersection(rhs).is_not_empty()
     }
 
-    const fn popcount(self) -> u32 {
+    pub const fn popcount(self) -> u32 {
         self.data.count_ones()
     }
 
