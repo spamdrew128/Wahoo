@@ -243,9 +243,15 @@ const fn bishop_blocker_mask(sq: Square) -> Bitboard {
     result
 }
 
+const fn offset_from_mask(mask: Bitboard) -> usize {
+    let base: u32 = 2;
+    base.pow(mask.popcount()) as usize
+}
+
 const fn init_magic_lookup() {
     let mut lookup = MagicLookup::new();
 
+    let mut prev_offset = 0;
     let mut i = 0;
     while i < NUM_SQUARES {
         let sq = Square::new(i);
@@ -256,11 +262,15 @@ const fn init_magic_lookup() {
         lookup.rook_entries[i as usize].magic = ROOK_MAGICS[i as usize];
         lookup.rook_entries[i as usize].offset =
             ((NUM_SQUARES as u32) - rook_mask.popcount()) as usize;
+        lookup.rook_entries[i as usize].offset = offset_from_mask(rook_mask) + prev_offset;
+        prev_offset = lookup.rook_entries[i as usize].offset;
 
         lookup.bishop_entries[i as usize].mask = bishop_mask;
         lookup.bishop_entries[i as usize].magic = BISHOP_MAGICS[i as usize];
         lookup.bishop_entries[i as usize].offset =
             ((NUM_SQUARES as u32) - bishop_mask.popcount()) as usize;
+        lookup.bishop_entries[i as usize].offset = offset_from_mask(bishop_mask) + prev_offset;
+        prev_offset = lookup.bishop_entries[i as usize].offset;
 
         i += 1;
     }
