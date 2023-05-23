@@ -154,6 +154,10 @@ impl MagicEntry {
             offset: 0,
         }
     }
+
+    const fn hash_index(self, blockers: Bitboard) -> usize {
+        ((blockers.as_u64() * self.magic) >> self.shift) as usize
+    }
 }
 
 #[derive(Debug)]
@@ -310,6 +314,16 @@ const fn offset_from_mask(mask: Bitboard) -> usize {
     base.pow(mask.popcount()) as usize
 }
 
+macro_rules! populate_magic_hash {
+    ($entry:ident, $fun:ident) => {
+        let set = <$entry>.mask;
+        let mut subset = 0;
+        loop {
+
+        }
+    };
+}
+
 const fn init_magic_lookup() {
     let mut lookup = MagicLookup::new();
 
@@ -324,15 +338,17 @@ const fn init_magic_lookup() {
         lookup.rook_entries[index].mask = rook_mask;
         lookup.rook_entries[index].magic = ROOK_MAGICS[index];
         lookup.rook_entries[index].offset = ((NUM_SQUARES as u32) - rook_mask.popcount()) as usize;
-        lookup.rook_entries[index].offset = offset_from_mask(rook_mask) + prev_offset;
-        prev_offset = lookup.rook_entries[index].offset;
+        let offset = offset_from_mask(rook_mask) + prev_offset;
+        lookup.rook_entries[index].offset = offset;
+        prev_offset = offset;
 
         lookup.bishop_entries[index].mask = bishop_mask;
         lookup.bishop_entries[index].magic = BISHOP_MAGICS[index];
         lookup.bishop_entries[index].offset =
             ((NUM_SQUARES as u32) - bishop_mask.popcount()) as usize;
-        lookup.bishop_entries[index].offset = offset_from_mask(bishop_mask) + prev_offset;
-        prev_offset = lookup.bishop_entries[index].offset;
+        let offset = offset_from_mask(bishop_mask) + prev_offset;
+        lookup.bishop_entries[index].offset = offset;
+        prev_offset = offset;
 
         i += 1;
     }

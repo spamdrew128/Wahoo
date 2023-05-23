@@ -123,6 +123,10 @@ impl Bitboard {
         Self { data }
     }
 
+    pub const fn as_u64(self) -> u64 {
+        self.data
+    }
+
     // redundant implementations for const operations
     pub const fn complement(self) -> Self {
         Self { data: !self.data }
