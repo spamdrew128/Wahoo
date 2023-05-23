@@ -315,11 +315,18 @@ const fn offset_from_mask(mask: Bitboard) -> usize {
 }
 
 macro_rules! populate_magic_hash {
-    ($entry:ident, $fun:ident) => {
-        let set = <$entry>.mask;
-        let mut subset = 0;
+    ($sq:ident, $entry:ident, $hash_table:ident, $fun:ident) => {
+        let set = <$entry>.mask.as_u64();
+        let mut subset: u64 = 0;
         loop {
+            let attack_set = <$fun>($sq, $subset);
+            let index = <$entry>.hash_index(subset);
+            <$hash_table>[index] = attack_set;
 
+            subset = subset.wrapping_sub(set) & set;
+            if subset == 0 {
+                break;
+            }
         }
     };
 }
