@@ -244,6 +244,22 @@ impl Bitboard {
         }
         result
     }
+
+    pub fn print(self) {
+        for i in 0..NUM_SQUARES {
+            let bitset = fen_index_as_bitboard(i);
+            if bitset.overlaps(self) {
+                print!("X ");
+            } else {
+                print!(". ");
+            }
+
+            if (i + 1) % 8 == 0 {
+                println!();
+            }
+        }
+        println!();
+    }
 }
 
 impl BitAnd for Bitboard {
