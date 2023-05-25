@@ -162,7 +162,7 @@ impl MagicEntry {
 
     fn as_string(self) -> String {
         format!(
-            "MagicEntry {{ mask:Bitboard::new({:#x}), magic:{:#x}, shift:{}, offset:{} }}",
+            "MagicEntry {{ mask: Bitboard::new({:#x}), magic: {:#x}, shift: {}, offset: {} }}",
             self.mask.as_u64(),
             self.magic,
             self.shift,
@@ -206,7 +206,7 @@ impl MagicLookup {
                 .push_str(format!("Bitboard::new({:#x}), ", self.hash_table[i].as_u64()).as_str());
         }
 
-        format!("MagicLookup {{ rook_entries:[{rook_str}],\nbishop_entries[{bishop_str}],\nhash_table:[{table_str}],\n}}")
+        format!("MagicLookup {{ rook_entries: [{rook_str}],\nbishop_entries[{bishop_str}],\nhash_table: [{table_str}],\n}}")
     }
 }
 
