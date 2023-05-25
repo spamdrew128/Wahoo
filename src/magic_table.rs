@@ -319,7 +319,7 @@ fn init_hash_table(lookup: &mut MagicLookup) {
     }
 }
 
-pub fn generate_magic_file() {
+pub fn generate_magic_table() -> String{
     let mut lookup = MagicLookup::new();
 
     for i in 0..NUM_SQUARES {
@@ -338,5 +338,5 @@ pub fn generate_magic_file() {
     }
 
     init_hash_table(&mut lookup);
-    println!("{}", lookup.as_string());
+    lookup.as_string()
 }

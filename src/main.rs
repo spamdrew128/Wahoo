@@ -11,7 +11,7 @@ mod util_macros;
 mod magic_table;
 
 fn main() {
-    use crate::magic_table::generate_magic_file;
-    generate_magic_file();
+    // use crate::magic_table::generate_magic_table;
+    // println!("{}", generate_magic_table());
     println!("Hello, world!");
 }
