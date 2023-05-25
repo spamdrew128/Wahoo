@@ -172,13 +172,13 @@ impl MagicEntry {
 }
 
 #[derive(Debug)]
-pub struct MagicLookup {
+pub struct MagicLookupBuilder {
     rook_entries: [MagicEntry; NUM_SQUARES as usize],
     bishop_entries: [MagicEntry; NUM_SQUARES as usize],
     hash_table: Box<[Bitboard]>,
 }
 
-impl MagicLookup {
+impl MagicLookupBuilder {
     fn new() -> Self {
         Self {
             rook_entries: [MagicEntry::new(); NUM_SQUARES as usize],
@@ -188,7 +188,7 @@ impl MagicLookup {
     }
 
     #[allow(clippy::wrong_self_convention)]
-    fn as_string(self) -> String {
+    fn as_init_string(self) -> String {
         let mut rook_str = String::new();
         let mut bishop_str = String::new();
         let mut table_str = String::new();
@@ -206,7 +206,7 @@ impl MagicLookup {
                 .push_str(format!("Bitboard::new({:#x}), ", self.hash_table[i].as_u64()).as_str());
         }
 
-        format!("MagicLookup {{ rook_entries: [{rook_str}],\nbishop_entries[{bishop_str}],\nhash_table: [{table_str}],\n}}")
+        format!("pub const MAGIC_LOOKUP: MagicLookup = MagicLookup {{ rook_entries: [{rook_str}],\nbishop_entries[{bishop_str}],\nhash_table: [{table_str}],\n}}")
     }
 }
 
@@ -292,7 +292,7 @@ fn fill_single_entry(
     *offset += largest_index + 1;
 }
 
-fn init_hash_table(lookup: &mut MagicLookup) {
+fn init_hash_table(lookup: &mut MagicLookupBuilder) {
     let mut offset = 0;
     for i in 0..NUM_SQUARES {
         let sq = Square::new(i);
@@ -320,7 +320,7 @@ fn init_hash_table(lookup: &mut MagicLookup) {
 }
 
 pub fn generate_magic_table() -> String{
-    let mut lookup = MagicLookup::new();
+    let mut lookup = MagicLookupBuilder::new();
 
     for i in 0..NUM_SQUARES {
         let sq = Square::new(i);
@@ -338,5 +338,5 @@ pub fn generate_magic_table() -> String{
     }
 
     init_hash_table(&mut lookup);
-    lookup.as_string()
+    lookup.as_init_string()
 }
