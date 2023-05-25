@@ -7,11 +7,12 @@
 mod board_representation;
 mod chess_move;
 mod lookup;
+mod magic_table_builder;
+mod builder;
 mod util_macros;
-mod magic_table;
 
 fn main() {
-    // use crate::magic_table::generate_magic_table;
-    // println!("{}", generate_magic_table());
+    use crate::builder::build_file;
+    build_file();
     println!("Hello, world!");
 }

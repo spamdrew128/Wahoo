@@ -206,7 +206,7 @@ impl MagicLookupBuilder {
                 .push_str(format!("Bitboard::new({:#x}), ", self.hash_table[i].as_u64()).as_str());
         }
 
-        format!("pub const MAGIC_LOOKUP: MagicLookup = MagicLookup {{ rook_entries: [{rook_str}],\nbishop_entries[{bishop_str}],\nhash_table: [{table_str}],\n}}")
+        format!("pub const MAGIC_LOOKUP: MagicLookup = MagicLookup {{ rook_entries: [{rook_str}],\nbishop_entries[{bishop_str}],\nhash_table: [{table_str}],\n}};")
     }
 }
 
