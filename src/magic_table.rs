@@ -147,7 +147,7 @@ struct MagicEntry {
 }
 
 impl MagicEntry {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self {
             mask: Bitboard::new(0),
             magic: 0,
@@ -156,7 +156,7 @@ impl MagicEntry {
         }
     }
 
-    fn hash_index(self, blockers: Bitboard) -> usize {
+    const fn hash_index(self, blockers: Bitboard) -> usize {
         ((blockers.as_u64().wrapping_mul(self.magic)) >> self.shift) as usize
     }
 
@@ -210,7 +210,7 @@ impl MagicLookup {
     }
 }
 
-fn offset_from_mask(mask: Bitboard) -> usize {
+const fn offset_from_mask(mask: Bitboard) -> usize {
     let base: u32 = 2;
     base.pow(mask.popcount()) as usize
 }

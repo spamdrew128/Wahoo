@@ -8,6 +8,7 @@ mod board_representation;
 mod chess_move;
 mod lookup;
 mod util_macros;
+mod magic_table;
 
 fn main() {
     println!("Hello, world!");

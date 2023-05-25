@@ -166,7 +166,7 @@ impl Bitboard {
         self.data > 0
     }
 
-    const fn overlaps(self, rhs: Self) -> bool {
+    pub const fn overlaps(self, rhs: Self) -> bool {
         self.intersection(rhs).is_not_empty()
     }
 
