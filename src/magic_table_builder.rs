@@ -346,6 +346,6 @@ fn generate_magic_table() -> String{
 pub fn build_file() {
     let mut file = File::create("magic_table.rs").expect("couldn't create file");
     let contents = generate_magic_table();
-    let include = "use crate::magic::*";
-    write!(&mut file, "{include}\n\npub const MAGIC_LOOKUP: MagicLookup = {contents}").unwrap();
+    let include = "use crate::magic::*;";
+    write!(&mut file, "{include}\n\n{contents}").unwrap();
 }

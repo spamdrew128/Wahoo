@@ -12,5 +12,7 @@ mod magic_table_builder;
 mod util_macros;
 
 fn main() {
+    use crate::magic_table_builder::build_file;
+    build_file();
     println!("Hello, world!");
 }
