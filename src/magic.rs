@@ -4,7 +4,7 @@ pub type Magic = u64;
 const NUM_HASH_ENTRIES: usize = 107648;
 
 #[derive(Debug, Copy, Clone)]
-struct MagicEntry {
+pub struct MagicEntry {
     pub mask: Bitboard,
     pub magic: Magic,
     pub shift: u8,
@@ -12,7 +12,7 @@ struct MagicEntry {
 }
 
 impl MagicEntry {
-    const fn new(mask: Bitboard, magic: Magic, shift: u8, offset: usize) -> Self {
+    pub const fn new(mask: Bitboard, magic: Magic, shift: u8, offset: usize) -> Self {
         Self {
             mask,
             magic,
@@ -34,7 +34,7 @@ pub struct MagicLookup {
 }
 
 impl MagicLookup {
-    const fn new(
+    pub const fn new(
         rook_entries: &[MagicEntry; NUM_SQUARES as usize],
         bishop_entries: &[MagicEntry; NUM_SQUARES as usize],
         hash_table: &[Bitboard; NUM_HASH_ENTRIES],
