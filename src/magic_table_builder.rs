@@ -1,4 +1,6 @@
 use crate::board_representation::{Bitboard, Square, NUM_SQUARES};
+use std::fs::File;
+use std::io::prelude::*;
 use std::cmp::max;
 
 type Magic = u64;
@@ -319,7 +321,7 @@ fn init_hash_table(lookup: &mut MagicLookupBuilder) {
     }
 }
 
-pub fn generate_magic_table() -> String{
+fn generate_magic_table() -> String{
     let mut lookup = MagicLookupBuilder::new();
 
     for i in 0..NUM_SQUARES {
@@ -339,4 +341,10 @@ pub fn generate_magic_table() -> String{
 
     init_hash_table(&mut lookup);
     lookup.as_init_string()
+}
+
+pub fn build_file() {
+    let mut file = File::create("magic_table.rs").expect("couldn't create file");
+    let contents = generate_magic_table();
+    write!(&mut file, "{contents}").unwrap();
 }
