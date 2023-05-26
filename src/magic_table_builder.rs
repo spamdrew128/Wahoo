@@ -1,7 +1,7 @@
 use crate::board_representation::{Bitboard, Square, NUM_SQUARES};
+use std::cmp::max;
 use std::fs::File;
 use std::io::prelude::*;
-use std::cmp::max;
 
 type Magic = u64;
 const NUM_HASH_ENTRIES: usize = 107648;
@@ -208,7 +208,7 @@ impl MagicLookupBuilder {
                 .push_str(format!("Bitboard::new({:#x}), ", self.hash_table[i].as_u64()).as_str());
         }
 
-        format!("pub const MAGIC_LOOKUP: MagicLookup = MagicLookup {{ rook_entries: [{rook_str}],\nbishop_entries[{bishop_str}],\nhash_table: [{table_str}],\n}};")
+        format!("pub const MAGIC_LOOKUP: MagicLookup = MagicLookup {{ rook_entries: [{rook_str}],\nbishop_entries: [{bishop_str}],\nhash_table: [{table_str}],\n}};")
     }
 }
 
@@ -321,7 +321,7 @@ fn init_hash_table(lookup: &mut MagicLookupBuilder) {
     }
 }
 
-fn generate_magic_table() -> String{
+fn generate_magic_table() -> String {
     let mut lookup = MagicLookupBuilder::new();
 
     for i in 0..NUM_SQUARES {
@@ -346,6 +346,6 @@ fn generate_magic_table() -> String{
 pub fn build_file() {
     let mut file = File::create("magic_table.rs").expect("couldn't create file");
     let contents = generate_magic_table();
-    let include = "use crate::magic::*;";
+    let include = "use crate::magic::*;\nuse crate::board_representation::Bitboard;";
     write!(&mut file, "{include}\n\n{contents}").unwrap();
 }

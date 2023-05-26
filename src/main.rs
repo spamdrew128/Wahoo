@@ -9,6 +9,7 @@ mod chess_move;
 mod lookup;
 mod magic;
 mod magic_table_builder;
+// mod magic_table;
 mod util_macros;
 
 fn main() {
