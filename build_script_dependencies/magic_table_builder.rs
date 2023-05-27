@@ -1,4 +1,4 @@
-use crate::build_dependencies::dummy_types::{Bitboard, Square, NUM_SQUARES};
+use crate::build_script_dependencies::dummy_types::{Bitboard, Square, NUM_SQUARES};
 use std::cmp::max;
 
 type Magic = u64;
