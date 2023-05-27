@@ -52,9 +52,17 @@ pub const fn rook_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
     MAGIC_LOOKUP.rook_attack_set(sq, occupied)
 }
 
+pub const fn queen_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
+    MAGIC_LOOKUP
+        .rook_attack_set(sq, occupied)
+        .union(MAGIC_LOOKUP.bishop_attack_set(sq, occupied))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{bishop_attacks, king_attacks, knight_attacks, rook_attacks, Bitboard, Square};
+    use super::{
+        bishop_attacks, king_attacks, knight_attacks, queen_attacks, rook_attacks, Bitboard, Square,
+    };
     use crate::bb_from_squares;
     use crate::board_representation::Board;
 
@@ -95,6 +103,17 @@ mod tests {
         let attacks = rook_attacks(Square::H5, board.occupied());
 
         let expected = bb_from_squares!(F5, G5, H3, H4, H6, H7, H8);
+        assert_eq!(attacks, expected);
+    }
+
+    #[test]
+    fn queen_lookup_test() {
+        let board =
+            Board::from_fen("2kr4/pp3pp1/2p3rp/2p1p3/1PB1P3/1R1P1q2/P1P2P1Q/5K2 b - - 6 26");
+        let attacks = queen_attacks(Square::F3, board.occupied());
+
+        let expected =
+            bb_from_squares!(D1, H1, E2, F2, G2, D3, E3, G3, H3, E4, F4, G4, F5, H5, F6, F7);
         assert_eq!(attacks, expected);
     }
 }
