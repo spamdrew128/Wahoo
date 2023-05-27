@@ -61,7 +61,27 @@ pub const fn queen(sq: Square, occupied: Bitboard) -> Bitboard {
 pub const fn pawn(pawns: Bitboard, color: Color) -> Bitboard {
     match color {
         Color::White => pawns.northeast_one().union(pawns.northwest_one()),
-        Color::Black => pawns.southeast_one().union(pawns.southwest_one())
+        Color::Black => pawns.southeast_one().union(pawns.southwest_one()),
+    }
+}
+
+pub const fn pawn_single_push(pawns: Bitboard, empty: Bitboard, color: Color) -> Bitboard {
+    match color {
+        Color::White => pawns.north_one().intersection(empty),
+        Color::Black => pawns.south_one().intersection(empty),
+    }
+}
+
+pub const fn pawn_double_push(single_pushes: Bitboard, empty: Bitboard, color: Color) -> Bitboard {
+    match color {
+        Color::White => single_pushes
+            .north_one()
+            .intersection(empty)
+            .intersection(Bitboard::RANK_4),
+        Color::Black => single_pushes
+            .south_one()
+            .intersection(empty)
+            .intersection(Bitboard::RANK_5),
     }
 }
 

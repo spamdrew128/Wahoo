@@ -117,6 +117,8 @@ impl Bitboard {
     pub const H_FILE: Self = Self::new(0x8080808080808080);
 
     pub const RANK_1: Self = Self::new(0x00000000000000ff);
+    pub const RANK_4: Self = Self::new(0x00000000ff000000);
+    pub const RANK_5: Self = Self::new(0x000000ff00000000);
     pub const RANK_8: Self = Self::new(0xff00000000000000);
 
     pub const fn new(data: u64) -> Self {
