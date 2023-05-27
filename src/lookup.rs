@@ -44,6 +44,14 @@ pub const fn knight_attacks(sq: Square) -> Bitboard {
     KNIGHT_ATTACKS[sq.as_index()]
 }
 
+pub const fn bishop_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
+    MAGIC_LOOKUP.bishop_attack_set(sq, occupied)
+}
+
+pub const fn rook_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
+    MAGIC_LOOKUP.rook_attack_set(sq, occupied)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{king_attacks, knight_attacks, Bitboard, Square};

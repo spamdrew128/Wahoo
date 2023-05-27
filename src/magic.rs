@@ -1,4 +1,4 @@
-use crate::board_representation::{Bitboard, NUM_SQUARES};
+use crate::board_representation::{Bitboard, Square, NUM_SQUARES};
 pub type Magic = u64;
 
 const NUM_HASH_ENTRIES: usize = 107648;
@@ -22,7 +22,7 @@ impl MagicEntry {
     }
 
     const fn hash_index(self, blockers: Bitboard) -> usize {
-        ((blockers.as_u64().wrapping_mul(self.magic)) >> self.shift) as usize
+        (((blockers.as_u64().wrapping_mul(self.magic)) >> self.shift) as usize) + self.offset
     }
 }
 
@@ -44,5 +44,20 @@ impl MagicLookup {
             bishop_entries: *bishop_entries,
             hash_table: *hash_table,
         }
+    }
+
+    const fn attacks_from_hash(&self, entry: &MagicEntry, occupied: Bitboard) -> Bitboard {
+        let blockers = occupied.intersection(entry.mask);
+        self.hash_table[entry.hash_index(blockers)]
+    }
+
+    pub const fn bishop_attack_set(&self, sq: Square, occupied: Bitboard) -> Bitboard {
+        let entry = &self.bishop_entries[sq.as_index()];
+        self.attacks_from_hash(entry, occupied)
+    }
+
+    pub const fn rook_attack_set(&self, sq: Square, occupied: Bitboard) -> Bitboard {
+        let entry = &self.rook_entries[sq.as_index()];
+        self.attacks_from_hash(entry, occupied)
     }
 }
