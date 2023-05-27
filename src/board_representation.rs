@@ -1,4 +1,6 @@
-use std::ops::{BitAnd, BitOr, BitXor, Not, BitOrAssign};
+use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, Not};
+
+use crate::tuple_constants_enum;
 
 type Rank = u8;
 type File = u8;
@@ -15,32 +17,35 @@ pub enum Color {
     Black,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
-struct Piece(u8);
+impl Not for Color {
+    type Output = Self;
 
-#[derive(Copy, Clone)]
-struct Square(u8);
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-pub struct Bitboard {
-    data: u64
+    fn not(self) -> Self::Output {
+        match self {
+            Self::White => Self::Black,
+            Self::Black => Self::White,
+        }
+    }
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
-pub struct Board {
-    pub all: [Bitboard; NUM_COLORS as usize],
-    pub pieces: [Bitboard; NUM_PIECES as usize],
-    pub color_to_move: Color,
-}
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct Piece(u8);
 
 impl Piece {
-    pub const KNIGHT: Self = Self(0);
-    pub const BISHOP: Self = Self(1);
-    pub const ROOK: Self = Self(2);
-    pub const QUEEN: Self = Self(3);
-    pub const PAWN: Self = Self(4);
-    pub const KING: Self = Self(5);
-    pub const NONE_PIECE: Self = Self(6);
+    #[rustfmt::skip]
+    tuple_constants_enum!(Self,
+        KNIGHT,
+        BISHOP,
+        ROOK,
+        QUEEN,
+        PAWN,
+        KING,
+        NONE_PIECE
+    );
+
+    pub const fn new(data: u8) -> Self {
+        Self(data)
+    }
 
     fn as_char(self, color: Color) -> Option<char> {
         let mut ch = match self {
@@ -52,7 +57,7 @@ impl Piece {
             Self::KING => 'k',
             _ => return None,
         };
-        
+
         if color == Color::White {
             ch = ch.to_uppercase().next().unwrap();
         }
@@ -63,134 +68,229 @@ impl Piece {
     const fn as_index(self) -> usize {
         self.0 as usize
     }
+
+    pub const fn as_u16(self) -> u16 {
+        self.0 as u16
+    }
 }
 
-impl Square {
-    pub const A1: Self = Self(0);
-    pub const B1: Self = Self(1);
-    pub const C1: Self = Self(2);
-    pub const D1: Self = Self(3);
-    pub const E1: Self = Self(4);
-    pub const F1: Self = Self(5);
-    pub const G1: Self = Self(6);
-    pub const H1: Self = Self(7);
-    pub const A2: Self = Self(8);
-    pub const B2: Self = Self(9); 
-    pub const C2: Self = Self(10); 
-    pub const D2: Self = Self(11);
-    pub const E2: Self = Self(12); 
-    pub const F2: Self = Self(13); 
-    pub const G2: Self = Self(14); 
-    pub const H2: Self = Self(15);
-    pub const A3: Self = Self(16);
-    pub const B3: Self = Self(17); 
-    pub const C3: Self = Self(18); 
-    pub const D3: Self = Self(19); 
-    pub const E3: Self = Self(20);
-    pub const F3: Self = Self(21);
-    pub const G3: Self = Self(22);
-    pub const H3: Self = Self(23);
-    pub const A4: Self = Self(24);
-    pub const B4: Self = Self(25);
-    pub const C4: Self = Self(26);
-    pub const D4: Self = Self(27);
-    pub const E4: Self = Self(28);
-    pub const F4: Self = Self(29);
-    pub const G4: Self = Self(30);
-    pub const H4: Self = Self(31);
-    pub const A5: Self = Self(32);
-    pub const B5: Self = Self(33);
-    pub const C5: Self = Self(34);
-    pub const D5: Self = Self(35);
-    pub const E5: Self = Self(36);
-    pub const F5: Self = Self(37);
-    pub const G5: Self = Self(38);
-    pub const H5: Self = Self(39);
-    pub const A6: Self = Self(40);
-    pub const B6: Self = Self(41);
-    pub const C6: Self = Self(42);
-    pub const D6: Self = Self(43);
-    pub const E6: Self = Self(44);
-    pub const F6: Self = Self(45);
-    pub const G6: Self = Self(46);
-    pub const H6: Self = Self(47);
-    pub const A7: Self = Self(48);
-    pub const B7: Self = Self(49);
-    pub const C7: Self = Self(50);
-    pub const D7: Self = Self(51);
-    pub const E7: Self = Self(52);
-    pub const F7: Self = Self(53);
-    pub const G7: Self = Self(54);
-    pub const H7: Self = Self(55);
-    pub const A8: Self = Self(56);
-    pub const B8: Self = Self(57);
-    pub const C8: Self = Self(58);
-    pub const D8: Self = Self(59);
-    pub const E8: Self = Self(60);
-    pub const F8: Self = Self(61);
-    pub const G8: Self = Self(62);
-    pub const H8: Self = Self(63);
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct Square(u8);
 
-    const fn as_bitboard(self) -> Bitboard {
-        Bitboard { data: 1 << self.0 }
+impl Square {
+    #[rustfmt::skip]
+    tuple_constants_enum!(Self,
+        A1, B1, C1, D1, E1, F1, G1, H1,
+        A2, B2, C2, D2, E2, F2, G2, H2,
+        A3, B3, C3, D3, E3, F3, G3, H3,
+        A4, B4, C4, D4, E4, F4, G4, H4,
+        A5, B5, C5, D5, E5, F5, G5, H5,
+        A6, B6, C6, D6, E6, F6, G6, H6,
+        A7, B7, C7, D7, E7, F7, G7, H7,
+        A8, B8, C8, D8, E8, F8, G8, H8
+    );
+
+    pub const fn new(data: u8) -> Self {
+        Self(data)
     }
+
+    pub const fn as_bitboard(self) -> Bitboard {
+        Bitboard::new(1 << self.0)
+    }
+
+    pub const fn as_u16(self) -> u16 {
+        self.0 as u16
+    }
+
+    pub const fn as_index(self) -> usize {
+        self.0 as usize
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub struct Bitboard {
+    data: u64,
 }
 
 impl Bitboard {
-    const fn is_not_empty(self) -> bool {
+    pub const A_FILE: Self = Self::new(0x0101010101010101);
+    pub const H_FILE: Self = Self::new(0x8080808080808080);
+
+    pub const RANK_1: Self = Self::new(0x00000000000000ff);
+    pub const RANK_8: Self = Self::new(0xff00000000000000);
+
+    pub const fn new(data: u64) -> Self {
+        Self { data }
+    }
+
+    pub const fn as_u64(self) -> u64 {
+        self.data
+    }
+
+    // redundant implementations for const operations
+    pub const fn complement(self) -> Self {
+        Self { data: !self.data }
+    }
+
+    pub const fn union(self, rhs: Self) -> Self {
+        Self {
+            data: self.data | rhs.data,
+        }
+    }
+
+    pub const fn intersection(self, rhs: Self) -> Self {
+        Self {
+            data: self.data & rhs.data,
+        }
+    }
+
+    const fn xor(self, rhs: Self) -> Self {
+        Self {
+            data: self.data ^ rhs.data,
+        }
+    }
+
+    const fn l_shift(self, shift: u8) -> Self {
+        Self {
+            data: self.data << shift,
+        }
+    }
+
+    const fn r_shift(self, shift: u8) -> Self {
+        Self {
+            data: self.data >> shift,
+        }
+    }
+
+    pub const fn is_not_empty(self) -> bool {
         self.data > 0
     }
 
-    const fn popcount(self) -> u32 {
+    pub const fn overlaps(self, rhs: Self) -> bool {
+        self.intersection(rhs).is_not_empty()
+    }
+
+    pub const fn popcount(self) -> u32 {
         self.data.count_ones()
-    }
-
-    const fn lsb(self) -> u32 {
-        self.data.trailing_zeros()
-    }
-
-    const fn lsb_as_bitboard(self) -> Self {
-        Self { data: self.data & ((!self.data) + 1) }
     }
 
     fn reset_lsb(&mut self) {
         self.data = self.data & (self.data - 1);
     }
 
-    fn overlaps(self, rhs: Self) -> bool {
-        (self & rhs).is_not_empty()
+    fn pop_lsb(&mut self) -> Square {
+        debug_assert!(self.is_not_empty());
+        let sq = Square::new(self.data.trailing_zeros() as u8);
+        self.reset_lsb();
+        sq
+    }
+
+    pub const fn north_one(self) -> Self {
+        self.l_shift(8)
+    }
+
+    pub const fn northeast_one(self) -> Self {
+        self.intersection(Self::H_FILE.complement()).l_shift(9)
+    }
+
+    pub const fn east_one(self) -> Self {
+        self.intersection(Self::H_FILE.complement()).l_shift(1)
+    }
+
+    pub const fn southeast_one(self) -> Self {
+        self.intersection(Self::H_FILE.complement()).r_shift(7)
+    }
+
+    pub const fn south_one(self) -> Self {
+        self.r_shift(8)
+    }
+
+    pub const fn southwest_one(self) -> Self {
+        self.intersection(Self::A_FILE.complement()).r_shift(9)
+    }
+
+    pub const fn west_one(self) -> Self {
+        self.intersection(Self::A_FILE.complement()).r_shift(1)
+    }
+
+    pub const fn northwest_one(self) -> Self {
+        self.intersection(Self::A_FILE.complement()).l_shift(7)
+    }
+
+    pub const fn shift_north(self, shift: u8) -> Self {
+        self.l_shift(8 * shift)
+    }
+
+    pub const fn shift_south(self, shift: u8) -> Self {
+        self.r_shift(8 * shift)
+    }
+
+    pub const fn no_wrap_shift_east(self, count: u8) -> Self {
+        let mut result = self;
+        let mut i = 0;
+        while i < count {
+            result = result.east_one();
+            i += 1;
+        }
+        result
+    }
+
+    pub const fn no_wrap_shift_west(self, count: u8) -> Self {
+        let mut result = self;
+        let mut i = 0;
+        while i < count {
+            result = result.west_one();
+            i += 1;
+        }
+        result
+    }
+
+    pub fn print(self) {
+        for i in 0..NUM_SQUARES {
+            let bitset = fen_index_as_bitboard(i);
+            if bitset.overlaps(self) {
+                print!("X ");
+            } else {
+                print!(". ");
+            }
+
+            if (i + 1) % 8 == 0 {
+                println!();
+            }
+        }
+        println!();
     }
 }
 
 impl BitAnd for Bitboard {
     type Output = Self;
-    
+
     fn bitand(self, rhs: Self) -> Self::Output {
-        Self { data: self.data & rhs.data }
+        self.intersection(rhs)
     }
 }
 
 impl BitOr for Bitboard {
     type Output = Self;
-    
+
     fn bitor(self, rhs: Self) -> Self::Output {
-        Self{ data: self.data | rhs.data }
+        self.union(rhs)
     }
 }
 
 impl BitXor for Bitboard {
     type Output = Self;
-    
+
     fn bitxor(self, rhs: Self) -> Self::Output {
-        Self{ data: self.data ^ rhs.data }
+        self.xor(rhs)
     }
 }
 
 impl Not for Bitboard {
     type Output = Self;
-    
+
     fn not(self) -> Self::Output {
-        Self { data: !self.data }
+        self.complement()
     }
 }
 
@@ -200,10 +300,17 @@ impl BitOrAssign for Bitboard {
     }
 }
 
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Board {
+    pub all: [Bitboard; NUM_COLORS as usize],
+    pub pieces: [Bitboard; NUM_PIECES as usize],
+    pub color_to_move: Color,
+}
+
 const fn fen_index_as_bitboard(i: u8) -> Bitboard {
     let row = 7 - (i / 8);
     let col = i % 8;
-    Square(row * 8 + col).as_bitboard() 
+    Square(row * 8 + col).as_bitboard()
 }
 
 impl Board {
@@ -211,10 +318,14 @@ impl Board {
         for i in 0..NUM_SQUARES {
             let bitset = fen_index_as_bitboard(i);
             let mut ch = '.';
-            
+
             for piece in 0..NUM_PIECES {
                 if bitset.overlaps(self.pieces[piece as usize]) {
-                    let color = if bitset.overlaps(self.all[Color::White as usize]) { Color::White } else { Color::Black };
+                    let color = if bitset.overlaps(self.all[Color::White as usize]) {
+                        Color::White
+                    } else {
+                        Color::Black
+                    };
                     ch = Piece(piece).as_char(color).unwrap();
                 }
             }
@@ -227,7 +338,7 @@ impl Board {
         }
     }
 
-    fn from_fen(fen: &str) -> Self {
+    pub fn from_fen(fen: &str) -> Self {
         let mut board = Self::default();
         let mut i: u8 = 0;
         let split_fen = fen.split_whitespace().collect::<Vec<&str>>();
@@ -242,7 +353,6 @@ impl Board {
                 let digit = ch.to_digit(10).unwrap();
                 assert!((1..9).contains(&digit), "Invalid FEN number");
                 i += digit as u8;
-
             } else if ch.is_alphabetic() {
                 match ch.to_lowercase().next().unwrap() {
                     'n' => board.pieces[Piece::KNIGHT.as_index()] |= bitset,
@@ -251,23 +361,25 @@ impl Board {
                     'q' => board.pieces[Piece::QUEEN.as_index()] |= bitset,
                     'p' => board.pieces[Piece::PAWN.as_index()] |= bitset,
                     'k' => board.pieces[Piece::KING.as_index()] |= bitset,
-                    _ => panic!("Invalid FEN")
+                    _ => panic!("Invalid FEN"),
                 };
-                
+
                 if ch.is_uppercase() {
-                    board.all[Color::White as usize] |= bitset; 
+                    board.all[Color::White as usize] |= bitset;
                 } else {
-                    board.all[Color::Black as usize] |= bitset; 
+                    board.all[Color::Black as usize] |= bitset;
                 }
 
                 i += 1;
-                
             } else if ch != '/' {
                 panic!("Invalid FEN character");
             }
         }
 
-        assert!(color_char == 'w' || color_char == 'b', "Invalid color specifier");
+        assert!(
+            color_char == 'w' || color_char == 'b',
+            "Invalid color specifier"
+        );
         if color_char == 'b' {
             board.color_to_move = Color::Black;
         }
@@ -278,14 +390,18 @@ impl Board {
     fn to_fen(&self) -> String {
         let mut pos = String::new();
         let mut blank_space: u8 = 0;
-        
+
         for i in 0..NUM_SQUARES {
             let bitset = fen_index_as_bitboard(i);
             blank_space += 1;
 
             for piece in 0..NUM_PIECES {
                 if bitset.overlaps(self.pieces[piece as usize]) {
-                    let color = if bitset.overlaps(self.all[Color::White as usize]) { Color::White } else { Color::Black };
+                    let color = if bitset.overlaps(self.all[Color::White as usize]) {
+                        Color::White
+                    } else {
+                        Color::Black
+                    };
                     let ch = Piece(piece).as_char(color).unwrap();
                     blank_space -= 1;
 
@@ -310,7 +426,11 @@ impl Board {
             }
         }
 
-        let color_char = if self.color_to_move == Color::White { 'w' } else { 'b' };
+        let color_char = if self.color_to_move == Color::White {
+            'w'
+        } else {
+            'b'
+        };
 
         // TODO: handle these later
         let castling_rights = "KQkq";
@@ -320,40 +440,49 @@ impl Board {
 
         format!("{pos} {color_char} {castling_rights} {ep} {halfmoves} {fullmoves}")
     }
+
+    pub const fn occupied(&self) -> Bitboard {
+        self.all[Color::White as usize].union(self.all[Color::Black as usize])
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Bitboard, Square, Board, START_FEN, Color};
+    use super::{Bitboard, Board, Color, Square, START_FEN};
+    use crate::bb_from_squares;
 
     #[test]
     fn bit_and_works() {
-        let bb1 = Bitboard { data: 0b111 };
-        let bb2 = Bitboard { data: 0b101 };
-        let expected = Bitboard { data: 0b101 };
+        let bb1 = Bitboard::new(0b111);
+        let bb2 = Bitboard::new(0b101);
+        let expected = Bitboard::new(0b101);
+
         assert_eq!(bb1 & bb2, expected);
     }
 
     #[test]
     fn bit_or_works() {
-        let bb1 = Bitboard { data: 0b011 };
-        let bb2 = Bitboard { data: 0b101 };
-        let expected = Bitboard { data: 0b111 };
+        let bb1 = Bitboard::new(0b011);
+        let bb2 = Bitboard::new(0b101);
+        let expected = Bitboard::new(0b111);
+
         assert_eq!(bb1 | bb2, expected);
     }
 
     #[test]
     fn bit_xor_works() {
-        let bb1 = Bitboard { data: 0b011 };
-        let bb2 = Bitboard { data: 0b101 };
-        let expected = Bitboard { data: 0b110 };
+        let bb1 = Bitboard::new(0b011);
+        let bb2 = Bitboard::new(0b101);
+        let expected = Bitboard::new(0b110);
+
         assert_eq!(bb1 ^ bb2, expected);
     }
 
     #[test]
     fn bit_not_works() {
-        let bb = Bitboard { data: 0xFFFF0000FFFF0000 };
-        let expected = Bitboard { data: 0x0000FFFF0000FFFF };
+        let bb = Bitboard::new(0xFFFF0000FFFF0000);
+        let expected = Bitboard::new(0x0000FFFF0000FFFF);
+
         assert_eq!(!bb, expected);
     }
 
@@ -362,47 +491,46 @@ mod tests {
         let data1: u64 = 894378932;
         let data2: u64 = 18981928111;
 
-        let bb1 = Bitboard { data: data1 };
-        let bb2 = Bitboard { data: data2 };
-        let expected = Bitboard { data: data1 & !data2 };
+        let bb1 = Bitboard::new(data1);
+        let bb2 = Bitboard::new(data2);
+        let expected = Bitboard::new(data1 & !data2);
+
         assert_eq!(bb1 & !bb2, expected);
     }
 
     #[test]
     fn sq_to_bb_works() {
         let bitset = Square::A3.as_bitboard();
-        let expected = Bitboard { data: 0b00010000000000000000 };
+        let expected = Bitboard::new(0b00010000000000000000);
+
         assert_eq!(bitset, expected);
     }
 
     #[test]
-    fn lsb_as_bitboard_works() {
-        let bb = Bitboard { data: 0b0111100111000 };
-        let expected = Bitboard { data: 0b01000 };
-        assert_eq!(bb.lsb_as_bitboard(), expected);
-    }
+    fn pop_lsb_works() {
+        let mut bb = Bitboard::new(0b0111100111000);
+        let sq = bb.pop_lsb();
 
-    #[test]
-    fn reset_lsb_works() {
-        let mut bb = Bitboard { data: 0b0111100111000 };
-        bb.reset_lsb();
-        let expected = Bitboard { data: 0b0111100110000 };
-        assert_eq!(bb, expected);
+        let expected_bb = Bitboard::new(0b0111100110000);
+        let expected_sq = Square::new(3);
+
+        assert_eq!(bb, expected_bb);
+        assert_eq!(sq, expected_sq);
     }
 
     #[test]
     fn correctly_interprets_startpos_fen() {
         let actual = Board::from_fen(START_FEN);
 
-        let white = Bitboard { data: 0x000000000000ffff };
-        let black = Bitboard { data: 0xffff000000000000 };
+        let white = Bitboard::new(0x000000000000ffff);
+        let black = Bitboard::new(0xffff000000000000);
 
-        let knights = Bitboard { data: 0x4200000000000042 };
-        let bishops = Bitboard { data: 0x2400000000000024 };
-        let rooks = Bitboard { data: 0x8100000000000081 };
-        let queens = Square::D1.as_bitboard() | Square::D8.as_bitboard();
-        let pawns = Bitboard { data: 0x00ff00000000ff00 };
-        let kings = Square::E1.as_bitboard() | Square::E8.as_bitboard();
+        let knights = Bitboard::new(0x4200000000000042);
+        let bishops = Bitboard::new(0x2400000000000024);
+        let rooks = Bitboard::new(0x8100000000000081);
+        let queens = bb_from_squares!(D1, D8);
+        let pawns = Bitboard::new(0x00ff00000000ff00);
+        let kings = bb_from_squares!(E1, E8);
 
         let expected = Board {
             all: [white, black],
