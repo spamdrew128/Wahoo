@@ -187,8 +187,7 @@ impl MagicLookupBuilder {
         }
     }
 
-    #[allow(clippy::wrong_self_convention)]
-    fn as_init_string(self) -> String {
+    fn as_init_string(&self) -> String {
         let mut rook_str = String::new();
         let mut bishop_str = String::new();
         let mut table_str = String::new();
