@@ -170,4 +170,19 @@ mod tests {
             bb_from_squares!(A3, C3, D4, B5);
         assert_eq!(moves, expected);
     }
+
+    #[test]
+    fn pawn_double_push_test() {
+        let board =
+            Board::from_fen("2kr4/pp3pp1/2p3rp/2p1p3/1PB1P3/1R1P1q2/P1P2P1Q/5K2 b - - 6 26");
+        let color = Color::Black;
+        let b_pawns = board.piece_bb(Piece::PAWN, color);
+        let single_pushs = attacks::pawn_single_push(b_pawns, board.empty(), color);
+
+        let moves = attacks::pawn_double_push(single_pushs, board.empty(), color);
+
+        let expected =
+            bb_from_squares!(F5, B5, A5);
+        assert_eq!(moves, expected);
+    }
 }
