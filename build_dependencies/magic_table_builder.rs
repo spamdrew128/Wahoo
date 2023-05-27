@@ -1,7 +1,5 @@
-use crate::board_representation::{Bitboard, Square, NUM_SQUARES};
+use crate::build_dependencies::dummy_types::{Bitboard, Square, NUM_SQUARES};
 use std::cmp::max;
-use std::fs::File;
-use std::io::prelude::*;
 
 type Magic = u64;
 const NUM_HASH_ENTRIES: usize = 107648;
@@ -212,11 +210,6 @@ impl MagicLookupBuilder {
     }
 }
 
-const fn offset_from_mask(mask: Bitboard) -> usize {
-    let base: u32 = 2;
-    base.pow(mask.popcount()) as usize
-}
-
 type Shifter = fn(Bitboard) -> Bitboard;
 const ROOK_SHIFTERS: [Shifter; 4] = [
     Bitboard::north_one,
@@ -321,7 +314,7 @@ fn init_hash_table(lookup: &mut MagicLookupBuilder) {
     }
 }
 
-fn generate_magic_table() -> String {
+pub fn generate_magic_table() -> String {
     let mut lookup = MagicLookupBuilder::new();
 
     for i in 0..NUM_SQUARES {
@@ -341,11 +334,4 @@ fn generate_magic_table() -> String {
 
     init_hash_table(&mut lookup);
     lookup.as_init_string()
-}
-
-pub fn build_file() {
-    let mut file = File::create("magic_table.rs").expect("couldn't create file");
-    let contents = generate_magic_table();
-    let include = "use crate::magic::*;\nuse crate::board_representation::Bitboard;";
-    write!(&mut file, "{include}\n\n{contents}").unwrap();
 }
