@@ -34,7 +34,7 @@ const KNIGHT_ATTACKS: [Bitboard; NUM_SQUARES as usize] = init_lookup!(|sq|, {
         .union(horiz.north_one().union(horiz.south_one()))
 });
 
-const MAGIC_LOOKUP: MagicLookup = include!(concat!(env!("OUT_DIR"), "/magic_table.txt"));
+const MAGIC_LOOKUP: MagicLookup = include!(concat!(env!("OUT_DIR"), "/magic_lookup_init.txt"));
 
 pub const fn king_attacks(sq: Square) -> Bitboard {
     KING_ATTACKS[sq.as_index()]

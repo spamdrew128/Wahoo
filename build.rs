@@ -9,7 +9,7 @@ use crate::build_script_dependencies::magic_table_builder::generate_magic_table;
 
 fn main() {
     let mut out_dir: PathBuf = std::env::var("OUT_DIR").unwrap().into();
-    out_dir.push("magic_table.txt");
+    out_dir.push("magic_lookup_init.txt");
 
     let mut out_file = BufWriter::new(File::create(out_dir).unwrap());
     write!(&mut out_file, "{}", generate_magic_table()).unwrap();
