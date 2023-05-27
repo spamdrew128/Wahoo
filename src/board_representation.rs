@@ -338,7 +338,7 @@ impl Board {
         }
     }
 
-    fn from_fen(fen: &str) -> Self {
+    pub fn from_fen(fen: &str) -> Self {
         let mut board = Self::default();
         let mut i: u8 = 0;
         let split_fen = fen.split_whitespace().collect::<Vec<&str>>();
@@ -439,6 +439,10 @@ impl Board {
         let fullmoves = '0';
 
         format!("{pos} {color_char} {castling_rights} {ep} {halfmoves} {fullmoves}")
+    }
+
+    pub const fn occupied(&self) -> Bitboard {
+        self.all[Color::White as usize].union(self.all[Color::Black as usize])
     }
 }
 
