@@ -446,6 +446,14 @@ impl Board {
     pub const fn occupied(&self) -> Bitboard {
         self.all[Color::White as usize].union(self.all[Color::Black as usize])
     }
+
+    pub const fn empty(&self) -> Bitboard {
+        self.occupied().complement()
+    }
+
+    pub const fn piece_bb(&self, piece: Piece, color: Color) -> Bitboard {
+        self.all[color as usize].intersection(self.pieces[piece.as_index()]) 
+    }
 }
 
 #[cfg(test)]

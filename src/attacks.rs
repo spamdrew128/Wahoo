@@ -90,10 +90,10 @@ mod tests {
     use super::{Bitboard, Square};
     use crate::attacks;
     use crate::bb_from_squares;
-    use crate::board_representation::Board;
+    use crate::board_representation::{Board, Piece, Color};
 
     #[test]
-    fn king_lookup_test() {
+    fn king_attack_test() {
         let pos_1 = Square::A1;
         let expected_1 = bb_from_squares!(A2, B2, B1);
         assert_eq!(attacks::king(pos_1), expected_1);
@@ -104,7 +104,7 @@ mod tests {
     }
 
     #[test]
-    fn knight_lookup_test() {
+    fn knight_attack_test() {
         let pos_1 = Square::A1;
         let expected_1 = bb_from_squares!(C2, B3);
         assert_eq!(attacks::knight(pos_1), expected_1);
@@ -115,7 +115,7 @@ mod tests {
     }
 
     #[test]
-    fn bishop_lookup_test() {
+    fn bishop_attack_test() {
         let board = Board::from_fen("1k6/ppp5/5n2/2b1pB1r/8/2P3BP/P1P2PP1/3R2K1 w - - 1 25");
         let attacks = attacks::bishop(Square::F5, board.occupied());
 
@@ -124,7 +124,7 @@ mod tests {
     }
 
     #[test]
-    fn rook_lookup_test() {
+    fn rook_attack_test() {
         let board = Board::from_fen("1k6/ppp5/5n2/2b1pB1r/8/2P3BP/P1P2PP1/3R2K1 w - - 1 25");
         let attacks = attacks::rook(Square::H5, board.occupied());
 
@@ -133,7 +133,7 @@ mod tests {
     }
 
     #[test]
-    fn queen_lookup_test() {
+    fn queen_attack_test() {
         let board =
             Board::from_fen("2kr4/pp3pp1/2p3rp/2p1p3/1PB1P3/1R1P1q2/P1P2P1Q/5K2 b - - 6 26");
         let attacks = attacks::queen(Square::F3, board.occupied());
@@ -141,5 +141,33 @@ mod tests {
         let expected =
             bb_from_squares!(D1, H1, E2, F2, G2, D3, E3, G3, H3, E4, F4, G4, F5, H5, F6, F7);
         assert_eq!(attacks, expected);
+    }
+
+    #[test]
+    fn pawn_attack_test() {
+        let board =
+            Board::from_fen("2kr4/pp3pp1/2p3rp/2p1p3/1PB1P3/1R1P1q2/P1P2P1Q/5K2 b - - 6 26");
+        let color = Color::White;
+        let w_pawns = board.piece_bb(Piece::PAWN, color);
+
+        let attacks = attacks::pawn(w_pawns, color);
+
+        let expected =
+            bb_from_squares!(B3, D3, E3, G3, C4, E4, A5, C5, D5, F5);
+        assert_eq!(attacks, expected);
+    }
+
+    #[test]
+    fn pawn_single_push_test() {
+        let board =
+            Board::from_fen("2kr4/pp3pp1/2p3rp/2p1p3/1PB1P3/1R1P1q2/P1P2P1Q/5K2 b - - 6 26");
+        let color = Color::White;
+        let w_pawns = board.piece_bb(Piece::PAWN, color);
+
+        let moves = attacks::pawn_single_push(w_pawns, board.empty(), color);
+
+        let expected =
+            bb_from_squares!(A3, C3, D4, B5);
+        assert_eq!(moves, expected);
     }
 }
