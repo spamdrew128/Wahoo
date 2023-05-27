@@ -1,4 +1,4 @@
-use crate::board_representation::{Bitboard, Square, NUM_SQUARES};
+use crate::board_representation::{Bitboard, Color, Square, NUM_SQUARES};
 use crate::magic::{MagicEntry, MagicLookup};
 
 macro_rules! init_lookup {
@@ -56,6 +56,14 @@ pub const fn queen(sq: Square, occupied: Bitboard) -> Bitboard {
     MAGIC_LOOKUP
         .rook_attack_set(sq, occupied)
         .union(MAGIC_LOOKUP.bishop_attack_set(sq, occupied))
+}
+
+pub fn pawn(pawns: Bitboard, color: Color) -> Bitboard {
+    if color == Color::White {
+        pawns.northeast_one().union(pawns.northwest_one())
+    } else {
+        pawns.southeast_one().union(pawns.southwest_one())
+    }
 }
 
 #[cfg(test)]

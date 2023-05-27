@@ -4,9 +4,9 @@
 #![allow(clippy::module_name_repetitions)]
 #![allow(dead_code)] // remove later
 
+mod attacks;
 mod board_representation;
 mod chess_move;
-mod attacks;
 mod magic;
 mod util_macros;
 
