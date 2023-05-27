@@ -7,6 +7,7 @@
 mod board_representation;
 mod chess_move;
 mod lookup;
+mod magic;
 mod util_macros;
 
 fn main() {

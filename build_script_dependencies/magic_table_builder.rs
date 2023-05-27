@@ -1,4 +1,4 @@
-use crate::board_representation::{Bitboard, Square, NUM_SQUARES};
+use crate::build_script_dependencies::dummy_types::{Bitboard, Square, NUM_SQUARES};
 use std::cmp::max;
 
 type Magic = u64;
@@ -147,7 +147,7 @@ struct MagicEntry {
 }
 
 impl MagicEntry {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self {
             mask: Bitboard::new(0),
             magic: 0,
@@ -156,13 +156,13 @@ impl MagicEntry {
         }
     }
 
-    fn hash_index(self, blockers: Bitboard) -> usize {
+    const fn hash_index(self, blockers: Bitboard) -> usize {
         ((blockers.as_u64().wrapping_mul(self.magic)) >> self.shift) as usize
     }
 
     fn as_string(self) -> String {
         format!(
-            "MagicEntry {{ mask:Bitboard::new({:#x}), magic:{:#x}, shift:{}, offset:{} }}",
+            "MagicEntry::new(Bitboard::new({:#x}), {:#x}, {}, {})",
             self.mask.as_u64(),
             self.magic,
             self.shift,
@@ -172,13 +172,13 @@ impl MagicEntry {
 }
 
 #[derive(Debug)]
-pub struct MagicLookup {
+pub struct MagicLookupBuilder {
     rook_entries: [MagicEntry; NUM_SQUARES as usize],
     bishop_entries: [MagicEntry; NUM_SQUARES as usize],
     hash_table: Box<[Bitboard]>,
 }
 
-impl MagicLookup {
+impl MagicLookupBuilder {
     fn new() -> Self {
         Self {
             rook_entries: [MagicEntry::new(); NUM_SQUARES as usize],
@@ -188,7 +188,7 @@ impl MagicLookup {
     }
 
     #[allow(clippy::wrong_self_convention)]
-    fn as_string(self) -> String {
+    fn as_init_string(self) -> String {
         let mut rook_str = String::new();
         let mut bishop_str = String::new();
         let mut table_str = String::new();
@@ -206,13 +206,8 @@ impl MagicLookup {
                 .push_str(format!("Bitboard::new({:#x}), ", self.hash_table[i].as_u64()).as_str());
         }
 
-        format!("MagicLookup {{ rook_entries:[{rook_str}],\nbishop_entries[{bishop_str}],\nhash_table:[{table_str}],\n}}")
+        format!("MagicLookup::new(&[{rook_str}],\n&[{bishop_str}],\n&[{table_str}]\n)")
     }
-}
-
-fn offset_from_mask(mask: Bitboard) -> usize {
-    let base: u32 = 2;
-    base.pow(mask.popcount()) as usize
 }
 
 type Shifter = fn(Bitboard) -> Bitboard;
@@ -292,7 +287,7 @@ fn fill_single_entry(
     *offset += largest_index + 1;
 }
 
-fn init_hash_table(lookup: &mut MagicLookup) {
+fn init_hash_table(lookup: &mut MagicLookupBuilder) {
     let mut offset = 0;
     for i in 0..NUM_SQUARES {
         let sq = Square::new(i);
@@ -319,8 +314,8 @@ fn init_hash_table(lookup: &mut MagicLookup) {
     }
 }
 
-pub fn generate_magic_file() {
-    let mut lookup = MagicLookup::new();
+pub fn generate_magic_table() -> String {
+    let mut lookup = MagicLookupBuilder::new();
 
     for i in 0..NUM_SQUARES {
         let sq = Square::new(i);
@@ -338,5 +333,5 @@ pub fn generate_magic_file() {
     }
 
     init_hash_table(&mut lookup);
-    println!("{}", lookup.as_string());
+    lookup.as_init_string()
 }
