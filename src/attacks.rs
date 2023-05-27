@@ -58,11 +58,10 @@ pub const fn queen(sq: Square, occupied: Bitboard) -> Bitboard {
         .union(MAGIC_LOOKUP.bishop_attack_set(sq, occupied))
 }
 
-pub fn pawn(pawns: Bitboard, color: Color) -> Bitboard {
-    if color == Color::White {
-        pawns.northeast_one().union(pawns.northwest_one())
-    } else {
-        pawns.southeast_one().union(pawns.southwest_one())
+pub const fn pawn(pawns: Bitboard, color: Color) -> Bitboard {
+    match color {
+        Color::White => pawns.northeast_one().union(pawns.northwest_one()),
+        Color::Black => pawns.southeast_one().union(pawns.southwest_one())
     }
 }
 
