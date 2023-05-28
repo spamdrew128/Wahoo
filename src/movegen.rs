@@ -1,3 +1,4 @@
+use crate::board_representation::{Bitboard, Board};
 use crate::chess_move::Move;
 use crate::tuple_constants_enum;
 
@@ -27,5 +28,13 @@ impl MoveGenerator {
             movelist: [Move::nullmove(); MOVE_LIST_SIZE],
             len: 0,
         }
+    }
+
+    fn gen_captures(&mut self, board: Board) {
+        todo!();
+    }
+
+    fn gen_quiets(&mut self, board: Board) {
+        todo!();
     }
 }

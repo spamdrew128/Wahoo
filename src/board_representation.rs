@@ -180,7 +180,7 @@ impl Bitboard {
         self.data = self.data & (self.data - 1);
     }
 
-    fn pop_lsb(&mut self) -> Square {
+    pub fn pop_lsb(&mut self) -> Square {
         debug_assert!(self.is_not_empty());
         let sq = Square::new(self.data.trailing_zeros() as u8);
         self.reset_lsb();
