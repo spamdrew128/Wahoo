@@ -11,6 +11,10 @@ impl MoveStage {
     const fn new(data: u8) -> Self {
         Self(data)
     }
+
+    fn increment(&mut self) {
+        self.0 += 1;
+    }
 }
 
 const MOVE_LIST_SIZE: usize = u8::MAX as usize;
@@ -19,22 +23,28 @@ struct MoveGenerator {
 
     movelist: [Move; MOVE_LIST_SIZE],
     len: usize,
+    index: usize,
 }
 
 impl MoveGenerator {
-    const fn new() -> Self {
+    const fn new(board: &Board) -> Self {
         Self {
             stage: MoveStage::new(0),
             movelist: [Move::nullmove(); MOVE_LIST_SIZE],
             len: 0,
+            index: 0,
         }
     }
 
-    fn gen_captures(&mut self, board: Board) {
+    fn next(&mut self, board: &Board) {
         todo!();
     }
 
-    fn gen_quiets(&mut self, board: Board) {
+    fn gen_captures(&mut self, board: &Board) {
+        todo!();
+    }
+
+    fn gen_quiets(&mut self, board: &Board) {
         todo!();
     }
 }
