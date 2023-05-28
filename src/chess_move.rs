@@ -18,6 +18,10 @@ impl Move {
     const FROM_OFFSET: u8 = 6;
     const PROMO_OFFSET: u8 = 12;
 
+    pub const fn nullmove() -> Self {
+        Self { data: 0 }
+    }
+
     const fn new_default(to: Square, from: Square) -> Self {
         Self {
             data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET),
