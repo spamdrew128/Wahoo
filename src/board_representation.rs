@@ -302,6 +302,30 @@ impl BitOrAssign for Bitboard {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+struct CastleRights(u8);
+
+impl CastleRights {
+    const W_KINGSIDE_MASK: u8 = 0b0001;
+    const W_QUEENSIDE_MASK: u8 = 0b0010;
+    const B_KINGSIDE_MASK: u8 = 0b0100;
+    const B_QUEENSIDE_MASK: u8 = 0b1000;
+
+    const fn kingside(self, color: Color) -> bool {
+        match color {
+            Color::White => (self.0 & Self::W_KINGSIDE_MASK) > 0,
+            Color::Black => (self.0 & Self::B_KINGSIDE_MASK) > 0,
+        }
+    }
+
+    const fn queenside(self, color: Color) -> bool {
+        match color {
+            Color::White => (self.0 & Self::W_QUEENSIDE_MASK) > 0,
+            Color::Black => (self.0 & Self::B_QUEENSIDE_MASK) > 0,
+        }
+    }
+}
+
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Board {
     pub all: [Bitboard; NUM_COLORS as usize],
