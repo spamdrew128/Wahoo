@@ -480,19 +480,19 @@ impl Board {
 
         let mut castling_rights = Vec::<char>::new();
         if self.castle_rights.kingside(Color::White) {
-            castling_rights.push('K')
+            castling_rights.push('K');
         }
         if self.castle_rights.queenside(Color::White) {
-            castling_rights.push('Q')
+            castling_rights.push('Q');
         }
         if self.castle_rights.kingside(Color::Black) {
-            castling_rights.push('k')
+            castling_rights.push('k');
         }
         if self.castle_rights.queenside(Color::Black) {
-            castling_rights.push('q')
+            castling_rights.push('q');
         }
         if castling_rights.is_empty() {
-            castling_rights.push('-')
+            castling_rights.push('-');
         }
 
         let castling_rights: String = castling_rights.into_iter().collect();
