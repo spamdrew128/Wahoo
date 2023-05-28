@@ -1,12 +1,18 @@
-use crate::board_representation::{Bitboard, Board};
+use crate::attacks;
+use crate::bitloop;
+use crate::board_representation::{Bitboard, Board, Piece};
 use crate::chess_move::Move;
 use crate::tuple_constants_enum;
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct MoveStage(u8);
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct MoveStage(u8);
 
 impl MoveStage {
-    tuple_constants_enum!(Self, CAPTURE, QUIET);
+    #[rustfmt::skip]
+    tuple_constants_enum!(Self,
+        CAPTURE,
+        QUIET
+    );
 
     const fn new(data: u8) -> Self {
         Self(data)
@@ -19,8 +25,7 @@ impl MoveStage {
 
 const MOVE_LIST_SIZE: usize = u8::MAX as usize;
 struct MoveGenerator {
-    pub stage: MoveStage,
-
+    stage: MoveStage,
     movelist: [Move; MOVE_LIST_SIZE],
     len: usize,
     index: usize,
@@ -41,7 +46,15 @@ impl MoveGenerator {
     }
 
     fn gen_captures(&mut self, board: &Board) {
-        todo!();
+        let color = board.color_to_move;
+        let them = board.them();
+
+        let pawns = board.piece_bb(Piece::PAWN, color);
+        let pawn_east_attacks = attacks::pawn_east(pawns, color) & them;
+        let pawn_west_attacks = attacks::pawn_west(pawns, color) & them;
+
+        // bitloop!(sq, )
+
     }
 
     fn gen_quiets(&mut self, board: &Board) {

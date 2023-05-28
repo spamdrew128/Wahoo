@@ -58,10 +58,17 @@ pub const fn queen(sq: Square, occupied: Bitboard) -> Bitboard {
         .union(MAGIC_LOOKUP.bishop_attack_set(sq, occupied))
 }
 
-pub const fn pawn(pawns: Bitboard, color: Color) -> Bitboard {
+pub const fn pawn_east(pawns: Bitboard, color: Color) -> Bitboard {
     match color {
-        Color::White => pawns.northeast_one().union(pawns.northwest_one()),
-        Color::Black => pawns.southeast_one().union(pawns.southwest_one()),
+        Color::White => pawns.northeast_one(),
+        Color::Black => pawns.southeast_one(),
+    }
+}
+
+pub const fn pawn_west(pawns: Bitboard, color: Color) -> Bitboard {
+    match color {
+        Color::White => pawns.northwest_one(),
+        Color::Black => pawns.southwest_one(),
     }
 }
 
@@ -150,7 +157,7 @@ mod tests {
         let color = Color::White;
         let w_pawns = board.piece_bb(Piece::PAWN, color);
 
-        let attacks = attacks::pawn(w_pawns, color);
+        let attacks = attacks::pawn_east(w_pawns, color).union(attacks::pawn_west(w_pawns, color));
 
         let expected = bb_from_squares!(B3, D3, E3, G3, C4, E4, A5, C5, D5, F5);
         assert_eq!(attacks, expected);

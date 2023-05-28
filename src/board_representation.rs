@@ -17,10 +17,8 @@ pub enum Color {
     Black,
 }
 
-impl Not for Color {
-    type Output = Self;
-
-    fn not(self) -> Self::Output {
+impl Color {
+    const fn flip(self) -> Self {
         match self {
             Self::White => Self::Black,
             Self::Black => Self::White,
@@ -511,6 +509,14 @@ impl Board {
 
     pub const fn empty(&self) -> Bitboard {
         self.occupied().complement()
+    }
+
+    pub const fn us(&self) -> Bitboard {
+        self.all[self.color_to_move as usize]
+    }
+
+    pub const fn them(&self) -> Bitboard {
+        self.all[self.color_to_move.flip() as usize]
     }
 
     pub const fn piece_bb(&self, piece: Piece, color: Color) -> Bitboard {

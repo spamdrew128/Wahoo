@@ -23,9 +23,9 @@ macro_rules! bb_from_squares {
 
 #[macro_export]
 macro_rules! bitloop {
-    ($bb:ident, $body:expr) => {{
+    (|$sq:ident|, $bb:ident, $body:expr) => {{
         while $bb.is_not_empty {
-            let lsb: Square = $bb.pop_lsb();
+            let &sq: Square = $bb.pop_lsb();
             body
         }
     }};
