@@ -90,7 +90,7 @@ mod tests {
     use super::{Bitboard, Square};
     use crate::attacks;
     use crate::bb_from_squares;
-    use crate::board_representation::{Board, Piece, Color};
+    use crate::board_representation::{Board, Color, Piece};
 
     #[test]
     fn king_attack_test() {
@@ -152,8 +152,7 @@ mod tests {
 
         let attacks = attacks::pawn(w_pawns, color);
 
-        let expected =
-            bb_from_squares!(B3, D3, E3, G3, C4, E4, A5, C5, D5, F5);
+        let expected = bb_from_squares!(B3, D3, E3, G3, C4, E4, A5, C5, D5, F5);
         assert_eq!(attacks, expected);
     }
 
@@ -166,8 +165,7 @@ mod tests {
 
         let moves = attacks::pawn_single_push(w_pawns, board.empty(), color);
 
-        let expected =
-            bb_from_squares!(A3, C3, D4, B5);
+        let expected = bb_from_squares!(A3, C3, D4, B5);
         assert_eq!(moves, expected);
     }
 
@@ -181,8 +179,7 @@ mod tests {
 
         let moves = attacks::pawn_double_push(single_pushs, board.empty(), color);
 
-        let expected =
-            bb_from_squares!(F5, B5, A5);
+        let expected = bb_from_squares!(F5, B5, A5);
         assert_eq!(moves, expected);
     }
 }

@@ -311,6 +311,10 @@ impl CastleRights {
     const B_KINGSIDE_MASK: u8 = 0b0100;
     const B_QUEENSIDE_MASK: u8 = 0b1000;
 
+    const fn new(data: u8) -> Self {
+        Self(data)
+    }
+
     const fn kingside(self, color: Color) -> bool {
         match color {
             Color::White => (self.0 & Self::W_KINGSIDE_MASK) > 0,
@@ -331,6 +335,8 @@ pub struct Board {
     pub all: [Bitboard; NUM_COLORS as usize],
     pub pieces: [Bitboard; NUM_PIECES as usize],
     pub color_to_move: Color,
+
+    castle_rights: CastleRights,
 }
 
 const fn fen_index_as_bitboard(i: u8) -> Bitboard {
@@ -368,8 +374,10 @@ impl Board {
         let mut board = Self::default();
         let mut i: u8 = 0;
         let split_fen = fen.split_whitespace().collect::<Vec<&str>>();
+
         let board_info_string = split_fen[0].chars();
         let color_char = split_fen[1].chars().next().unwrap();
+        let castling_rights = split_fen[2].chars();
 
         for ch in board_info_string {
             assert!(i < NUM_SQUARES);
@@ -409,6 +417,18 @@ impl Board {
         if color_char == 'b' {
             board.color_to_move = Color::Black;
         }
+
+        let mut castle_data: u8 = 0;
+        for c in castling_rights {
+            match c {
+                'K' => castle_data |= CastleRights::W_KINGSIDE_MASK,
+                'Q' => castle_data |= CastleRights::W_QUEENSIDE_MASK,
+                'k' => castle_data |= CastleRights::B_KINGSIDE_MASK,
+                'q' => castle_data |= CastleRights::B_QUEENSIDE_MASK,
+                _ => (),
+            }
+        }
+        board.castle_rights = CastleRights::new(castle_data);
 
         board
     }
@@ -459,7 +479,25 @@ impl Board {
         };
 
         // TODO: handle these later
-        let castling_rights = "KQkq";
+        let mut castling_rights = Vec::<char>::new();
+        if self.castle_rights.kingside(Color::White) {
+            castling_rights.push('K')
+        }
+        if self.castle_rights.queenside(Color::White) {
+            castling_rights.push('Q')
+        }
+        if self.castle_rights.kingside(Color::Black) {
+            castling_rights.push('k')
+        }
+        if self.castle_rights.queenside(Color::Black) {
+            castling_rights.push('q')
+        }
+        if castling_rights.is_empty() {
+            castling_rights.push('-')
+        }
+
+        let castling_rights: String = castling_rights.into_iter().collect();
+
         let ep = "-";
         let halfmoves = "0";
         let fullmoves = '0';
@@ -476,14 +514,14 @@ impl Board {
     }
 
     pub const fn piece_bb(&self, piece: Piece, color: Color) -> Bitboard {
-        self.all[color as usize].intersection(self.pieces[piece.as_index()]) 
+        self.all[color as usize].intersection(self.pieces[piece.as_index()])
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{Bitboard, Board, Color, Square, START_FEN};
-    use crate::bb_from_squares;
+    use crate::{bb_from_squares, board_representation::CastleRights};
 
     #[test]
     fn bit_and_works() {
@@ -570,6 +608,7 @@ mod tests {
             all: [white, black],
             pieces: [knights, bishops, rooks, queens, pawns, kings],
             color_to_move: Color::White,
+            castle_rights: CastleRights::new(0b1111),
         };
 
         assert_eq!(actual, expected);
