@@ -478,7 +478,6 @@ impl Board {
             'b'
         };
 
-        // TODO: handle these later
         let mut castling_rights = Vec::<char>::new();
         if self.castle_rights.kingside(Color::White) {
             castling_rights.push('K')
@@ -498,6 +497,7 @@ impl Board {
 
         let castling_rights: String = castling_rights.into_iter().collect();
 
+        // TODO: handle these later
         let ep = "-";
         let halfmoves = "0";
         let fullmoves = '0';
