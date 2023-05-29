@@ -119,8 +119,10 @@ impl Bitboard {
     pub const H_FILE: Self = Self::new(0x8080808080808080);
 
     pub const RANK_1: Self = Self::new(0x00000000000000ff);
+    pub const RANK_2: Self = Self::new(0x000000000000ff00);
     pub const RANK_4: Self = Self::new(0x00000000ff000000);
     pub const RANK_5: Self = Self::new(0x000000ff00000000);
+    pub const RANK_7: Self = Self::new(0x00ff000000000000);
     pub const RANK_8: Self = Self::new(0xff00000000000000);
 
     pub const fn new(data: u64) -> Self {
@@ -145,6 +147,12 @@ impl Bitboard {
     pub const fn intersection(self, rhs: Self) -> Self {
         Self {
             data: self.data & rhs.data,
+        }
+    }
+
+    pub const fn without(self, rhs: Self) -> Self {
+        Self {
+            data: self.data & !rhs.data,
         }
     }
 
@@ -525,6 +533,15 @@ impl Board {
 
     pub const fn piece_bb(&self, piece: Piece, color: Color) -> Bitboard {
         self.all[color.as_index()].intersection(self.pieces[piece.as_index()])
+    }
+
+    pub const fn promotable_pawns(&self) -> Bitboard {
+        let color = self.color_to_move;
+        let pawns = self.piece_bb(Piece::PAWN, color);
+        match color {
+            Color::White => pawns.intersection(Bitboard::RANK_7),
+            Color::Black => pawns.intersection(Bitboard::RANK_2),
+        }
     }
 }
 

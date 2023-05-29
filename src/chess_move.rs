@@ -28,7 +28,7 @@ impl Move {
         }
     }
 
-    const fn new_promo(to: Square, from: Square, promo_piece: Piece) -> Self {
+    pub const fn new_promo(to: Square, from: Square, promo_piece: Piece) -> Self {
         Self {
             data: to.as_u16()
                 | (from.as_u16() << Self::FROM_OFFSET)
