@@ -1,38 +1,42 @@
-use crate::board_representation::{Bitboard, Color, Square, NUM_SQUARES};
+use crate::board_representation::{Bitboard, Color, Square, NUM_SQUARES, NUM_COLORS};
 use crate::magic::{MagicEntry, MagicLookup};
 
 macro_rules! init_lookup {
-    (|$sq:ident|, $body:expr) => {{
-        let mut $sq = 0;
+    (|$sq_bb:ident|, $body:expr) => {{
+        let mut i = 0;
         let mut table = [Bitboard::new(0); NUM_SQUARES as usize];
-        while $sq < NUM_SQUARES {
-            table[$sq as usize] = $body;
-            $sq += 1;
+        while i < NUM_SQUARES {
+            let $sq_bb = Square::new(i).as_bitboard();
+            table[i as usize] = $body;
+            i += 1;
         }
         table
     }};
 }
 
-const KING_ATTACKS: [Bitboard; NUM_SQUARES as usize] = init_lookup!(|sq|, {
-    let bitset = Square::new(sq).as_bitboard();
-    bitset.north_one()
-        .union(bitset.northeast_one())
-        .union(bitset.east_one())
-        .union(bitset.southeast_one())
-        .union(bitset.south_one())
-        .union(bitset.southwest_one())
-        .union(bitset.west_one())
-        .union(bitset.northwest_one())
+const KING_ATTACKS: [Bitboard; NUM_SQUARES as usize] = init_lookup!(|sq_bb|, {
+    sq_bb.north_one()
+        .union(sq_bb.northeast_one())
+        .union(sq_bb.east_one())
+        .union(sq_bb.southeast_one())
+        .union(sq_bb.south_one())
+        .union(sq_bb.southwest_one())
+        .union(sq_bb.west_one())
+        .union(sq_bb.northwest_one())
 });
 
-const KNIGHT_ATTACKS: [Bitboard; NUM_SQUARES as usize] = init_lookup!(|sq|, {
-    let bitset = Square::new(sq).as_bitboard();
-    let vert = bitset.shift_north(2).union(bitset.shift_south(2));
-    let horiz = bitset.no_wrap_shift_east(2).union(bitset.no_wrap_shift_west(2));
+const KNIGHT_ATTACKS: [Bitboard; NUM_SQUARES as usize] = init_lookup!(|sq_bb|, {
+    let vert = sq_bb.shift_north(2).union(sq_bb.shift_south(2));
+    let horiz = sq_bb.no_wrap_shift_east(2).union(sq_bb.no_wrap_shift_west(2));
 
     vert.west_one().union(vert.east_one())
         .union(horiz.north_one().union(horiz.south_one()))
 });
+
+const PAWN_ATTACKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = [
+    init_lookup!(|sq_bb|, pawn_setwise(sq_bb, Color::White)),
+    init_lookup!(|sq_bb|, pawn_setwise(sq_bb, Color::Black)),
+];
 
 const MAGIC_LOOKUP: MagicLookup = include!(concat!(env!("OUT_DIR"), "/magic_lookup_init.txt"));
 
@@ -58,35 +62,15 @@ pub const fn queen(sq: Square, occupied: Bitboard) -> Bitboard {
         .union(MAGIC_LOOKUP.bishop_attack_set(sq, occupied))
 }
 
-#[inline]
-pub const fn pawn_east(pawns: Bitboard, color: Color) -> Bitboard {
-    match color {
-        Color::White => pawns.northeast_one(),
-        Color::Black => pawns.southeast_one(),
-    }
+pub const fn pawn(sq: Square, color: Color) -> Bitboard {
+    PAWN_ATTACKS[color.as_index()][sq.as_index()]
 }
 
 #[inline]
-pub const fn pawn_west(pawns: Bitboard, color: Color) -> Bitboard {
+pub const fn pawn_setwise(pawns: Bitboard, color: Color) -> Bitboard {
     match color {
-        Color::White => pawns.northwest_one(),
-        Color::Black => pawns.southwest_one(),
-    }
-}
-
-#[inline]
-pub const fn east_capturing_pawns(east_attacks: Bitboard, color: Color) -> Bitboard {
-    match color {
-        Color::White => east_attacks.southwest_one(),
-        Color::Black => east_attacks.northwest_one(),
-    }
-}
-
-#[inline]
-pub const fn west_capturing_pawns(east_attacks: Bitboard, color: Color) -> Bitboard {
-    match color {
-        Color::White => east_attacks.southeast_one(),
-        Color::Black => east_attacks.northeast_one(),
+        Color::White => pawns.northeast_one().union(pawns.northwest_one()),
+        Color::Black => pawns.southeast_one().union(pawns.southwest_one()),
     }
 }
 
@@ -177,7 +161,7 @@ mod tests {
         let color = Color::White;
         let w_pawns = board.piece_bb(Piece::PAWN, color);
 
-        let attacks = attacks::pawn_east(w_pawns, color).union(attacks::pawn_west(w_pawns, color));
+        let attacks = attacks::pawn_setwise(w_pawns, color);
 
         let expected = bb_from_squares!(B3, D3, E3, G3, C4, E4, A5, C5, D5, F5);
         assert_eq!(attacks, expected);

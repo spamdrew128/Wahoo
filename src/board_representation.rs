@@ -24,6 +24,10 @@ impl Color {
             Self::Black => Self::White,
         }
     }
+
+    pub const fn as_index(self) -> usize {
+        self as usize
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -520,7 +524,7 @@ impl Board {
     }
 
     pub const fn piece_bb(&self, piece: Piece, color: Color) -> Bitboard {
-        self.all[color as usize].intersection(self.pieces[piece.as_index()])
+        self.all[color.as_index()].intersection(self.pieces[piece.as_index()])
     }
 }
 

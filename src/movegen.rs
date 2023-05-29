@@ -32,7 +32,7 @@ struct MoveGenerator {
 }
 
 impl MoveGenerator {
-    const fn new(board: &Board) -> Self {
+    const fn new() -> Self {
         Self {
             stage: MoveStage::new(0),
             movelist: [Move::nullmove(); MOVE_LIST_SIZE],
