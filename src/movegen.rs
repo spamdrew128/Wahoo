@@ -74,10 +74,29 @@ impl MoveGenerator {
         mv
     }
 
+    fn generic_movegen(&mut self, board: &Board, filter: Bitboard) {
+        let color = board.color_to_move;
+        let occupied = board.occupied();
+
+        let mut knights = board.piece_bb(Piece::KNIGHT, color);
+        into_moves!(|from|, knights, |to|, attacks::knight(from).intersection(filter), self.add_move(Move::new_default(to, from)));
+
+        let mut bishops = board.piece_bb(Piece::BISHOP, color);
+        into_moves!(|from|, bishops, |to|, attacks::bishop(from, occupied).intersection(filter), self.add_move(Move::new_default(to, from)));
+
+        let mut rooks = board.piece_bb(Piece::ROOK, color);
+        into_moves!(|from|, rooks, |to|, attacks::rook(from, occupied).intersection(filter), self.add_move(Move::new_default(to, from)));
+
+        let mut queens = board.piece_bb(Piece::QUEEN, color);
+        into_moves!(|from|, queens, |to|, attacks::queen(from, occupied).intersection(filter), self.add_move(Move::new_default(to, from)));
+
+        let mut king = board.piece_bb(Piece::KING, color);
+        into_moves!(|from|, king, |to|, attacks::king(from).intersection(filter), self.add_move(Move::new_default(to, from)));
+    }
+
     fn gen_captures(&mut self, board: &Board) {
         let color = board.color_to_move;
         let them = board.them();
-        let occupied = board.occupied();
 
         let pawns = board.piece_bb(Piece::PAWN, color);
         let mut promoting_pawns = board.promotable_pawns();
@@ -99,20 +118,7 @@ impl MoveGenerator {
             });
         }
 
-        let mut knights = board.piece_bb(Piece::KNIGHT, color);
-        into_moves!(|from|, knights, |to|, attacks::knight(from).intersection(them), self.add_move(Move::new_default(to, from)));
-
-        let mut bishops = board.piece_bb(Piece::BISHOP, color);
-        into_moves!(|from|, bishops, |to|, attacks::bishop(from, occupied).intersection(them), self.add_move(Move::new_default(to, from)));
-
-        let mut rooks = board.piece_bb(Piece::ROOK, color);
-        into_moves!(|from|, rooks, |to|, attacks::rook(from, occupied).intersection(them), self.add_move(Move::new_default(to, from)));
-
-        let mut queens = board.piece_bb(Piece::QUEEN, color);
-        into_moves!(|from|, queens, |to|, attacks::queen(from, occupied).intersection(them), self.add_move(Move::new_default(to, from)));
-
-        let mut king = board.piece_bb(Piece::KING, color);
-        into_moves!(|from|, king, |to|, attacks::king(from).intersection(them), self.add_move(Move::new_default(to, from)));
+        self.generic_movegen(board, them);
     }
 
     fn gen_quiets(&mut self, board: &Board) {
