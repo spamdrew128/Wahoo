@@ -1,4 +1,4 @@
-use std::{ops::{BitAnd, BitOr, BitOrAssign, BitXor, Not}};
+use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, Not};
 
 use crate::tuple_constants_enum;
 
@@ -18,7 +18,7 @@ pub enum Color {
 }
 
 impl Color {
-    const fn flip(self) -> Self {
+    pub const fn flip(self) -> Self {
         match self {
             Self::White => Self::Black,
             Self::Black => Self::White,
@@ -114,7 +114,7 @@ impl Square {
 
         let col_char = (col + 97) as char;
         let row_char = (row + 49) as char;
-        
+
         format!("{col_char}{row_char}")
     }
 
@@ -129,7 +129,7 @@ impl Square {
 
         let col: Col = (col_char as Col) - 97;
         let row: Row = (row_char as Col) - 49;
-    
+
         Some(Self::new(row * 8 + col))
     }
 }
@@ -536,7 +536,9 @@ impl Board {
         let castling_rights: String = castling_rights.into_iter().collect();
 
         #[allow(clippy::redundant_closure_for_method_calls)]
-        let ep = self.ep_sq.map_or_else(|| "-".to_string(), |sq| sq.as_string());
+        let ep = self
+            .ep_sq
+            .map_or_else(|| "-".to_string(), |sq| sq.as_string());
 
         // TODO: handle these later
         let halfmoves = "0";

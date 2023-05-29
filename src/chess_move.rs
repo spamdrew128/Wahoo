@@ -43,7 +43,7 @@ impl Move {
         }
     }
 
-    const fn new_ep(to: Square, from: Square) -> Self {
+    pub const fn new_ep(to: Square, from: Square) -> Self {
         Self {
             data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET) | Self::EP_FLAG,
         }

@@ -75,6 +75,13 @@ impl MoveGenerator {
 
         into_moves!(|from|, normal_pawns, |to|, attacks::pawn(from, color).intersection(them), self.add_move(Move::new_default(to, from)));
 
+        if let Some(to) = board.ep_sq {
+            let mut attackers = attacks::pawn(to, color.flip()).intersection(pawns);
+            bitloop!(|from|, attackers, {
+                self.add_move(Move::new_ep(to, from));
+            });
+        }
+
         let mut knights = board.piece_bb(Piece::KNIGHT, color);
         into_moves!(|from|, knights, |to|, attacks::knight(from).intersection(them), self.add_move(Move::new_default(to, from)));
 
