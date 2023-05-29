@@ -21,8 +21,9 @@ struct MoveStage(u8);
 impl MoveStage {
     #[rustfmt::skip]
     tuple_constants_enum!(Self,
-        CAPTURE,
-        QUIET
+        START,
+        CAPTURES,
+        QUIETS
     );
 
     const fn new(data: u8) -> Self {
@@ -45,16 +46,32 @@ struct MoveGenerator {
 impl MoveGenerator {
     const fn new() -> Self {
         Self {
-            stage: MoveStage::new(0),
+            stage: MoveStage::START,
             movelist: [Move::nullmove(); MOVE_LIST_SIZE],
             len: 0,
             index: 0,
         }
     }
 
+    const fn stage_complete(&self) -> bool {
+        self.index >= self.len
+    }
+    
+    fn advance_stage(&mut self) {
+        self.stage.increment();
+        self.len = 0;
+        self.index = 0;
+    }
+
     fn add_move(&mut self, mv: Move) {
         self.movelist[self.len] = mv;
         self.len += 1;
+    }
+
+    fn next_move_in_stage(&mut self) -> Move {
+        let mv = self.movelist[self.index];
+        self.index += 1;
+        mv
     }
 
     fn gen_captures(&mut self, board: &Board) {
@@ -102,7 +119,17 @@ impl MoveGenerator {
         todo!();
     }
 
-    fn next(&mut self, board: &Board) {
-        todo!();
+    fn next(&mut self, board: &Board) -> Option<Move> {
+        while self.stage_complete() {
+            self.advance_stage();
+
+            match self.stage {
+                MoveStage::CAPTURES => self.gen_captures(board),
+                MoveStage::QUIETS => self.gen_quiets(board),
+                _ => return None,
+            }
+        }
+
+        Some(self.next_move_in_stage())
     }
 }
