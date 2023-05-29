@@ -58,6 +58,7 @@ pub const fn queen(sq: Square, occupied: Bitboard) -> Bitboard {
         .union(MAGIC_LOOKUP.bishop_attack_set(sq, occupied))
 }
 
+#[inline]
 pub const fn pawn_east(pawns: Bitboard, color: Color) -> Bitboard {
     match color {
         Color::White => pawns.northeast_one(),
@@ -65,6 +66,7 @@ pub const fn pawn_east(pawns: Bitboard, color: Color) -> Bitboard {
     }
 }
 
+#[inline]
 pub const fn pawn_west(pawns: Bitboard, color: Color) -> Bitboard {
     match color {
         Color::White => pawns.northwest_one(),
@@ -72,6 +74,23 @@ pub const fn pawn_west(pawns: Bitboard, color: Color) -> Bitboard {
     }
 }
 
+#[inline]
+pub const fn east_capturing_pawns(east_attacks: Bitboard, color: Color) -> Bitboard {
+    match color {
+        Color::White => east_attacks.southwest_one(),
+        Color::Black => east_attacks.northwest_one(),
+    }
+}
+
+#[inline]
+pub const fn west_capturing_pawns(east_attacks: Bitboard, color: Color) -> Bitboard {
+    match color {
+        Color::White => east_attacks.southeast_one(),
+        Color::Black => east_attacks.northeast_one(),
+    }
+}
+
+#[inline]
 pub const fn pawn_single_push(pawns: Bitboard, empty: Bitboard, color: Color) -> Bitboard {
     match color {
         Color::White => pawns.north_one().intersection(empty),
@@ -79,6 +98,7 @@ pub const fn pawn_single_push(pawns: Bitboard, empty: Bitboard, color: Color) ->
     }
 }
 
+#[inline]
 pub const fn pawn_double_push(single_pushes: Bitboard, empty: Bitboard, color: Color) -> Bitboard {
     match color {
         Color::White => single_pushes

@@ -22,7 +22,7 @@ impl Move {
         Self { data: 0 }
     }
 
-    const fn new_default(to: Square, from: Square) -> Self {
+    pub const fn new_default(to: Square, from: Square) -> Self {
         Self {
             data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET),
         }

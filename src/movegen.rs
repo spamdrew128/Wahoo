@@ -1,6 +1,6 @@
 use crate::attacks;
 use crate::bitloop;
-use crate::board_representation::{Bitboard, Board, Piece};
+use crate::board_representation::{Bitboard, Board, Piece, Square};
 use crate::chess_move::Move;
 use crate::tuple_constants_enum;
 
@@ -41,6 +41,11 @@ impl MoveGenerator {
         }
     }
 
+    fn add_move(&mut self, mv: Move) {
+        self.movelist[self.len] = mv;
+        self.len += 1;
+    }
+
     fn next(&mut self, board: &Board) {
         todo!();
     }
@@ -50,11 +55,6 @@ impl MoveGenerator {
         let them = board.them();
 
         let pawns = board.piece_bb(Piece::PAWN, color);
-        let pawn_east_attacks = attacks::pawn_east(pawns, color) & them;
-        let pawn_west_attacks = attacks::pawn_west(pawns, color) & them;
-
-        // bitloop!(sq, )
-
     }
 
     fn gen_quiets(&mut self, board: &Board) {
