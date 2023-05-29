@@ -42,8 +42,17 @@ impl Piece {
         QUEEN,
         PAWN,
         KING,
-        NONE_PIECE
+        NONE
     );
+
+    pub const LIST: [Self; NUM_PIECES as usize] = [
+        Self::KNIGHT,
+        Self::BISHOP,
+        Self::ROOK,
+        Self::QUEEN,
+        Self::PAWN,
+        Self::KING,
+    ];
 
     pub const fn new(data: u8) -> Self {
         Self(data)
@@ -67,7 +76,7 @@ impl Piece {
         Some(ch)
     }
 
-    const fn as_index(self) -> usize {
+    pub const fn as_index(self) -> usize {
         self.0 as usize
     }
 
@@ -574,6 +583,16 @@ impl Board {
             Color::White => pawns.intersection(Bitboard::RANK_7),
             Color::Black => pawns.intersection(Bitboard::RANK_2),
         }
+    }
+
+    pub fn piece_on_sq(&self, sq: Square) -> Piece {
+        let bitset = sq.as_bitboard();
+        for piece in Piece::LIST {
+            if bitset.overlaps(self.pieces[piece.as_index()]) {
+                return piece
+            }
+        }
+        Piece::NONE
     }
 }
 

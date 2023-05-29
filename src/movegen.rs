@@ -125,11 +125,49 @@ impl MoveGenerator {
 
             match self.stage {
                 MoveStage::CAPTURES => self.gen_captures(board),
-                MoveStage::QUIETS => self.gen_quiets(board),
+                MoveStage::QUIETS => (),
                 _ => return None,
             }
         }
 
         Some(self.next_move_in_stage())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::board_representation::NUM_PIECES;
+
+    #[test]
+    fn generates_captures() {
+        use super::*;
+
+        let board = Board::from_fen("1n4K1/P2k2b1/4r1n1/PpPB4/5N2/bRq1r3/3P4/2Q5 w - b6 0 2");
+        let mut counts = [0; NUM_PIECES as usize];
+        let mut promo_count = 0;
+        let mut ep_count = 0;
+
+        let mut generator = MoveGenerator::new();
+        while let Some(mv) = generator.next(&board) {
+            let piece = board.piece_on_sq(mv.from());
+            counts[piece.as_index()] += 1;
+
+            if mv.is_promo() {
+                promo_count += 1;
+            }  
+
+            if mv.is_ep() {
+                ep_count += 1;
+            }
+        }
+
+        assert_eq!(counts[Piece::PAWN.as_index()], 8);
+        assert_eq!(counts[Piece::BISHOP.as_index()], 1);
+        assert_eq!(counts[Piece::ROOK.as_index()], 3);
+        assert_eq!(counts[Piece::QUEEN.as_index()], 2);
+        assert_eq!(counts[Piece::KNIGHT.as_index()], 2);
+        assert_eq!(counts[Piece::KING.as_index()], 1);
+        assert_eq!(promo_count, 4);
+        assert_eq!(ep_count, 2);
     }
 }
