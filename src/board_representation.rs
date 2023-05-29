@@ -1,9 +1,9 @@
-use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, Not};
+use std::{ops::{BitAnd, BitOr, BitOrAssign, BitXor, Not}};
 
 use crate::tuple_constants_enum;
 
-type Rank = u8;
-type File = u8;
+type Row = u8;
+type Col = u8;
 
 pub const NUM_SQUARES: u8 = 64;
 pub const NUM_PIECES: u8 = 6;
@@ -106,6 +106,27 @@ impl Square {
 
     pub const fn as_index(self) -> usize {
         self.0 as usize
+    }
+
+    pub fn as_string(self) -> String {
+        let col: Col = self.0 % 8;
+        let row: Row = self.0 / 8;
+
+        let col_char = (col + 97) as char;
+        let row_char = (row + 49) as char;
+        
+        format!("{col_char}{row_char}")
+    }
+
+    pub fn from_string(str: &str) -> Self {
+        let mut chars = str.chars();
+        let col_char = chars.next().unwrap();
+        let row_char = chars.next().unwrap();
+
+        let col: Col = (col_char as Col) - 97;
+        let row: Row = (row_char as Col) - 49;
+    
+        Self::new(row * 8 + col)
     }
 }
 
@@ -650,5 +671,19 @@ mod tests {
         let expected = START_FEN;
 
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn sq_to_str_works() {
+        assert_eq!(Square::A1.as_string(), "a1");
+        assert_eq!(Square::A6.as_string(), "a6");
+        assert_eq!(Square::H8.as_string(), "h8");
+    }
+
+    #[test]
+    fn sq_from_str_works() {
+        assert_eq!(Square::from_string("a1"), Square::A1);
+        assert_eq!(Square::from_string("a6"), Square::A6);
+        assert_eq!(Square::from_string("h8"), Square::H8);
     }
 }
