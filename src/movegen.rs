@@ -94,6 +94,13 @@ impl MoveGenerator {
         into_moves!(|from|, king, |to|, attacks::king(from).intersection(filter), self.add_move(Move::new_default(to, from)));
     }
 
+    fn add_castling_moves(&mut self, board: &Board) {
+        let color = board.color_to_move;
+        let occupied = board.occupied();
+
+        todo!();
+    }
+
     fn generate_captures(&mut self, board: &Board) {
         let color = board.color_to_move;
         let them = board.them();
@@ -117,6 +124,8 @@ impl MoveGenerator {
                 self.add_move(Move::new_ep(to, from));
             });
         }
+
+        self.add_castling_moves(board);
 
         self.generic_movegen(board, them);
     }
