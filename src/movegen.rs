@@ -65,7 +65,7 @@ impl MoveGenerator {
         let pawns = board.piece_bb(Piece::PAWN, color);
         let mut promoting_pawns = board.promotable_pawns();
         let mut normal_pawns = pawns.without(promoting_pawns);
-        
+
         into_moves!(|from|, promoting_pawns, |to|, attacks::pawn(from, color).intersection(them), {
             self.add_move(Move::new_promo(to, from, Piece::QUEEN));
             self.add_move(Move::new_promo(to, from, Piece::KNIGHT));
@@ -86,6 +86,9 @@ impl MoveGenerator {
 
         let mut queens = board.piece_bb(Piece::QUEEN, color);
         into_moves!(|from|, queens, |to|, attacks::queen(from, occupied).intersection(them), self.add_move(Move::new_default(to, from)));
+
+        let mut king = board.piece_bb(Piece::KING, color);
+        into_moves!(|from|, king, |to|, attacks::king(from).intersection(them), self.add_move(Move::new_default(to, from)));
     }
 
     fn gen_quiets(&mut self, board: &Board) {

@@ -76,7 +76,7 @@ impl Piece {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Square(u8);
 
 impl Square {
@@ -313,7 +313,7 @@ impl BitOrAssign for Bitboard {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-struct CastleRights(u8);
+pub struct CastleRights(u8);
 
 impl CastleRights {
     const W_KINGSIDE_MASK: u8 = 0b0001;
@@ -345,8 +345,8 @@ pub struct Board {
     pub all: [Bitboard; NUM_COLORS as usize],
     pub pieces: [Bitboard; NUM_PIECES as usize],
     pub color_to_move: Color,
-
-    castle_rights: CastleRights,
+    pub castle_rights: CastleRights,
+    pub ep_sq: Option<Square>,
 }
 
 const fn fen_index_as_bitboard(i: u8) -> Bitboard {
@@ -636,6 +636,7 @@ mod tests {
             pieces: [knights, bishops, rooks, queens, pawns, kings],
             color_to_move: Color::White,
             castle_rights: CastleRights::new(0b1111),
+            ep_sq: None,
         };
 
         assert_eq!(actual, expected);
