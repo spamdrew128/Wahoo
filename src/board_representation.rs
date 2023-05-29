@@ -589,7 +589,7 @@ impl Board {
         let bitset = sq.as_bitboard();
         for piece in Piece::LIST {
             if bitset.overlaps(self.pieces[piece.as_index()]) {
-                return piece
+                return piece;
             }
         }
         Piece::NONE

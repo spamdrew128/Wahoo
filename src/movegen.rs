@@ -56,7 +56,7 @@ impl MoveGenerator {
     const fn stage_complete(&self) -> bool {
         self.index >= self.len
     }
-    
+
     fn advance_stage(&mut self) {
         self.stage.increment();
         self.len = 0;
@@ -149,12 +149,15 @@ mod tests {
 
         let mut generator = MoveGenerator::new();
         while let Some(mv) = generator.next(&board) {
+            if generator.stage != MoveStage::CAPTURES {
+                break;
+            }
             let piece = board.piece_on_sq(mv.from());
             counts[piece.as_index()] += 1;
 
             if mv.is_promo() {
                 promo_count += 1;
-            }  
+            }
 
             if mv.is_ep() {
                 ep_count += 1;
