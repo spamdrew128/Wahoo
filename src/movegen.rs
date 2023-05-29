@@ -4,6 +4,17 @@ use crate::board_representation::{Bitboard, Board, Piece, Square};
 use crate::chess_move::Move;
 use crate::tuple_constants_enum;
 
+macro_rules! into_moves {
+    (|$from:ident|, $piece_bb:ident, |$to:ident|, $moves_bb:expr, $add_move:expr) => {{
+        bitloop!(|$from|, $piece_bb, {
+            let mut moves: Bitboard = $moves_bb;
+            bitloop!(|$to|, moves, {
+                $add_move
+            });
+        });
+    }};
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct MoveStage(u8);
 
@@ -46,18 +57,19 @@ impl MoveGenerator {
         self.len += 1;
     }
 
-    fn next(&mut self, board: &Board) {
-        todo!();
-    }
-
     fn gen_captures(&mut self, board: &Board) {
         let color = board.color_to_move;
         let them = board.them();
 
-        let pawns = board.piece_bb(Piece::PAWN, color);
+        let mut pawns = board.piece_bb(Piece::PAWN, color);
+        into_moves!(|from|, pawns, |to|, attacks::pawn(from, color).intersection(them), self.add_move(Move::new_default(to, from)));
     }
 
     fn gen_quiets(&mut self, board: &Board) {
+        todo!();
+    }
+
+    fn next(&mut self, board: &Board) {
         todo!();
     }
 }

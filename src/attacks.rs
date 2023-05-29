@@ -1,4 +1,4 @@
-use crate::board_representation::{Bitboard, Color, Square, NUM_SQUARES, NUM_COLORS};
+use crate::board_representation::{Bitboard, Color, Square, NUM_COLORS, NUM_SQUARES};
 use crate::magic::{MagicEntry, MagicLookup};
 
 macro_rules! init_lookup {
