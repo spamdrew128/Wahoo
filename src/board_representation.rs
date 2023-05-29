@@ -118,7 +118,11 @@ impl Square {
         format!("{col_char}{row_char}")
     }
 
-    pub fn from_string(str: &str) -> Self {
+    pub fn from_string(str: &str) -> Option<Self> {
+        if str.len() != 2 {
+            return None;
+        }
+
         let mut chars = str.chars();
         let col_char = chars.next().unwrap();
         let row_char = chars.next().unwrap();
@@ -126,7 +130,7 @@ impl Square {
         let col: Col = (col_char as Col) - 97;
         let row: Row = (row_char as Col) - 49;
     
-        Self::new(row * 8 + col)
+        Some(Self::new(row * 8 + col))
     }
 }
 
@@ -409,6 +413,7 @@ impl Board {
         let board_info_string = split_fen[0].chars();
         let color_char = split_fen[1].chars().next().unwrap();
         let castling_rights = split_fen[2].chars();
+        let ep_sq = split_fen[3];
 
         for ch in board_info_string {
             assert!(i < NUM_SQUARES);
@@ -460,6 +465,8 @@ impl Board {
             }
         }
         board.castle_rights = CastleRights::new(castle_data);
+
+        board.ep_sq = Square::from_string(ep_sq);
 
         board
     }
@@ -528,8 +535,10 @@ impl Board {
 
         let castling_rights: String = castling_rights.into_iter().collect();
 
+        #[allow(clippy::redundant_closure_for_method_calls)]
+        let ep = self.ep_sq.map_or_else(|| "-".to_string(), |sq| sq.as_string());
+
         // TODO: handle these later
-        let ep = "-";
         let halfmoves = "0";
         let fullmoves = '0';
 
@@ -682,8 +691,8 @@ mod tests {
 
     #[test]
     fn sq_from_str_works() {
-        assert_eq!(Square::from_string("a1"), Square::A1);
-        assert_eq!(Square::from_string("a6"), Square::A6);
-        assert_eq!(Square::from_string("h8"), Square::H8);
+        assert_eq!(Square::from_string("a1").unwrap(), Square::A1);
+        assert_eq!(Square::from_string("a6").unwrap(), Square::A6);
+        assert_eq!(Square::from_string("h8").unwrap(), Square::H8);
     }
 }
