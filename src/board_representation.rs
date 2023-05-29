@@ -141,6 +141,13 @@ impl Square {
 
         Some(Self::new(row * 8 + col))
     }
+
+    pub const fn retreat(self, count: u8, color: Color) -> Self {
+        match color {
+            Color::White => Self::new(self.0 - (8 * count)),
+            Color::Black => Self::new(self.0 + (8 * count)),
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]

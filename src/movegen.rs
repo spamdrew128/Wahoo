@@ -94,7 +94,7 @@ impl MoveGenerator {
         into_moves!(|from|, king, |to|, attacks::king(from).intersection(filter), self.add_move(Move::new_default(to, from)));
     }
 
-    fn gen_captures(&mut self, board: &Board) {
+    fn generate_captures(&mut self, board: &Board) {
         let color = board.color_to_move;
         let them = board.them();
 
@@ -121,8 +121,36 @@ impl MoveGenerator {
         self.generic_movegen(board, them);
     }
 
-    fn gen_quiets(&mut self, board: &Board) {
-        todo!();
+    fn generate_quiets(&mut self, board: &Board) {
+        let color = board.color_to_move;
+        let empty = board.empty();
+
+        let pawns = board.piece_bb(Piece::PAWN, color);
+        let promotable_pawns = board.promotable_pawns();
+
+        let mut promotions = attacks::pawn_single_push(promotable_pawns, empty, color);
+        let mut single_pushs = attacks::pawn_single_push(pawns.without(promotable_pawns), empty, color);
+        let mut double_pushs = attacks::pawn_double_push(pawns, empty, color);
+
+        bitloop!(|to|, promotions, {
+            let from = to.retreat(1, color);
+            self.add_move(Move::new_promo(to, from, Piece::QUEEN));
+            self.add_move(Move::new_promo(to, from, Piece::KNIGHT));
+            self.add_move(Move::new_promo(to, from, Piece::ROOK));
+            self.add_move(Move::new_promo(to, from, Piece::BISHOP));
+        });
+
+        bitloop!(|to|, single_pushs, {
+            let from = to.retreat(1, color);
+            self.add_move(Move::new_default(to, from));
+        });
+
+        bitloop!(|to|, double_pushs, {
+            let from = to.retreat(2, color);
+            self.add_move(Move::new_default(to, from));
+        });
+
+        self.generic_movegen(board, empty);
     }
 
     fn next(&mut self, board: &Board) -> Option<Move> {
@@ -130,8 +158,8 @@ impl MoveGenerator {
             self.advance_stage();
 
             match self.stage {
-                MoveStage::CAPTURES => self.gen_captures(board),
-                MoveStage::QUIETS => (),
+                MoveStage::CAPTURES => self.generate_captures(board),
+                MoveStage::QUIETS => self.generate_quiets(board),
                 _ => return None,
             }
         }
