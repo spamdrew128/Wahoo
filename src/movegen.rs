@@ -133,7 +133,7 @@ impl MoveGenerator {
         let mut promotions = attacks::pawn_single_push(promotable_pawns, empty, color);
         let mut single_pushs =
             attacks::pawn_single_push(pawns.without(promotable_pawns), empty, color);
-        let mut double_pushs = attacks::pawn_double_push(pawns, empty, color);
+        let mut double_pushs = attacks::pawn_double_push(single_pushs, empty, color);
 
         bitloop!(|to|, promotions, {
             let from = to.retreat(1, color);
@@ -225,7 +225,7 @@ mod tests {
         let board = Board::from_fen("r3k2r/pPppqpb1/bn2pnp1/3PN3/1p2P3/1nN2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0");
         let mut counts = [0; NUM_PIECES as usize];
         let mut promo_count = 0;
-        let mut castle_count = 1;
+        let mut castle_count = 0;
 
         let mut generator = MoveGenerator::new();
         while let Some(mv) = generator.next(&board) {
@@ -244,11 +244,11 @@ mod tests {
         }
 
         assert_eq!(counts[Piece::PAWN.as_index()], 9);
-        assert_eq!(counts[Piece::BISHOP.as_index()], 7);
+        assert_eq!(counts[Piece::BISHOP.as_index()], 10);
         assert_eq!(counts[Piece::ROOK.as_index()], 5);
         assert_eq!(counts[Piece::QUEEN.as_index()], 7);
-        assert_eq!(counts[Piece::KNIGHT.as_index()], 7);
-        assert_eq!(counts[Piece::KING.as_index()], 2);
+        assert_eq!(counts[Piece::KNIGHT.as_index()], 8);
+        assert_eq!(counts[Piece::KING.as_index()], 3);
         assert_eq!(promo_count, 4);
         assert_eq!(castle_count, 1);
     }
