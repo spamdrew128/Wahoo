@@ -1,6 +1,6 @@
-use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, Not};
-
+use crate::attacks;
 use crate::tuple_constants_enum;
+use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, Not};
 
 type Row = u8;
 type Col = u8;
@@ -147,6 +147,27 @@ impl Square {
             Color::White => Self::new(self.0 - (8 * count)),
             Color::Black => Self::new(self.0 + (8 * count)),
         }
+    }
+
+    pub const fn is_attacked(self, board: &Board) -> bool {
+        let opp_color = board.color_to_move.flip();
+        let occupied = board.occupied();
+
+        let opp_king = board.piece_bb(Piece::KING, opp_color);
+        let opp_knights = board.piece_bb(Piece::KNIGHT, opp_color);
+        let opp_pawns = board.piece_bb(Piece::PAWN, opp_color);
+        let opp_bishops = board.piece_bb(Piece::BISHOP, opp_color);
+        let opp_rooks = board.piece_bb(Piece::ROOK, opp_color);
+        let opp_queens = board.piece_bb(Piece::QUEEN, opp_color);
+
+        let hv_sliders = opp_rooks.intersection(opp_queens);
+        let d_sliders = opp_bishops.intersection(opp_queens);
+
+        attacks::king(self).overlaps(opp_king)
+            || attacks::knight(self).overlaps(opp_knights)
+            || attacks::pawn(self, board.color_to_move).overlaps(opp_pawns)
+            || attacks::rook(self, occupied).overlaps(hv_sliders)
+            || attacks::bishop(self, occupied).overlaps(d_sliders)
     }
 }
 

@@ -125,7 +125,7 @@ impl MoveGenerator {
             });
         }
 
-        self.add_castling_moves(board);
+        // self.add_castling_moves(board);
 
         self.generic_movegen(board, them);
     }
