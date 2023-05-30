@@ -37,9 +37,19 @@ impl Move {
         }
     }
 
-    const fn new_castle(to: Square, from: Square) -> Self {
+    pub const fn new_ks_castle(king_sq: Square) -> Self {
         Self {
-            data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET) | Self::CASTLE_FLAG,
+            data: king_sq.right(2).as_u16()
+                | (king_sq.as_u16() << Self::FROM_OFFSET)
+                | Self::CASTLE_FLAG,
+        }
+    }
+
+    pub const fn new_qs_castle(king_sq: Square) -> Self {
+        Self {
+            data: king_sq.left(2).as_u16()
+                | (king_sq.as_u16() << Self::FROM_OFFSET)
+                | Self::CASTLE_FLAG,
         }
     }
 

@@ -94,13 +94,6 @@ impl MoveGenerator {
         into_moves!(|from|, king, |to|, attacks::king(from).intersection(filter), self.add_move(Move::new_default(to, from)));
     }
 
-    fn add_castling_moves(&mut self, board: &Board) {
-        let color = board.color_to_move;
-        let occupied = board.occupied();
-
-        todo!();
-    }
-
     fn generate_captures(&mut self, board: &Board) {
         let color = board.color_to_move;
         let them = board.them();
@@ -138,7 +131,8 @@ impl MoveGenerator {
         let promotable_pawns = board.promotable_pawns();
 
         let mut promotions = attacks::pawn_single_push(promotable_pawns, empty, color);
-        let mut single_pushs = attacks::pawn_single_push(pawns.without(promotable_pawns), empty, color);
+        let mut single_pushs =
+            attacks::pawn_single_push(pawns.without(promotable_pawns), empty, color);
         let mut double_pushs = attacks::pawn_double_push(pawns, empty, color);
 
         bitloop!(|to|, promotions, {
@@ -158,6 +152,14 @@ impl MoveGenerator {
             let from = to.retreat(2, color);
             self.add_move(Move::new_default(to, from));
         });
+
+        if board.ks_castle_availible() {
+            self.add_move(Move::new_ks_castle(board.king_sq()));
+        }
+
+        if board.qs_castle_availible() {
+            self.add_move(Move::new_qs_castle(board.king_sq()));
+        }
 
         self.generic_movegen(board, empty);
     }

@@ -149,6 +149,14 @@ impl Square {
         }
     }
 
+    pub const fn left(self, count: u8) -> Self {
+        Self(self.0 - count)
+    }
+
+    pub const fn right(self, count: u8) -> Self {
+        Self(self.0 + count)
+    }
+
     pub const fn is_attacked(self, board: &Board) -> bool {
         let opp_color = board.color_to_move.flip();
         let occupied = board.occupied();
@@ -168,6 +176,10 @@ impl Square {
             || attacks::pawn(self, board.color_to_move).overlaps(opp_pawns)
             || attacks::rook(self, occupied).overlaps(hv_sliders)
             || attacks::bishop(self, occupied).overlaps(d_sliders)
+    }
+
+    const fn is_occupied(self, board: &Board) -> bool {
+        self.as_bitboard().overlaps(board.occupied())
     }
 }
 
@@ -248,13 +260,17 @@ impl Bitboard {
         self.data.count_ones()
     }
 
+    const fn lsb(self) -> Square {
+        Square::new(self.data.trailing_zeros() as u8)
+    }
+
     fn reset_lsb(&mut self) {
         self.data = self.data & (self.data - 1);
     }
 
     pub fn pop_lsb(&mut self) -> Square {
         debug_assert!(self.is_not_empty());
-        let sq = Square::new(self.data.trailing_zeros() as u8);
+        let sq = self.lsb();
         self.reset_lsb();
         sq
     }
@@ -375,7 +391,7 @@ impl BitOrAssign for Bitboard {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-pub struct CastleRights(u8);
+struct CastleRights(u8);
 
 impl CastleRights {
     const W_KINGSIDE_MASK: u8 = 0b0001;
@@ -383,22 +399,43 @@ impl CastleRights {
     const B_KINGSIDE_MASK: u8 = 0b0100;
     const B_QUEENSIDE_MASK: u8 = 0b1000;
 
+    const KS_THRU_SQUARE: [Square; NUM_COLORS as usize] = [Square::F1, Square::F8];
+    const QS_THRU_SQUARES: [[Square; 2]; NUM_COLORS as usize] =
+        [[Square::C1, Square::D1], [Square::C8, Square::D8]];
+
     const fn new(data: u8) -> Self {
         Self(data)
     }
 
-    const fn kingside(self, color: Color) -> bool {
+    const fn has_kingside(self, color: Color) -> bool {
         match color {
             Color::White => (self.0 & Self::W_KINGSIDE_MASK) > 0,
             Color::Black => (self.0 & Self::B_KINGSIDE_MASK) > 0,
         }
     }
 
-    const fn queenside(self, color: Color) -> bool {
+    const fn has_queenside(self, color: Color) -> bool {
         match color {
             Color::White => (self.0 & Self::W_QUEENSIDE_MASK) > 0,
             Color::Black => (self.0 & Self::B_QUEENSIDE_MASK) > 0,
         }
+    }
+
+    const fn can_ks_castle(self, board: &Board) -> bool {
+        let color = board.color_to_move;
+        let thru_sq = Self::KS_THRU_SQUARE[color.as_index()];
+        self.has_kingside(color) && !(thru_sq.is_occupied(board) || thru_sq.is_attacked(board))
+    }
+
+    const fn can_qs_castle(self, board: &Board) -> bool {
+        let color = board.color_to_move;
+        let thru_sq_1 = Self::QS_THRU_SQUARES[0][color.as_index()];
+        let thru_sq_2 = Self::QS_THRU_SQUARES[1][color.as_index()];
+        self.has_queenside(color)
+            && !(thru_sq_1.is_occupied(board)
+                || thru_sq_2.is_occupied(board)
+                || thru_sq_1.is_attacked(board)
+                || thru_sq_2.is_attacked(board))
     }
 }
 
@@ -407,8 +444,8 @@ pub struct Board {
     pub all: [Bitboard; NUM_COLORS as usize],
     pub pieces: [Bitboard; NUM_PIECES as usize],
     pub color_to_move: Color,
-    pub castle_rights: CastleRights,
     pub ep_sq: Option<Square>,
+    castle_rights: CastleRights,
 }
 
 const fn fen_index_as_bitboard(i: u8) -> Bitboard {
@@ -554,16 +591,16 @@ impl Board {
         };
 
         let mut castling_rights = Vec::<char>::new();
-        if self.castle_rights.kingside(Color::White) {
+        if self.castle_rights.has_kingside(Color::White) {
             castling_rights.push('K');
         }
-        if self.castle_rights.queenside(Color::White) {
+        if self.castle_rights.has_queenside(Color::White) {
             castling_rights.push('Q');
         }
-        if self.castle_rights.kingside(Color::Black) {
+        if self.castle_rights.has_kingside(Color::Black) {
             castling_rights.push('k');
         }
-        if self.castle_rights.queenside(Color::Black) {
+        if self.castle_rights.has_queenside(Color::Black) {
             castling_rights.push('q');
         }
         if castling_rights.is_empty() {
@@ -604,6 +641,10 @@ impl Board {
         self.all[color.as_index()].intersection(self.pieces[piece.as_index()])
     }
 
+    pub const fn king_sq(&self) -> Square {
+        self.piece_bb(Piece::KING, self.color_to_move).lsb()
+    }
+
     pub const fn promotable_pawns(&self) -> Bitboard {
         let color = self.color_to_move;
         let pawns = self.piece_bb(Piece::PAWN, color);
@@ -621,6 +662,14 @@ impl Board {
             }
         }
         Piece::NONE
+    }
+
+    pub const fn ks_castle_availible(&self) -> bool {
+        self.castle_rights.can_ks_castle(self)
+    }
+
+    pub const fn qs_castle_availible(&self) -> bool {
+        self.castle_rights.can_qs_castle(self)
     }
 }
 
