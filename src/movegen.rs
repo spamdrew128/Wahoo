@@ -22,8 +22,8 @@ impl MoveStage {
     #[rustfmt::skip]
     tuple_constants_enum!(Self,
         START,
-        CAPTURES,
-        QUIETS
+        CAPTURE,
+        QUIET
     );
 
     const fn new(data: u8) -> Self {
@@ -169,8 +169,8 @@ impl MoveGenerator {
             self.advance_stage();
 
             match self.stage {
-                MoveStage::CAPTURES => self.generate_captures(board),
-                MoveStage::QUIETS => self.generate_quiets(board),
+                MoveStage::CAPTURE => self.generate_captures(board),
+                MoveStage::QUIET => self.generate_quiets(board),
                 _ => return None,
             }
         }
@@ -194,18 +194,17 @@ mod tests {
 
         let mut generator = MoveGenerator::new();
         while let Some(mv) = generator.next(&board) {
-            if generator.stage != MoveStage::CAPTURES {
-                break;
-            }
-            let piece = board.piece_on_sq(mv.from());
-            counts[piece.as_index()] += 1;
+            if generator.stage == MoveStage::CAPTURE {
+                let piece = board.piece_on_sq(mv.from());
+                counts[piece.as_index()] += 1;
 
-            if mv.is_promo() {
-                promo_count += 1;
-            }
+                if mv.is_promo() {
+                    promo_count += 1;
+                }
 
-            if mv.is_ep() {
-                ep_count += 1;
+                if mv.is_ep() {
+                    ep_count += 1;
+                }
             }
         }
 
@@ -230,18 +229,17 @@ mod tests {
 
         let mut generator = MoveGenerator::new();
         while let Some(mv) = generator.next(&board) {
-            if generator.stage != MoveStage::CAPTURES {
-                break;
-            }
-            let piece = board.piece_on_sq(mv.from());
-            counts[piece.as_index()] += 1;
-
-            if mv.is_promo() {
-                promo_count += 1;
-            }
-
-            if mv.is_castle() {
-                castle_count += 1;
+            if generator.stage == MoveStage::QUIET {
+                let piece = board.piece_on_sq(mv.from());
+                counts[piece.as_index()] += 1;
+    
+                if mv.is_promo() {
+                    promo_count += 1;
+                }
+    
+                if mv.is_castle() {
+                    castle_count += 1;
+                }
             }
         }
 

@@ -455,7 +455,7 @@ const fn fen_index_as_bitboard(i: u8) -> Bitboard {
 }
 
 impl Board {
-    fn print(&self) {
+    pub fn print(&self) {
         for i in 0..NUM_SQUARES {
             let bitset = fen_index_as_bitboard(i);
             let mut ch = '.';
