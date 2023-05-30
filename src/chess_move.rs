@@ -18,13 +18,17 @@ impl Move {
     const FROM_OFFSET: u8 = 6;
     const PROMO_OFFSET: u8 = 12;
 
-    const fn new_default(to: Square, from: Square) -> Self {
+    pub const fn nullmove() -> Self {
+        Self { data: 0 }
+    }
+
+    pub const fn new_default(to: Square, from: Square) -> Self {
         Self {
             data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET),
         }
     }
 
-    const fn new_promo(to: Square, from: Square, promo_piece: Piece) -> Self {
+    pub const fn new_promo(to: Square, from: Square, promo_piece: Piece) -> Self {
         Self {
             data: to.as_u16()
                 | (from.as_u16() << Self::FROM_OFFSET)
@@ -33,39 +37,49 @@ impl Move {
         }
     }
 
-    const fn new_castle(to: Square, from: Square) -> Self {
+    pub const fn new_ks_castle(king_sq: Square) -> Self {
         Self {
-            data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET) | Self::CASTLE_FLAG,
+            data: king_sq.right(2).as_u16()
+                | (king_sq.as_u16() << Self::FROM_OFFSET)
+                | Self::CASTLE_FLAG,
         }
     }
 
-    const fn new_ep(to: Square, from: Square) -> Self {
+    pub const fn new_qs_castle(king_sq: Square) -> Self {
+        Self {
+            data: king_sq.left(2).as_u16()
+                | (king_sq.as_u16() << Self::FROM_OFFSET)
+                | Self::CASTLE_FLAG,
+        }
+    }
+
+    pub const fn new_ep(to: Square, from: Square) -> Self {
         Self {
             data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET) | Self::EP_FLAG,
         }
     }
 
-    const fn to(self) -> Square {
+    pub const fn to(self) -> Square {
         Square::new((self.data & Self::TO_BITFIELD) as u8)
     }
 
-    const fn from(self) -> Square {
+    pub const fn from(self) -> Square {
         Square::new(((self.data & Self::FROM_BITFIELD) >> Self::FROM_OFFSET) as u8)
     }
 
-    const fn promo_piece(self) -> Piece {
+    pub const fn promo_piece(self) -> Piece {
         Piece::new(((self.data & Self::PROMO_BITFIELD) >> Self::PROMO_OFFSET) as u8)
     }
 
-    const fn is_castle(self) -> bool {
+    pub const fn is_castle(self) -> bool {
         (self.data & Self::FLAGS_BITFIELD) == Self::CASTLE_FLAG
     }
 
-    const fn is_promo(self) -> bool {
+    pub const fn is_promo(self) -> bool {
         (self.data & Self::FLAGS_BITFIELD) == Self::PROMO_FLAG
     }
 
-    const fn is_ep(self) -> bool {
+    pub const fn is_ep(self) -> bool {
         (self.data & Self::FLAGS_BITFIELD) == Self::EP_FLAG
     }
 }

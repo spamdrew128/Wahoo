@@ -1,9 +1,9 @@
+use crate::attacks;
+use crate::tuple_constants_enum;
 use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, Not};
 
-use crate::tuple_constants_enum;
-
-type Rank = u8;
-type File = u8;
+type Row = u8;
+type Col = u8;
 
 pub const NUM_SQUARES: u8 = 64;
 pub const NUM_PIECES: u8 = 6;
@@ -17,14 +17,16 @@ pub enum Color {
     Black,
 }
 
-impl Not for Color {
-    type Output = Self;
-
-    fn not(self) -> Self::Output {
+impl Color {
+    pub const fn flip(self) -> Self {
         match self {
             Self::White => Self::Black,
             Self::Black => Self::White,
         }
+    }
+
+    pub const fn as_index(self) -> usize {
+        self as usize
     }
 }
 
@@ -40,8 +42,17 @@ impl Piece {
         QUEEN,
         PAWN,
         KING,
-        NONE_PIECE
+        NONE
     );
+
+    pub const LIST: [Self; NUM_PIECES as usize] = [
+        Self::KNIGHT,
+        Self::BISHOP,
+        Self::ROOK,
+        Self::QUEEN,
+        Self::PAWN,
+        Self::KING,
+    ];
 
     pub const fn new(data: u8) -> Self {
         Self(data)
@@ -65,7 +76,7 @@ impl Piece {
         Some(ch)
     }
 
-    const fn as_index(self) -> usize {
+    pub const fn as_index(self) -> usize {
         self.0 as usize
     }
 
@@ -74,7 +85,7 @@ impl Piece {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Square(u8);
 
 impl Square {
@@ -105,6 +116,71 @@ impl Square {
     pub const fn as_index(self) -> usize {
         self.0 as usize
     }
+
+    pub fn as_string(self) -> String {
+        let col: Col = self.0 % 8;
+        let row: Row = self.0 / 8;
+
+        let col_char = (col + 97) as char;
+        let row_char = (row + 49) as char;
+
+        format!("{col_char}{row_char}")
+    }
+
+    pub fn from_string(str: &str) -> Option<Self> {
+        if str.len() != 2 {
+            return None;
+        }
+
+        let mut chars = str.chars();
+        let col_char = chars.next().unwrap();
+        let row_char = chars.next().unwrap();
+
+        let col: Col = (col_char as Col) - 97;
+        let row: Row = (row_char as Col) - 49;
+
+        Some(Self::new(row * 8 + col))
+    }
+
+    pub const fn retreat(self, count: u8, color: Color) -> Self {
+        match color {
+            Color::White => Self::new(self.0 - (8 * count)),
+            Color::Black => Self::new(self.0 + (8 * count)),
+        }
+    }
+
+    pub const fn left(self, count: u8) -> Self {
+        Self(self.0 - count)
+    }
+
+    pub const fn right(self, count: u8) -> Self {
+        Self(self.0 + count)
+    }
+
+    pub const fn is_attacked(self, board: &Board) -> bool {
+        let opp_color = board.color_to_move.flip();
+        let occupied = board.occupied();
+
+        let opp_king = board.piece_bb(Piece::KING, opp_color);
+        let opp_knights = board.piece_bb(Piece::KNIGHT, opp_color);
+        let opp_pawns = board.piece_bb(Piece::PAWN, opp_color);
+        let opp_bishops = board.piece_bb(Piece::BISHOP, opp_color);
+        let opp_rooks = board.piece_bb(Piece::ROOK, opp_color);
+        let opp_queens = board.piece_bb(Piece::QUEEN, opp_color);
+
+        let hv_sliders = opp_rooks.intersection(opp_queens);
+        let d_sliders = opp_bishops.intersection(opp_queens);
+
+        attacks::king(self).overlaps(opp_king)
+            || attacks::knight(self).overlaps(opp_knights)
+            || attacks::pawn(self, board.color_to_move).overlaps(opp_pawns)
+            || attacks::rook(self, occupied).overlaps(hv_sliders)
+            || attacks::bishop(self, occupied).overlaps(d_sliders)
+    }
+
+    const fn is_occupied(self, board: &Board) -> bool {
+        self.as_bitboard().overlaps(board.occupied())
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
@@ -117,6 +193,10 @@ impl Bitboard {
     pub const H_FILE: Self = Self::new(0x8080808080808080);
 
     pub const RANK_1: Self = Self::new(0x00000000000000ff);
+    pub const RANK_2: Self = Self::new(0x000000000000ff00);
+    pub const RANK_4: Self = Self::new(0x00000000ff000000);
+    pub const RANK_5: Self = Self::new(0x000000ff00000000);
+    pub const RANK_7: Self = Self::new(0x00ff000000000000);
     pub const RANK_8: Self = Self::new(0xff00000000000000);
 
     pub const fn new(data: u64) -> Self {
@@ -141,6 +221,12 @@ impl Bitboard {
     pub const fn intersection(self, rhs: Self) -> Self {
         Self {
             data: self.data & rhs.data,
+        }
+    }
+
+    pub const fn without(self, rhs: Self) -> Self {
+        Self {
+            data: self.data & !rhs.data,
         }
     }
 
@@ -174,13 +260,17 @@ impl Bitboard {
         self.data.count_ones()
     }
 
+    const fn lsb(self) -> Square {
+        Square::new(self.data.trailing_zeros() as u8)
+    }
+
     fn reset_lsb(&mut self) {
         self.data = self.data & (self.data - 1);
     }
 
-    fn pop_lsb(&mut self) -> Square {
+    pub fn pop_lsb(&mut self) -> Square {
         debug_assert!(self.is_not_empty());
-        let sq = Square::new(self.data.trailing_zeros() as u8);
+        let sq = self.lsb();
         self.reset_lsb();
         sq
     }
@@ -300,11 +390,62 @@ impl BitOrAssign for Bitboard {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+struct CastleRights(u8);
+
+impl CastleRights {
+    const W_KINGSIDE_MASK: u8 = 0b0001;
+    const W_QUEENSIDE_MASK: u8 = 0b0010;
+    const B_KINGSIDE_MASK: u8 = 0b0100;
+    const B_QUEENSIDE_MASK: u8 = 0b1000;
+
+    const KS_THRU_SQUARE: [Square; NUM_COLORS as usize] = [Square::F1, Square::F8];
+    const QS_THRU_SQUARES: [[Square; 2]; NUM_COLORS as usize] =
+        [[Square::C1, Square::D1], [Square::C8, Square::D8]];
+
+    const fn new(data: u8) -> Self {
+        Self(data)
+    }
+
+    const fn has_kingside(self, color: Color) -> bool {
+        match color {
+            Color::White => (self.0 & Self::W_KINGSIDE_MASK) > 0,
+            Color::Black => (self.0 & Self::B_KINGSIDE_MASK) > 0,
+        }
+    }
+
+    const fn has_queenside(self, color: Color) -> bool {
+        match color {
+            Color::White => (self.0 & Self::W_QUEENSIDE_MASK) > 0,
+            Color::Black => (self.0 & Self::B_QUEENSIDE_MASK) > 0,
+        }
+    }
+
+    const fn can_ks_castle(self, board: &Board) -> bool {
+        let color = board.color_to_move;
+        let thru_sq = Self::KS_THRU_SQUARE[color.as_index()];
+        self.has_kingside(color) && !(thru_sq.is_occupied(board) || thru_sq.is_attacked(board))
+    }
+
+    const fn can_qs_castle(self, board: &Board) -> bool {
+        let color = board.color_to_move;
+        let thru_sq_1 = Self::QS_THRU_SQUARES[0][color.as_index()];
+        let thru_sq_2 = Self::QS_THRU_SQUARES[1][color.as_index()];
+        self.has_queenside(color)
+            && !(thru_sq_1.is_occupied(board)
+                || thru_sq_2.is_occupied(board)
+                || thru_sq_1.is_attacked(board)
+                || thru_sq_2.is_attacked(board))
+    }
+}
+
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Board {
     pub all: [Bitboard; NUM_COLORS as usize],
     pub pieces: [Bitboard; NUM_PIECES as usize],
     pub color_to_move: Color,
+    pub ep_sq: Option<Square>,
+    castle_rights: CastleRights,
 }
 
 const fn fen_index_as_bitboard(i: u8) -> Bitboard {
@@ -314,7 +455,7 @@ const fn fen_index_as_bitboard(i: u8) -> Bitboard {
 }
 
 impl Board {
-    fn print(&self) {
+    pub fn print(&self) {
         for i in 0..NUM_SQUARES {
             let bitset = fen_index_as_bitboard(i);
             let mut ch = '.';
@@ -342,8 +483,11 @@ impl Board {
         let mut board = Self::default();
         let mut i: u8 = 0;
         let split_fen = fen.split_whitespace().collect::<Vec<&str>>();
+
         let board_info_string = split_fen[0].chars();
         let color_char = split_fen[1].chars().next().unwrap();
+        let castling_rights = split_fen[2].chars();
+        let ep_sq = split_fen[3];
 
         for ch in board_info_string {
             assert!(i < NUM_SQUARES);
@@ -383,6 +527,20 @@ impl Board {
         if color_char == 'b' {
             board.color_to_move = Color::Black;
         }
+
+        let mut castle_data: u8 = 0;
+        for c in castling_rights {
+            match c {
+                'K' => castle_data |= CastleRights::W_KINGSIDE_MASK,
+                'Q' => castle_data |= CastleRights::W_QUEENSIDE_MASK,
+                'k' => castle_data |= CastleRights::B_KINGSIDE_MASK,
+                'q' => castle_data |= CastleRights::B_QUEENSIDE_MASK,
+                _ => (),
+            }
+        }
+        board.castle_rights = CastleRights::new(castle_data);
+
+        board.ep_sq = Square::from_string(ep_sq);
 
         board
     }
@@ -432,9 +590,31 @@ impl Board {
             'b'
         };
 
+        let mut castling_rights = Vec::<char>::new();
+        if self.castle_rights.has_kingside(Color::White) {
+            castling_rights.push('K');
+        }
+        if self.castle_rights.has_queenside(Color::White) {
+            castling_rights.push('Q');
+        }
+        if self.castle_rights.has_kingside(Color::Black) {
+            castling_rights.push('k');
+        }
+        if self.castle_rights.has_queenside(Color::Black) {
+            castling_rights.push('q');
+        }
+        if castling_rights.is_empty() {
+            castling_rights.push('-');
+        }
+
+        let castling_rights: String = castling_rights.into_iter().collect();
+
+        #[allow(clippy::redundant_closure_for_method_calls)]
+        let ep = self
+            .ep_sq
+            .map_or_else(|| "-".to_string(), |sq| sq.as_string());
+
         // TODO: handle these later
-        let castling_rights = "KQkq";
-        let ep = "-";
         let halfmoves = "0";
         let fullmoves = '0';
 
@@ -444,12 +624,59 @@ impl Board {
     pub const fn occupied(&self) -> Bitboard {
         self.all[Color::White as usize].union(self.all[Color::Black as usize])
     }
+
+    pub const fn empty(&self) -> Bitboard {
+        self.occupied().complement()
+    }
+
+    pub const fn us(&self) -> Bitboard {
+        self.all[self.color_to_move as usize]
+    }
+
+    pub const fn them(&self) -> Bitboard {
+        self.all[self.color_to_move.flip() as usize]
+    }
+
+    pub const fn piece_bb(&self, piece: Piece, color: Color) -> Bitboard {
+        self.all[color.as_index()].intersection(self.pieces[piece.as_index()])
+    }
+
+    pub const fn king_sq(&self) -> Square {
+        self.piece_bb(Piece::KING, self.color_to_move).lsb()
+    }
+
+    pub const fn promotable_pawns(&self) -> Bitboard {
+        let color = self.color_to_move;
+        let pawns = self.piece_bb(Piece::PAWN, color);
+        match color {
+            Color::White => pawns.intersection(Bitboard::RANK_7),
+            Color::Black => pawns.intersection(Bitboard::RANK_2),
+        }
+    }
+
+    pub fn piece_on_sq(&self, sq: Square) -> Piece {
+        let bitset = sq.as_bitboard();
+        for piece in Piece::LIST {
+            if bitset.overlaps(self.pieces[piece.as_index()]) {
+                return piece;
+            }
+        }
+        Piece::NONE
+    }
+
+    pub const fn ks_castle_availible(&self) -> bool {
+        self.castle_rights.can_ks_castle(self)
+    }
+
+    pub const fn qs_castle_availible(&self) -> bool {
+        self.castle_rights.can_qs_castle(self)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{Bitboard, Board, Color, Square, START_FEN};
-    use crate::bb_from_squares;
+    use crate::{bb_from_squares, board_representation::CastleRights};
 
     #[test]
     fn bit_and_works() {
@@ -536,6 +763,8 @@ mod tests {
             all: [white, black],
             pieces: [knights, bishops, rooks, queens, pawns, kings],
             color_to_move: Color::White,
+            castle_rights: CastleRights::new(0b1111),
+            ep_sq: None,
         };
 
         assert_eq!(actual, expected);
@@ -549,5 +778,19 @@ mod tests {
         let expected = START_FEN;
 
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn sq_to_str_works() {
+        assert_eq!(Square::A1.as_string(), "a1");
+        assert_eq!(Square::A6.as_string(), "a6");
+        assert_eq!(Square::H8.as_string(), "h8");
+    }
+
+    #[test]
+    fn sq_from_str_works() {
+        assert_eq!(Square::from_string("a1").unwrap(), Square::A1);
+        assert_eq!(Square::from_string("a6").unwrap(), Square::A6);
+        assert_eq!(Square::from_string("h8").unwrap(), Square::H8);
     }
 }

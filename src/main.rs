@@ -4,10 +4,11 @@
 #![allow(clippy::module_name_repetitions)]
 #![allow(dead_code)] // remove later
 
+mod attacks;
 mod board_representation;
 mod chess_move;
-mod lookup;
 mod magic;
+mod movegen;
 mod util_macros;
 
 fn main() {
