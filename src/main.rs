@@ -13,5 +13,8 @@ mod perft;
 mod util_macros;
 
 fn main() {
-    println!("Hello, world!");
+    use crate::perft::split_perft;
+    use crate::board_representation::START_FEN;
+
+    split_perft(START_FEN, 2);
 }
