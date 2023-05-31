@@ -1,4 +1,4 @@
-use crate::attacks;
+use crate::{attacks, chess_move::Flag};
 use crate::chess_move::Move;
 use crate::tuple_constants_enum;
 use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
@@ -695,7 +695,23 @@ impl Board {
 
         self.toggle(to_bb | from_bb, piece, color);
 
-        
+        let flag = mv.flag();
+        match flag {
+            Flag::KS_CASTLE =>
+            Flag::QS_CASTLE =>
+            Flag::EP =>
+            Flag::DOUBLE_PUSH =>
+            Flag::CAPTURE =>
+            Flag::KNIGHT_PROMO =>
+            Flag::BISHOP_PROMO =>
+            Flag::ROOK_PROMO =>
+            Flag::QUEEN_PROMO =>
+            Flag::KNIGHT_CAPTURE_PROMO =>
+            Flag::BISHOP_CAPTURE_PROMO =>
+            Flag::ROOK_CAPTURE_PROMO =>
+            Flag::QUEEN_CAPTURE_PROMO =>
+            _ => (),
+        }
 
         None
     }
