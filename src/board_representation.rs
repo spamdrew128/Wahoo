@@ -1,4 +1,5 @@
 use crate::attacks;
+use crate::chess_move::Move;
 use crate::tuple_constants_enum;
 use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
@@ -445,7 +446,7 @@ impl CastleRights {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Board {
     pub all: [Bitboard; NUM_COLORS as usize],
     pub pieces: [Bitboard; NUM_PIECES as usize],
@@ -681,6 +682,22 @@ impl Board {
     fn toggle(&mut self, mask: Bitboard, piece: Piece, color: Color) {
         self.all[color.as_index()] ^= mask;
         self.pieces[piece.as_index()] ^= mask;
+    }
+
+    fn try_make_move(mut self, mv: Move) -> Option<Self> {
+        let color = self.color_to_move;
+        let opp_color = color.flip();
+
+        let to_bb = mv.to().as_bitboard();
+        let from_bb = mv.from().as_bitboard();
+        let piece = self.piece_on_sq(mv.from());
+        debug_assert!(piece != Piece::NONE);
+
+        self.toggle(to_bb | from_bb, piece, color);
+
+        
+
+        None
     }
 }
 
