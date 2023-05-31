@@ -47,7 +47,7 @@ impl Move {
         Self {
             data: king_sq.right(2).as_u16()
                 | (king_sq.as_u16() << Self::FROM_OFFSET)
-                | Flag::KS_CASTLE.0
+                | Flag::KS_CASTLE.0,
         }
     }
 
@@ -55,7 +55,7 @@ impl Move {
         Self {
             data: king_sq.left(2).as_u16()
                 | (king_sq.as_u16() << Self::FROM_OFFSET)
-                | Flag::QS_CASTLE.0
+                | Flag::QS_CASTLE.0,
         }
     }
 
@@ -78,7 +78,7 @@ impl Move {
 
 #[cfg(test)]
 mod tests {
-    use super::{Move, Square, Flag};
+    use super::{Flag, Move, Square};
 
     #[test]
     fn test_move() {

@@ -1,7 +1,7 @@
 use crate::attacks;
 use crate::bitloop;
 use crate::board_representation::{Bitboard, Board, Piece, Square};
-use crate::chess_move::{Move, Flag};
+use crate::chess_move::{Flag, Move};
 use crate::tuple_constants_enum;
 
 macro_rules! into_moves {
@@ -220,7 +220,9 @@ mod tests {
     fn generates_quiets() {
         use super::*;
 
-        let board = Board::from_fen("r3k2r/pPppqpb1/bn2pnp1/3PN3/1p2P3/1nN2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0");
+        let board = Board::from_fen(
+            "r3k2r/pPppqpb1/bn2pnp1/3PN3/1p2P3/1nN2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0",
+        );
         let mut counts = [0; NUM_PIECES as usize];
         let mut promo_count = 0;
         let mut castle_count = 0;
@@ -230,11 +232,11 @@ mod tests {
             if generator.stage == MoveStage::QUIET {
                 let piece = board.piece_on_sq(mv.from());
                 counts[piece.as_index()] += 1;
-    
+
                 if mv.is_promo() {
                     promo_count += 1;
                 }
-    
+
                 if mv.flag() == Flag::KS_CASTLE || mv.flag() == Flag::QS_CASTLE {
                     castle_count += 1;
                 }
@@ -251,4 +253,3 @@ mod tests {
         assert_eq!(castle_count, 1);
     }
 }
-

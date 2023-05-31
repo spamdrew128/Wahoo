@@ -1,6 +1,6 @@
 use crate::attacks;
 use crate::tuple_constants_enum;
-use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, Not};
+use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
 type Row = u8;
 type Col = u8;
@@ -390,6 +390,12 @@ impl BitOrAssign for Bitboard {
     }
 }
 
+impl BitXorAssign for Bitboard {
+    fn bitxor_assign(&mut self, rhs: Self) {
+        self.data ^= rhs.data;
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 struct CastleRights(u8);
 
@@ -670,6 +676,11 @@ impl Board {
 
     pub const fn qs_castle_availible(&self) -> bool {
         self.castle_rights.can_qs_castle(self)
+    }
+
+    fn toggle(&mut self, mask: Bitboard, piece: Piece, color: Color) {
+        self.all[color.as_index()] ^= mask;
+        self.pieces[piece.as_index()] ^= mask;
     }
 }
 
