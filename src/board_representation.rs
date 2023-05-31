@@ -552,6 +552,7 @@ impl Board {
         board
     }
 
+    #[allow(clippy::wrong_self_convention)]
     fn to_fen(&self) -> String {
         let mut pos = String::new();
         let mut blank_space: u8 = 0;
@@ -718,8 +719,8 @@ impl Board {
 
         let flag = mv.flag();
         match flag {
-            Flag::KS_CASTLE => self.toggle(to_bb.west_one(), Piece::ROOK, color),
-            Flag::QS_CASTLE => self.toggle(to_bb.east_one(), Piece::ROOK, color),
+            Flag::KS_CASTLE => self.toggle(from_bb.r_shift(1) | from_bb.r_shift(3), Piece::ROOK, color),
+            Flag::QS_CASTLE => self.toggle(from_bb.l_shift(1) | from_bb.l_shift(4), Piece::ROOK, color),
             Flag::EP => {
                 let ep_bb = self.ep_sq.unwrap().as_bitboard();
                 self.toggle(ep_bb, Piece::PAWN, opp_color);
