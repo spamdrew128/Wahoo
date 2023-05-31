@@ -17,5 +17,5 @@ fn main() {
     use crate::board_representation::START_FEN;
 
     std::env::set_var("RUST_BACKTRACE", "1");
-    split_perft("rnbqkbnr/p1pppppp/8/1p6/P7/8/1PPPPPPP/RNBQKBNR w KQkq b6 0 2", 1);
+    split_perft("rnbqkbnr/pppp1ppp/4p3/8/8/BP6/P1PPPPPP/RN1QKBNR b KQkq - 1 2", 1);
 }

@@ -169,8 +169,8 @@ impl Square {
         let opp_rooks = board.piece_bb(Piece::ROOK, opp_color);
         let opp_queens = board.piece_bb(Piece::QUEEN, opp_color);
 
-        let hv_sliders = opp_rooks.intersection(opp_queens);
-        let d_sliders = opp_bishops.intersection(opp_queens);
+        let hv_sliders = opp_rooks.union(opp_queens);
+        let d_sliders = opp_bishops.union(opp_queens);
 
         attacks::king(self)
             .intersection(opp_king)
@@ -703,6 +703,11 @@ impl Board {
         self.pieces[piece.as_index()] ^= mask;
     }
 
+    fn union(&mut self, mask: Bitboard, piece: Piece, color: Color) {
+        self.all[color.as_index()] |= mask;
+        self.pieces[piece.as_index()] |= mask;
+    }
+
     fn toggle_promotion(&mut self, mask: Bitboard, promo_piece: Piece) {
         self.pieces[Piece::PAWN.as_index()] ^= mask;
         self.pieces[promo_piece.as_index()] ^= mask;
@@ -734,7 +739,8 @@ impl Board {
         let piece = self.piece_on_sq(mv.from());
         debug_assert!(piece != Piece::NONE);
 
-        self.toggle(to_bb | from_bb, piece, color);
+        self.toggle(from_bb, piece, color);
+        self.union(to_bb, piece, color);
 
         let flag = mv.flag();
         match flag {
