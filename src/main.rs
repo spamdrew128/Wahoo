@@ -9,6 +9,7 @@ mod board_representation;
 mod chess_move;
 mod magic;
 mod movegen;
+mod perft;
 mod util_macros;
 
 fn main() {

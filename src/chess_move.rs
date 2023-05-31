@@ -74,6 +74,22 @@ impl Move {
     pub fn is_promo(self) -> bool {
         self.flag() >= Flag::KNIGHT_PROMO
     }
+
+    pub fn as_string(self) -> String {
+        let mut move_str = String::new();
+        move_str.push_str(self.from().as_string().as_str());
+        move_str.push_str(self.to().as_string().as_str());
+
+        match self.flag() {
+            Flag::KNIGHT_PROMO | Flag::KNIGHT_CAPTURE_PROMO => move_str.push('n'),
+            Flag::BISHOP_PROMO | Flag::BISHOP_CAPTURE_PROMO => move_str.push('b'),
+            Flag::ROOK_PROMO | Flag::ROOK_CAPTURE_PROMO => move_str.push('r'),
+            Flag::QUEEN_PROMO | Flag::QUEEN_CAPTURE_PROMO => move_str.push('q'),
+            _ => (),
+        }
+
+        move_str
+    }
 }
 
 #[cfg(test)]

@@ -724,7 +724,7 @@ impl Board {
     }
 
     #[rustfmt::skip]
-    fn try_make_move(mut self, mv: Move) -> Option<Self> {
+    pub fn try_play_move(mut self, mv: Move) -> Option<Self> {
         let color = self.color_to_move;
         let opp_color = color.flip();
 
