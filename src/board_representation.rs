@@ -412,6 +412,17 @@ impl CastleRights {
     const QS_THRU_SQUARES: [[Square; 2]; NUM_COLORS as usize] =
         [[Square::C1, Square::D1], [Square::C8, Square::D8]];
 
+    const UPDATE_MASKS: [u8; NUM_SQUARES as usize] = {
+        let mut table = [0b1111; NUM_SQUARES as usize];
+        table[Square::A1.as_index()] ^= Self::W_QUEENSIDE_MASK;
+        table[Square::H1.as_index()] ^= Self::W_KINGSIDE_MASK;
+        table[Square::E1.as_index()] ^= Self::W_KINGSIDE_MASK | Self::W_QUEENSIDE_MASK;
+        table[Square::A8.as_index()] ^= Self::B_QUEENSIDE_MASK;
+        table[Square::H8.as_index()] ^= Self::B_KINGSIDE_MASK;
+        table[Square::E8.as_index()] ^= Self::B_KINGSIDE_MASK | Self::B_QUEENSIDE_MASK;
+        table
+    };
+
     const fn new(data: u8) -> Self {
         Self(data)
     }
@@ -445,6 +456,10 @@ impl CastleRights {
                 || thru_sq_2.is_occupied(board)
                 || thru_sq_1.is_attacked(board)
                 || thru_sq_2.is_attacked(board))
+    }
+
+    fn update(&mut self, mv: Move) {
+        self.0 &= Self::UPDATE_MASKS[mv.from().as_index()] & Self::UPDATE_MASKS[mv.to().as_index()];
     }
 }
 
@@ -708,6 +723,7 @@ impl Board {
         }
     }
 
+    #[rustfmt::skip]
     fn try_make_move(mut self, mv: Move) -> Option<Self> {
         let color = self.color_to_move;
         let opp_color = color.flip();
@@ -720,7 +736,6 @@ impl Board {
         self.toggle(to_bb | from_bb, piece, color);
 
         let flag = mv.flag();
-        #[rustfmt::skip]
         match flag {
             Flag::KS_CASTLE => self.toggle(from_bb.r_shift(1) | from_bb.r_shift(3), Piece::ROOK, color),
             Flag::QS_CASTLE => self.toggle(from_bb.l_shift(1) | from_bb.l_shift(4), Piece::ROOK, color),
@@ -745,6 +760,8 @@ impl Board {
         if self.king_sq().is_attacked(&self) {
             return None;
         }
+
+        self.castle_rights.update(mv);
 
         Some(self)
     }
