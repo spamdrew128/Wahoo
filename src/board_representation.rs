@@ -684,6 +684,22 @@ impl Board {
         self.pieces[piece.as_index()] ^= mask;
     }
 
+    fn toggle_promotion(&mut self, mask: Bitboard, piece: Piece) {
+        self.pieces[Piece::PAWN.as_index()] ^= mask;
+        self.pieces[piece.as_index()] ^= mask;
+    }
+
+    const fn ep_sq_after_double_push(&self, to_sq: Square) -> Option<Square> {
+        let ep_sq = to_sq.retreat(1, self.color_to_move);
+        let opp_pawns = self.piece_bb(Piece::PAWN, self.color_to_move.flip());
+
+        if attacks::pawn(ep_sq, self.color_to_move).overlaps(opp_pawns) {
+            Some(ep_sq)
+        } else {
+            None
+        }
+    }
+
     fn try_make_move(mut self, mv: Move) -> Option<Self> {
         let color = self.color_to_move;
         let opp_color = color.flip();
@@ -697,23 +713,43 @@ impl Board {
 
         let flag = mv.flag();
         match flag {
-            Flag::KS_CASTLE =>
-            Flag::QS_CASTLE =>
-            Flag::EP =>
-            Flag::DOUBLE_PUSH =>
-            Flag::CAPTURE =>
-            Flag::KNIGHT_PROMO =>
-            Flag::BISHOP_PROMO =>
-            Flag::ROOK_PROMO =>
-            Flag::QUEEN_PROMO =>
-            Flag::KNIGHT_CAPTURE_PROMO =>
-            Flag::BISHOP_CAPTURE_PROMO =>
-            Flag::ROOK_CAPTURE_PROMO =>
-            Flag::QUEEN_CAPTURE_PROMO =>
+            Flag::KS_CASTLE => self.toggle(to_bb.west_one(), Piece::ROOK, color),
+            Flag::QS_CASTLE => self.toggle(to_bb.east_one(), Piece::ROOK, color),
+            Flag::EP => {
+                let ep_bb = self.ep_sq.unwrap().as_bitboard();
+                self.toggle(ep_bb, Piece::PAWN, opp_color);
+                self.ep_sq = None;
+            }
+            Flag::DOUBLE_PUSH => self.ep_sq = self.ep_sq_after_double_push(mv.to()),
+            Flag::CAPTURE => self.toggle(to_bb, self.piece_on_sq(mv.to()), opp_color),
+            Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT),
+            Flag::BISHOP_PROMO => self.toggle_promotion(to_bb, Piece::BISHOP),
+            Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK),
+            Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN),
+            Flag::KNIGHT_CAPTURE_PROMO => {
+                self.toggle_promotion(to_bb, Piece::KNIGHT);
+                self.toggle(to_bb, self.piece_on_sq(mv.to()), opp_color);
+            }
+            Flag::BISHOP_CAPTURE_PROMO => {
+                self.toggle_promotion(to_bb, Piece::BISHOP);
+                self.toggle(to_bb, self.piece_on_sq(mv.to()), opp_color);
+            }
+            Flag::ROOK_CAPTURE_PROMO => {
+                self.toggle_promotion(to_bb, Piece::ROOK);
+                self.toggle(to_bb, self.piece_on_sq(mv.to()), opp_color);
+            }
+            Flag::QUEEN_CAPTURE_PROMO => {
+                self.toggle_promotion(to_bb, Piece::QUEEN);
+                self.toggle(to_bb, self.piece_on_sq(mv.to()), opp_color);
+            }
             _ => (),
         }
 
-        None
+        if self.king_sq().is_attacked(&self) {
+            return None
+        }
+
+        Some(self)
     }
 }
 
