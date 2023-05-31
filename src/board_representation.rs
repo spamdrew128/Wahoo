@@ -180,10 +180,6 @@ impl Square {
             .union(attacks::bishop(self, occupied).intersection(d_sliders))
             .is_not_empty()
     }
-
-    const fn is_occupied(self, board: &Board) -> bool {
-        self.as_bitboard().overlaps(board.occupied())
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
@@ -411,6 +407,12 @@ impl CastleRights {
     const KS_THRU_SQUARE: [Square; NUM_COLORS as usize] = [Square::F1, Square::F8];
     const QS_THRU_SQUARES: [[Square; 2]; NUM_COLORS as usize] =
         [[Square::C1, Square::D1], [Square::C8, Square::D8]];
+    const KS_OCC_MASK: [Bitboard; NUM_COLORS as usize] = [
+        Square::F1.as_bitboard().union(Square::G1.as_bitboard()),
+        Square::F8.as_bitboard().union(Square::G8.as_bitboard())];
+    const QS_OCC_MASK: [Bitboard; NUM_COLORS as usize] = [
+        Square::D1.as_bitboard().union(Square::C1.as_bitboard().union(Square::D1.as_bitboard())),
+        Square::D8.as_bitboard().union(Square::C8.as_bitboard().union(Square::D8.as_bitboard()))];
 
     const UPDATE_MASKS: [u8; NUM_SQUARES as usize] = {
         let mut table = [0b1111; NUM_SQUARES as usize];
@@ -444,16 +446,17 @@ impl CastleRights {
     const fn can_ks_castle(self, board: &Board) -> bool {
         let color = board.color_to_move;
         let thru_sq = Self::KS_THRU_SQUARE[color.as_index()];
-        self.has_kingside(color) && !(thru_sq.is_occupied(board) || thru_sq.is_attacked(board))
+        let occ_mask = Self::KS_OCC_MASK[color.as_index()];
+        self.has_kingside(color) && !(occ_mask.overlaps(board.occupied()) || thru_sq.is_attacked(board))
     }
 
     const fn can_qs_castle(self, board: &Board) -> bool {
         let color = board.color_to_move;
         let thru_sq_1 = Self::QS_THRU_SQUARES[0][color.as_index()];
         let thru_sq_2 = Self::QS_THRU_SQUARES[1][color.as_index()];
+        let occ_mask = Self::QS_OCC_MASK[color.as_index()];
         self.has_queenside(color)
-            && !(thru_sq_1.is_occupied(board)
-                || thru_sq_2.is_occupied(board)
+            && !(occ_mask.overlaps(board.occupied())
                 || thru_sq_1.is_attacked(board)
                 || thru_sq_2.is_attacked(board))
     }
