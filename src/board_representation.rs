@@ -742,7 +742,7 @@ impl Board {
             Flag::KS_CASTLE => self.toggle(from_bb.r_shift(1) | from_bb.r_shift(3), Piece::ROOK, color),
             Flag::QS_CASTLE => self.toggle(from_bb.l_shift(1) | from_bb.l_shift(4), Piece::ROOK, color),
             Flag::EP => {
-                let ep_bb = self.ep_sq.unwrap().as_bitboard();
+                let ep_bb = self.ep_sq.unwrap().retreat(1, color).as_bitboard();
                 self.toggle(ep_bb, Piece::PAWN, opp_color);
                 self.ep_sq = None;
             }
