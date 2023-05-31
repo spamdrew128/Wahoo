@@ -13,9 +13,9 @@ mod perft;
 mod util_macros;
 
 fn main() {
-    use crate::perft::split_perft;
     use crate::board_representation::START_FEN;
+    use crate::perft::split_perft;
 
     std::env::set_var("RUST_BACKTRACE", "1");
-    split_perft("rnbqkbnr/pppp1ppp/4p3/8/8/BP6/P1PPPPPP/RN1QKBNR b KQkq - 1 2", 3);
+    split_perft(START_FEN, 5);
 }

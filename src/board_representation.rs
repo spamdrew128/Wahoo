@@ -409,10 +409,16 @@ impl CastleRights {
         [[Square::C1, Square::D1], [Square::C8, Square::D8]];
     const KS_OCC_MASK: [Bitboard; NUM_COLORS as usize] = [
         Square::F1.as_bitboard().union(Square::G1.as_bitboard()),
-        Square::F8.as_bitboard().union(Square::G8.as_bitboard())];
+        Square::F8.as_bitboard().union(Square::G8.as_bitboard()),
+    ];
     const QS_OCC_MASK: [Bitboard; NUM_COLORS as usize] = [
-        Square::D1.as_bitboard().union(Square::C1.as_bitboard().union(Square::D1.as_bitboard())),
-        Square::D8.as_bitboard().union(Square::C8.as_bitboard().union(Square::D8.as_bitboard()))];
+        Square::D1
+            .as_bitboard()
+            .union(Square::C1.as_bitboard().union(Square::D1.as_bitboard())),
+        Square::D8
+            .as_bitboard()
+            .union(Square::C8.as_bitboard().union(Square::D8.as_bitboard())),
+    ];
 
     const UPDATE_MASKS: [u8; NUM_SQUARES as usize] = {
         let mut table = [0b1111; NUM_SQUARES as usize];
@@ -447,7 +453,8 @@ impl CastleRights {
         let color = board.color_to_move;
         let thru_sq = Self::KS_THRU_SQUARE[color.as_index()];
         let occ_mask = Self::KS_OCC_MASK[color.as_index()];
-        self.has_kingside(color) && !(occ_mask.overlaps(board.occupied()) || thru_sq.is_attacked(board))
+        self.has_kingside(color)
+            && !(occ_mask.overlaps(board.occupied()) || thru_sq.is_attacked(board))
     }
 
     const fn can_qs_castle(self, board: &Board) -> bool {
@@ -711,7 +718,12 @@ impl Board {
         self.pieces[promo_piece.as_index()] ^= mask;
     }
 
-    fn toggle_capture_promotion(&mut self, mask: Bitboard, captured_piece: Piece, promo_piece: Piece) {
+    fn toggle_capture_promotion(
+        &mut self,
+        mask: Bitboard,
+        captured_piece: Piece,
+        promo_piece: Piece,
+    ) {
         self.toggle_promotion(mask, promo_piece);
         self.toggle(mask, captured_piece, self.color_to_move.flip());
     }
@@ -736,7 +748,12 @@ impl Board {
         let from_bb = mv.from().as_bitboard();
         let piece = self.piece_on_sq(mv.from());
         debug_assert!(piece != Piece::NONE);
-        let captured_piece = self.piece_on_sq(mv.to());
+
+        let captured_piece = if mv.is_capture() {
+            self.piece_on_sq(mv.to())
+        } else {
+            Piece::NONE
+        };
 
         self.toggle(from_bb | to_bb, piece, color);
 
