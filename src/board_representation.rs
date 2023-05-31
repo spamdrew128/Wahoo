@@ -1,6 +1,7 @@
-use crate::attacks;
+use crate::chess_move::Move;
 use crate::tuple_constants_enum;
-use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, Not};
+use crate::{attacks, chess_move::Flag};
+use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
 type Row = u8;
 type Col = u8;
@@ -171,11 +172,13 @@ impl Square {
         let hv_sliders = opp_rooks.intersection(opp_queens);
         let d_sliders = opp_bishops.intersection(opp_queens);
 
-        attacks::king(self).overlaps(opp_king)
-            || attacks::knight(self).overlaps(opp_knights)
-            || attacks::pawn(self, board.color_to_move).overlaps(opp_pawns)
-            || attacks::rook(self, occupied).overlaps(hv_sliders)
-            || attacks::bishop(self, occupied).overlaps(d_sliders)
+        attacks::king(self)
+            .intersection(opp_king)
+            .union(attacks::knight(self).intersection(opp_knights))
+            .union(attacks::pawn(self, board.color_to_move).intersection(opp_pawns))
+            .union(attacks::rook(self, occupied).intersection(hv_sliders))
+            .union(attacks::bishop(self, occupied).intersection(d_sliders))
+            .is_not_empty()
     }
 
     const fn is_occupied(self, board: &Board) -> bool {
@@ -390,6 +393,12 @@ impl BitOrAssign for Bitboard {
     }
 }
 
+impl BitXorAssign for Bitboard {
+    fn bitxor_assign(&mut self, rhs: Self) {
+        self.data ^= rhs.data;
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 struct CastleRights(u8);
 
@@ -402,6 +411,17 @@ impl CastleRights {
     const KS_THRU_SQUARE: [Square; NUM_COLORS as usize] = [Square::F1, Square::F8];
     const QS_THRU_SQUARES: [[Square; 2]; NUM_COLORS as usize] =
         [[Square::C1, Square::D1], [Square::C8, Square::D8]];
+
+    const UPDATE_MASKS: [u8; NUM_SQUARES as usize] = {
+        let mut table = [0b1111; NUM_SQUARES as usize];
+        table[Square::A1.as_index()] ^= Self::W_QUEENSIDE_MASK;
+        table[Square::H1.as_index()] ^= Self::W_KINGSIDE_MASK;
+        table[Square::E1.as_index()] ^= Self::W_KINGSIDE_MASK | Self::W_QUEENSIDE_MASK;
+        table[Square::A8.as_index()] ^= Self::B_QUEENSIDE_MASK;
+        table[Square::H8.as_index()] ^= Self::B_KINGSIDE_MASK;
+        table[Square::E8.as_index()] ^= Self::B_KINGSIDE_MASK | Self::B_QUEENSIDE_MASK;
+        table
+    };
 
     const fn new(data: u8) -> Self {
         Self(data)
@@ -437,9 +457,13 @@ impl CastleRights {
                 || thru_sq_1.is_attacked(board)
                 || thru_sq_2.is_attacked(board))
     }
+
+    fn update(&mut self, mv: Move) {
+        self.0 &= Self::UPDATE_MASKS[mv.from().as_index()] & Self::UPDATE_MASKS[mv.to().as_index()];
+    }
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Board {
     pub all: [Bitboard; NUM_COLORS as usize],
     pub pieces: [Bitboard; NUM_PIECES as usize],
@@ -545,6 +569,7 @@ impl Board {
         board
     }
 
+    #[allow(clippy::wrong_self_convention)]
     fn to_fen(&self) -> String {
         let mut pos = String::new();
         let mut blank_space: u8 = 0;
@@ -670,6 +695,75 @@ impl Board {
 
     pub const fn qs_castle_availible(&self) -> bool {
         self.castle_rights.can_qs_castle(self)
+    }
+
+    fn toggle(&mut self, mask: Bitboard, piece: Piece, color: Color) {
+        self.all[color.as_index()] ^= mask;
+        self.pieces[piece.as_index()] ^= mask;
+    }
+
+    fn toggle_promotion(&mut self, mask: Bitboard, promo_piece: Piece) {
+        self.pieces[Piece::PAWN.as_index()] ^= mask;
+        self.pieces[promo_piece.as_index()] ^= mask;
+    }
+
+    fn toggle_capture_promotion(&mut self, mask: Bitboard, sq: Square, promo_piece: Piece) {
+        self.toggle_promotion(mask, promo_piece);
+        self.toggle(mask, self.piece_on_sq(sq), self.color_to_move.flip());
+    }
+
+    const fn ep_sq_after_double_push(&self, to_sq: Square) -> Option<Square> {
+        let ep_sq = to_sq.retreat(1, self.color_to_move);
+        let opp_pawns = self.piece_bb(Piece::PAWN, self.color_to_move.flip());
+
+        if attacks::pawn(ep_sq, self.color_to_move).overlaps(opp_pawns) {
+            Some(ep_sq)
+        } else {
+            None
+        }
+    }
+
+    #[rustfmt::skip]
+    fn try_make_move(mut self, mv: Move) -> Option<Self> {
+        let color = self.color_to_move;
+        let opp_color = color.flip();
+
+        let to_bb = mv.to().as_bitboard();
+        let from_bb = mv.from().as_bitboard();
+        let piece = self.piece_on_sq(mv.from());
+        debug_assert!(piece != Piece::NONE);
+
+        self.toggle(to_bb | from_bb, piece, color);
+
+        let flag = mv.flag();
+        match flag {
+            Flag::KS_CASTLE => self.toggle(from_bb.r_shift(1) | from_bb.r_shift(3), Piece::ROOK, color),
+            Flag::QS_CASTLE => self.toggle(from_bb.l_shift(1) | from_bb.l_shift(4), Piece::ROOK, color),
+            Flag::EP => {
+                let ep_bb = self.ep_sq.unwrap().as_bitboard();
+                self.toggle(ep_bb, Piece::PAWN, opp_color);
+                self.ep_sq = None;
+            }
+            Flag::DOUBLE_PUSH => self.ep_sq = self.ep_sq_after_double_push(mv.to()),
+            Flag::CAPTURE => self.toggle(to_bb, self.piece_on_sq(mv.to()), opp_color),
+            Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT),
+            Flag::BISHOP_PROMO => self.toggle_promotion(to_bb, Piece::BISHOP),
+            Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK),
+            Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN),
+            Flag::KNIGHT_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, mv.to(), Piece::KNIGHT),
+            Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, mv.to(), Piece::BISHOP),
+            Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, mv.to(), Piece::ROOK),
+            Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, mv.to(), Piece::QUEEN),
+            _ => (),
+        }
+
+        if self.king_sq().is_attacked(&self) {
+            return None;
+        }
+
+        self.castle_rights.update(mv);
+
+        Some(self)
     }
 }
 

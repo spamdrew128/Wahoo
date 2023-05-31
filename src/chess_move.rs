@@ -1,4 +1,24 @@
-use crate::board_representation::{Piece, Square};
+use crate::board_representation::Square;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Flag(u16);
+
+impl Flag {
+    pub const NONE: Self = Self(0 << Move::FLAGS_OFFSET);
+    pub const KS_CASTLE: Self = Self(1 << Move::FLAGS_OFFSET);
+    pub const QS_CASTLE: Self = Self(2 << Move::FLAGS_OFFSET);
+    pub const EP: Self = Self(3 << Move::FLAGS_OFFSET);
+    pub const DOUBLE_PUSH: Self = Self(4 << Move::FLAGS_OFFSET);
+    pub const CAPTURE: Self = Self(5 << Move::FLAGS_OFFSET);
+    pub const KNIGHT_PROMO: Self = Self(6 << Move::FLAGS_OFFSET);
+    pub const BISHOP_PROMO: Self = Self(7 << Move::FLAGS_OFFSET);
+    pub const ROOK_PROMO: Self = Self(8 << Move::FLAGS_OFFSET);
+    pub const QUEEN_PROMO: Self = Self(9 << Move::FLAGS_OFFSET);
+    pub const KNIGHT_CAPTURE_PROMO: Self = Self(10 << Move::FLAGS_OFFSET);
+    pub const BISHOP_CAPTURE_PROMO: Self = Self(11 << Move::FLAGS_OFFSET);
+    pub const ROOK_CAPTURE_PROMO: Self = Self(12 << Move::FLAGS_OFFSET);
+    pub const QUEEN_CAPTURE_PROMO: Self = Self(13 << Move::FLAGS_OFFSET);
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Move {
@@ -8,32 +28,18 @@ pub struct Move {
 impl Move {
     const TO_BITFIELD: u16 = 0b0000000000111111;
     const FROM_BITFIELD: u16 = 0b0000111111000000;
-    const PROMO_BITFIELD: u16 = 0b0011000000000000;
-    const FLAGS_BITFIELD: u16 = 0b1100000000000000;
-
-    const CASTLE_FLAG: u16 = 0b0100000000000000;
-    const PROMO_FLAG: u16 = 0b1000000000000000;
-    const EP_FLAG: u16 = 0b1100000000000000;
+    const FLAGS_BITFIELD: u16 = 0b1111000000000000;
 
     const FROM_OFFSET: u8 = 6;
-    const PROMO_OFFSET: u8 = 12;
+    const FLAGS_OFFSET: u8 = 12;
 
     pub const fn nullmove() -> Self {
         Self { data: 0 }
     }
 
-    pub const fn new_default(to: Square, from: Square) -> Self {
+    pub const fn new(to: Square, from: Square, flag: Flag) -> Self {
         Self {
-            data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET),
-        }
-    }
-
-    pub const fn new_promo(to: Square, from: Square, promo_piece: Piece) -> Self {
-        Self {
-            data: to.as_u16()
-                | (from.as_u16() << Self::FROM_OFFSET)
-                | ((promo_piece.as_u16()) << Self::PROMO_OFFSET)
-                | Self::PROMO_FLAG,
+            data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET) | flag.0,
         }
     }
 
@@ -41,7 +47,7 @@ impl Move {
         Self {
             data: king_sq.right(2).as_u16()
                 | (king_sq.as_u16() << Self::FROM_OFFSET)
-                | Self::CASTLE_FLAG,
+                | Flag::KS_CASTLE.0,
         }
     }
 
@@ -49,13 +55,7 @@ impl Move {
         Self {
             data: king_sq.left(2).as_u16()
                 | (king_sq.as_u16() << Self::FROM_OFFSET)
-                | Self::CASTLE_FLAG,
-        }
-    }
-
-    pub const fn new_ep(to: Square, from: Square) -> Self {
-        Self {
-            data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET) | Self::EP_FLAG,
+                | Flag::QS_CASTLE.0,
         }
     }
 
@@ -67,45 +67,24 @@ impl Move {
         Square::new(((self.data & Self::FROM_BITFIELD) >> Self::FROM_OFFSET) as u8)
     }
 
-    pub const fn promo_piece(self) -> Piece {
-        Piece::new(((self.data & Self::PROMO_BITFIELD) >> Self::PROMO_OFFSET) as u8)
+    pub const fn flag(self) -> Flag {
+        Flag(self.data & Self::FLAGS_BITFIELD)
     }
 
-    pub const fn is_castle(self) -> bool {
-        (self.data & Self::FLAGS_BITFIELD) == Self::CASTLE_FLAG
-    }
-
-    pub const fn is_promo(self) -> bool {
-        (self.data & Self::FLAGS_BITFIELD) == Self::PROMO_FLAG
-    }
-
-    pub const fn is_ep(self) -> bool {
-        (self.data & Self::FLAGS_BITFIELD) == Self::EP_FLAG
+    pub fn is_promo(self) -> bool {
+        self.flag() >= Flag::KNIGHT_PROMO
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Move, Piece, Square};
+    use super::{Flag, Move, Square};
 
     #[test]
-    fn test_simple_move() {
-        let m = Move::new_default(Square::B1, Square::H8);
+    fn test_move() {
+        let m = Move::new(Square::B1, Square::H8, Flag::NONE);
         assert_eq!(m.to(), Square::B1);
         assert_eq!(m.from(), Square::H8);
-        assert!(!m.is_ep());
-        assert!(!m.is_castle());
-        assert!(!m.is_promo());
-    }
-
-    #[test]
-    fn test_promotion() {
-        let m = Move::new_promo(Square::A7, Square::A8, Piece::QUEEN);
-        assert_eq!(m.to(), Square::A7);
-        assert_eq!(m.from(), Square::A8);
-        assert!(m.is_promo());
-        assert!(!m.is_ep());
-        assert!(!m.is_castle());
-        assert_eq!(m.promo_piece(), Piece::QUEEN);
+        assert!(m.flag() == Flag::NONE);
     }
 }
