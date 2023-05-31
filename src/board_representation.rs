@@ -1,6 +1,6 @@
-use crate::{attacks, chess_move::Flag};
 use crate::chess_move::Move;
 use crate::tuple_constants_enum;
+use crate::{attacks, chess_move::Flag};
 use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
 type Row = u8;
@@ -172,11 +172,13 @@ impl Square {
         let hv_sliders = opp_rooks.intersection(opp_queens);
         let d_sliders = opp_bishops.intersection(opp_queens);
 
-        attacks::king(self).overlaps(opp_king)
-            || attacks::knight(self).overlaps(opp_knights)
-            || attacks::pawn(self, board.color_to_move).overlaps(opp_pawns)
-            || attacks::rook(self, occupied).overlaps(hv_sliders)
-            || attacks::bishop(self, occupied).overlaps(d_sliders)
+        attacks::king(self)
+            .intersection(opp_king)
+            .union(attacks::knight(self).intersection(opp_knights))
+            .union(attacks::pawn(self, board.color_to_move).intersection(opp_pawns))
+            .union(attacks::rook(self, occupied).intersection(hv_sliders))
+            .union(attacks::bishop(self, occupied).intersection(d_sliders))
+            .is_not_empty()
     }
 
     const fn is_occupied(self, board: &Board) -> bool {
@@ -718,6 +720,7 @@ impl Board {
         self.toggle(to_bb | from_bb, piece, color);
 
         let flag = mv.flag();
+        #[rustfmt::skip]
         match flag {
             Flag::KS_CASTLE => self.toggle(from_bb.r_shift(1) | from_bb.r_shift(3), Piece::ROOK, color),
             Flag::QS_CASTLE => self.toggle(from_bb.l_shift(1) | from_bb.l_shift(4), Piece::ROOK, color),
@@ -740,7 +743,7 @@ impl Board {
         }
 
         if self.king_sq().is_attacked(&self) {
-            return None
+            return None;
         }
 
         Some(self)
