@@ -501,6 +501,7 @@ impl Board {
                 print!("{ch} ");
             }
         }
+        println!();
     }
 
     pub fn from_fen(fen: &str) -> Self {
@@ -762,6 +763,7 @@ impl Board {
         }
 
         self.castle_rights.update(mv);
+        self.color_to_move = self.color_to_move.flip();
 
         Some(self)
     }

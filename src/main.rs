@@ -16,5 +16,6 @@ fn main() {
     use crate::perft::split_perft;
     use crate::board_representation::START_FEN;
 
-    split_perft(START_FEN, 2);
+    std::env::set_var("RUST_BACKTRACE", "1");
+    split_perft("rnbqkbnr/p1pppppp/8/1p6/P7/8/1PPPPPPP/RNBQKBNR w KQkq b6 0 2", 1);
 }
