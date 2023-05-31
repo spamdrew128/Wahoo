@@ -684,9 +684,14 @@ impl Board {
         self.pieces[piece.as_index()] ^= mask;
     }
 
-    fn toggle_promotion(&mut self, mask: Bitboard, piece: Piece) {
+    fn toggle_promotion(&mut self, mask: Bitboard, promo_piece: Piece) {
         self.pieces[Piece::PAWN.as_index()] ^= mask;
-        self.pieces[piece.as_index()] ^= mask;
+        self.pieces[promo_piece.as_index()] ^= mask;
+    }
+
+    fn toggle_capture_promotion(&mut self, mask: Bitboard, sq: Square, promo_piece: Piece) {
+        self.toggle_promotion(mask, promo_piece);
+        self.toggle(mask, self.piece_on_sq(sq), self.color_to_move.flip());
     }
 
     const fn ep_sq_after_double_push(&self, to_sq: Square) -> Option<Square> {
@@ -726,22 +731,10 @@ impl Board {
             Flag::BISHOP_PROMO => self.toggle_promotion(to_bb, Piece::BISHOP),
             Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK),
             Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN),
-            Flag::KNIGHT_CAPTURE_PROMO => {
-                self.toggle_promotion(to_bb, Piece::KNIGHT);
-                self.toggle(to_bb, self.piece_on_sq(mv.to()), opp_color);
-            }
-            Flag::BISHOP_CAPTURE_PROMO => {
-                self.toggle_promotion(to_bb, Piece::BISHOP);
-                self.toggle(to_bb, self.piece_on_sq(mv.to()), opp_color);
-            }
-            Flag::ROOK_CAPTURE_PROMO => {
-                self.toggle_promotion(to_bb, Piece::ROOK);
-                self.toggle(to_bb, self.piece_on_sq(mv.to()), opp_color);
-            }
-            Flag::QUEEN_CAPTURE_PROMO => {
-                self.toggle_promotion(to_bb, Piece::QUEEN);
-                self.toggle(to_bb, self.piece_on_sq(mv.to()), opp_color);
-            }
+            Flag::KNIGHT_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, mv.to(), Piece::KNIGHT),
+            Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, mv.to(), Piece::BISHOP),
+            Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, mv.to(), Piece::ROOK),
+            Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, mv.to(), Piece::QUEEN),
             _ => (),
         }
 
