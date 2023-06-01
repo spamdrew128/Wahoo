@@ -751,7 +751,7 @@ impl Board {
     }
 
     #[rustfmt::skip]
-    pub fn try_play_move(mut self, mv: Move) -> Option<Self> {
+    pub fn try_play_move(&mut self, mv: Move) -> bool {
         let color = self.color_to_move;
         let opp_color = color.flip();
 
@@ -794,14 +794,14 @@ impl Board {
             _ => panic!("Invalid Move!"),
         }
 
-        if self.king_sq().is_attacked(&self) {
-            return None;
+        if self.king_sq().is_attacked(self) {
+            return false;
         }
 
         self.castle_rights.update(mv);
         self.color_to_move = self.color_to_move.flip();
 
-        Some(self)
+        true
     }
 }
 
