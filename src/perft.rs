@@ -194,7 +194,7 @@ pub fn split_perft(fen: &str, depth: u16) {
     }
 }
 
-fn run_test_suite() {
+pub fn run_test_suite() {
     let test_vec: Vec<PerftTest> = test_postions();
     let mut index: usize = 0;
 

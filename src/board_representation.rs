@@ -459,8 +459,8 @@ impl CastleRights {
 
     const fn can_qs_castle(self, board: &Board) -> bool {
         let color = board.color_to_move;
-        let thru_sq_1 = Self::QS_THRU_SQUARES[0][color.as_index()];
-        let thru_sq_2 = Self::QS_THRU_SQUARES[1][color.as_index()];
+        let thru_sq_1 = Self::QS_THRU_SQUARES[color.as_index()][0];
+        let thru_sq_2 = Self::QS_THRU_SQUARES[color.as_index()][1];
         let occ_mask = Self::QS_OCC_MASK[color.as_index()];
         self.has_queenside(color)
             && !(occ_mask.overlaps(board.occupied())
