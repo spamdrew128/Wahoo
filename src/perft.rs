@@ -218,6 +218,8 @@ pub fn run_test_suite() {
             }
         }
 
+        println!("Depth {} ✅", index + 1);
+
         if tests_run == 0 {
             break;
         }
