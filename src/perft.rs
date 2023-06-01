@@ -1,9 +1,9 @@
 use crate::board_representation::Board;
 use crate::movegen::MoveGenerator;
 
-struct PerftTest{
+struct PerftTest {
     fen: &'static str,
-    expected: Vec<u64>
+    expected: Vec<u64>,
 }
 
 impl PerftTest {
@@ -208,8 +208,12 @@ pub fn run_test_suite() {
                 let mut actual = 0;
 
                 perft(board, depth, &mut actual);
-                
-                assert_eq!(expected, actual, "Failed at depth {}, FEN: {}\n", depth, entry.fen);
+
+                assert_eq!(
+                    expected, actual,
+                    "Failed at depth {}, FEN: {}\n",
+                    depth, entry.fen
+                );
                 tests_run += 1;
             }
         }

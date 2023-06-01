@@ -412,10 +412,10 @@ impl CastleRights {
         Square::F8.as_bitboard().union(Square::G8.as_bitboard()),
     ];
     const QS_OCC_MASK: [Bitboard; NUM_COLORS as usize] = [
-        Square::D1
+        Square::B1
             .as_bitboard()
             .union(Square::C1.as_bitboard().union(Square::D1.as_bitboard())),
-        Square::D8
+        Square::B8
             .as_bitboard()
             .union(Square::C8.as_bitboard().union(Square::D8.as_bitboard())),
     ];
@@ -454,7 +454,9 @@ impl CastleRights {
         let thru_sq = Self::KS_THRU_SQUARE[color.as_index()];
         let occ_mask = Self::KS_OCC_MASK[color.as_index()];
         self.has_kingside(color)
-            && !(occ_mask.overlaps(board.occupied()) || thru_sq.is_attacked(board))
+            && !(occ_mask.overlaps(board.occupied())
+                || thru_sq.is_attacked(board)
+                || board.king_sq().is_attacked(board))
     }
 
     const fn can_qs_castle(self, board: &Board) -> bool {
@@ -465,7 +467,8 @@ impl CastleRights {
         self.has_queenside(color)
             && !(occ_mask.overlaps(board.occupied())
                 || thru_sq_1.is_attacked(board)
-                || thru_sq_2.is_attacked(board))
+                || thru_sq_2.is_attacked(board)
+                || board.king_sq().is_attacked(board))
     }
 
     fn update(&mut self, mv: Move) {
