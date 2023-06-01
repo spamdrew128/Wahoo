@@ -17,5 +17,5 @@ fn main() {
     use crate::perft::split_perft;
 
     std::env::set_var("RUST_BACKTRACE", "1");
-    split_perft(START_FEN, 5);
+    split_perft(START_FEN, 7);
 }
