@@ -768,12 +768,14 @@ impl Board {
 
         self.toggle(from_bb | to_bb, piece, color);
 
+        self.ep_sq = None;
+        
         let flag = mv.flag();
         match flag {
             Flag::KS_CASTLE => self.toggle(from_bb.shift_east(1) | from_bb.shift_east(3), Piece::ROOK, color),
             Flag::QS_CASTLE => self.toggle(from_bb.shift_west(1) | from_bb.shift_west(4), Piece::ROOK, color),
             Flag::EP => {
-                let ep_bb = self.ep_sq.unwrap().retreat(1, color).as_bitboard();
+                let ep_bb = mv.to().retreat(1, color).as_bitboard();
                 self.toggle(ep_bb, Piece::PAWN, opp_color);
             }
             Flag::DOUBLE_PUSH => self.ep_sq = self.ep_sq_after_double_push(mv.to()),
@@ -794,7 +796,6 @@ impl Board {
         }
 
         self.castle_rights.update(mv);
-        self.ep_sq = None;
         self.color_to_move = self.color_to_move.flip();
 
         Some(self)
