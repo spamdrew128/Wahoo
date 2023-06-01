@@ -1,4 +1,4 @@
-use crate::board_representation::Board;
+use crate::board_representation::{Board, START_FEN};
 use crate::movegen::MoveGenerator;
 
 struct PerftTest {
@@ -226,4 +226,15 @@ pub fn run_test_suite() {
 
         index += 1;
     }
+}
+
+pub fn speed_test() {
+    let board = Board::from_fen(START_FEN);
+    let timer = std::time::Instant::now();
+    let mut count = 0;
+
+    perft(board, 6, &mut count);
+
+    let elapsed = timer.elapsed().as_secs_f64();
+    println!("{} Nodes in {} seconds\n{} MNPS", count, elapsed, (count as f64 / elapsed) / 1000000 as f64);
 }

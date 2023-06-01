@@ -772,23 +772,24 @@ impl Board {
 
         let flag = mv.flag();
         match flag {
+            Flag::NONE => (),
+            Flag::CAPTURE => self.toggle(to_bb, captured_piece, opp_color),
+            Flag::DOUBLE_PUSH => self.ep_sq = self.ep_sq_after_double_push(mv.to()),
             Flag::KS_CASTLE => self.toggle(from_bb.shift_east(1) | from_bb.shift_east(3), Piece::ROOK, color),
             Flag::QS_CASTLE => self.toggle(from_bb.shift_west(1) | from_bb.shift_west(4), Piece::ROOK, color),
+            Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN),
+            Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::QUEEN),
+            Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT),
+            Flag::KNIGHT_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::KNIGHT),
+            Flag::BISHOP_PROMO => self.toggle_promotion(to_bb, Piece::BISHOP),
+            Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::BISHOP),
+            Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK),
+            Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::ROOK),
             Flag::EP => {
                 let ep_bb = mv.to().retreat(1, color).as_bitboard();
                 self.toggle(ep_bb, Piece::PAWN, opp_color);
             }
-            Flag::DOUBLE_PUSH => self.ep_sq = self.ep_sq_after_double_push(mv.to()),
-            Flag::CAPTURE => self.toggle(to_bb, captured_piece, opp_color),
-            Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT),
-            Flag::BISHOP_PROMO => self.toggle_promotion(to_bb, Piece::BISHOP),
-            Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK),
-            Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN),
-            Flag::KNIGHT_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::KNIGHT),
-            Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::BISHOP),
-            Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::ROOK),
-            Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::QUEEN),
-            _ => (),
+            _ => panic!("Invalid Move!"),
         }
 
         if self.king_sq().is_attacked(&self) {
