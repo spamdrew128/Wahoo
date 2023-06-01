@@ -228,6 +228,7 @@ pub fn run_test_suite() {
     }
 }
 
+#[allow(clippy::cast_precision_loss)]
 pub fn speed_test() {
     let board = Board::from_fen(START_FEN);
     let timer = std::time::Instant::now();
@@ -236,5 +237,5 @@ pub fn speed_test() {
     perft(board, 6, &mut count);
 
     let elapsed = timer.elapsed().as_secs_f64();
-    println!("{} Nodes in {} seconds\n{} MNPS", count, elapsed, (count as f64 / elapsed) / 1000000 as f64);
+    println!("{} Nodes in {} seconds\n{} MNPS", count, elapsed, (count as f64 / elapsed) / f64::from(1000000));
 }
