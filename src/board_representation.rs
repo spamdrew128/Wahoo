@@ -775,7 +775,6 @@ impl Board {
             Flag::EP => {
                 let ep_bb = self.ep_sq.unwrap().retreat(1, color).as_bitboard();
                 self.toggle(ep_bb, Piece::PAWN, opp_color);
-                self.ep_sq = None;
             }
             Flag::DOUBLE_PUSH => self.ep_sq = self.ep_sq_after_double_push(mv.to()),
             Flag::CAPTURE => self.toggle(to_bb, captured_piece, opp_color),
@@ -795,6 +794,7 @@ impl Board {
         }
 
         self.castle_rights.update(mv);
+        self.ep_sq = None;
         self.color_to_move = self.color_to_move.flip();
 
         Some(self)

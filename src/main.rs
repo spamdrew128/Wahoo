@@ -19,8 +19,7 @@ fn main() {
     use crate::chess_move::*;
 
     std::env::set_var("RUST_BACKTRACE", "1");
-    split_perft("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", 2);
-    // split_perft("r3k2r/8/8/8/8/8/8/2KR3R b kq - 1 1", 1);
+    split_perft("r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q2/1PPBBPpP/R3K2R w KQkq - 0 2", 1);
     // run_test_suite();
 
     // let board = Board::from_fen("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1");
