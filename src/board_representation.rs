@@ -169,8 +169,8 @@ impl Square {
         let opp_rooks = board.piece_bb(Piece::ROOK, opp_color);
         let opp_queens = board.piece_bb(Piece::QUEEN, opp_color);
 
-        let hv_sliders = opp_rooks.intersection(opp_queens);
-        let d_sliders = opp_bishops.intersection(opp_queens);
+        let hv_sliders = opp_rooks.union(opp_queens);
+        let d_sliders = opp_bishops.union(opp_queens);
 
         attacks::king(self)
             .intersection(opp_king)
@@ -179,10 +179,6 @@ impl Square {
             .union(attacks::rook(self, occupied).intersection(hv_sliders))
             .union(attacks::bishop(self, occupied).intersection(d_sliders))
             .is_not_empty()
-    }
-
-    const fn is_occupied(self, board: &Board) -> bool {
-        self.as_bitboard().overlaps(board.occupied())
     }
 }
 
@@ -318,6 +314,14 @@ impl Bitboard {
         self.r_shift(8 * shift)
     }
 
+    pub const fn shift_east(self, shift: u8) -> Self {
+        self.l_shift(shift)
+    }
+
+    pub const fn shift_west(self, shift: u8) -> Self {
+        self.r_shift(shift)
+    }
+
     pub const fn no_wrap_shift_east(self, count: u8) -> Self {
         let mut result = self;
         let mut i = 0;
@@ -411,6 +415,18 @@ impl CastleRights {
     const KS_THRU_SQUARE: [Square; NUM_COLORS as usize] = [Square::F1, Square::F8];
     const QS_THRU_SQUARES: [[Square; 2]; NUM_COLORS as usize] =
         [[Square::C1, Square::D1], [Square::C8, Square::D8]];
+    const KS_OCC_MASK: [Bitboard; NUM_COLORS as usize] = [
+        Square::F1.as_bitboard().union(Square::G1.as_bitboard()),
+        Square::F8.as_bitboard().union(Square::G8.as_bitboard()),
+    ];
+    const QS_OCC_MASK: [Bitboard; NUM_COLORS as usize] = [
+        Square::B1
+            .as_bitboard()
+            .union(Square::C1.as_bitboard().union(Square::D1.as_bitboard())),
+        Square::B8
+            .as_bitboard()
+            .union(Square::C8.as_bitboard().union(Square::D8.as_bitboard())),
+    ];
 
     const UPDATE_MASKS: [u8; NUM_SQUARES as usize] = {
         let mut table = [0b1111; NUM_SQUARES as usize];
@@ -444,18 +460,23 @@ impl CastleRights {
     const fn can_ks_castle(self, board: &Board) -> bool {
         let color = board.color_to_move;
         let thru_sq = Self::KS_THRU_SQUARE[color.as_index()];
-        self.has_kingside(color) && !(thru_sq.is_occupied(board) || thru_sq.is_attacked(board))
+        let occ_mask = Self::KS_OCC_MASK[color.as_index()];
+        self.has_kingside(color)
+            && !(occ_mask.overlaps(board.occupied())
+                || thru_sq.is_attacked(board)
+                || board.king_sq().is_attacked(board))
     }
 
     const fn can_qs_castle(self, board: &Board) -> bool {
         let color = board.color_to_move;
-        let thru_sq_1 = Self::QS_THRU_SQUARES[0][color.as_index()];
-        let thru_sq_2 = Self::QS_THRU_SQUARES[1][color.as_index()];
+        let thru_sq_1 = Self::QS_THRU_SQUARES[color.as_index()][0];
+        let thru_sq_2 = Self::QS_THRU_SQUARES[color.as_index()][1];
+        let occ_mask = Self::QS_OCC_MASK[color.as_index()];
         self.has_queenside(color)
-            && !(thru_sq_1.is_occupied(board)
-                || thru_sq_2.is_occupied(board)
+            && !(occ_mask.overlaps(board.occupied())
                 || thru_sq_1.is_attacked(board)
-                || thru_sq_2.is_attacked(board))
+                || thru_sq_2.is_attacked(board)
+                || board.king_sq().is_attacked(board))
     }
 
     fn update(&mut self, mv: Move) {
@@ -501,6 +522,7 @@ impl Board {
                 print!("{ch} ");
             }
         }
+        println!();
     }
 
     pub fn from_fen(fen: &str) -> Self {
@@ -570,7 +592,7 @@ impl Board {
     }
 
     #[allow(clippy::wrong_self_convention)]
-    fn to_fen(&self) -> String {
+    pub fn to_fen(&self) -> String {
         let mut pos = String::new();
         let mut blank_space: u8 = 0;
 
@@ -707,9 +729,14 @@ impl Board {
         self.pieces[promo_piece.as_index()] ^= mask;
     }
 
-    fn toggle_capture_promotion(&mut self, mask: Bitboard, sq: Square, promo_piece: Piece) {
+    fn toggle_capture_promotion(
+        &mut self,
+        mask: Bitboard,
+        captured_piece: Piece,
+        promo_piece: Piece,
+    ) {
         self.toggle_promotion(mask, promo_piece);
-        self.toggle(mask, self.piece_on_sq(sq), self.color_to_move.flip());
+        self.toggle(mask, captured_piece, self.color_to_move.flip());
     }
 
     const fn ep_sq_after_double_push(&self, to_sq: Square) -> Option<Square> {
@@ -724,7 +751,7 @@ impl Board {
     }
 
     #[rustfmt::skip]
-    fn try_make_move(mut self, mv: Move) -> Option<Self> {
+    pub fn try_play_move(mut self, mv: Move) -> Option<Self> {
         let color = self.color_to_move;
         let opp_color = color.flip();
 
@@ -733,27 +760,34 @@ impl Board {
         let piece = self.piece_on_sq(mv.from());
         debug_assert!(piece != Piece::NONE);
 
-        self.toggle(to_bb | from_bb, piece, color);
+        let captured_piece = if mv.is_capture() {
+            self.piece_on_sq(mv.to())
+        } else {
+            Piece::NONE
+        };
+
+        self.toggle(from_bb | to_bb, piece, color);
+
+        self.ep_sq = None;
 
         let flag = mv.flag();
         match flag {
-            Flag::KS_CASTLE => self.toggle(from_bb.r_shift(1) | from_bb.r_shift(3), Piece::ROOK, color),
-            Flag::QS_CASTLE => self.toggle(from_bb.l_shift(1) | from_bb.l_shift(4), Piece::ROOK, color),
+            Flag::KS_CASTLE => self.toggle(from_bb.shift_east(1) | from_bb.shift_east(3), Piece::ROOK, color),
+            Flag::QS_CASTLE => self.toggle(from_bb.shift_west(1) | from_bb.shift_west(4), Piece::ROOK, color),
             Flag::EP => {
-                let ep_bb = self.ep_sq.unwrap().as_bitboard();
+                let ep_bb = mv.to().retreat(1, color).as_bitboard();
                 self.toggle(ep_bb, Piece::PAWN, opp_color);
-                self.ep_sq = None;
             }
             Flag::DOUBLE_PUSH => self.ep_sq = self.ep_sq_after_double_push(mv.to()),
-            Flag::CAPTURE => self.toggle(to_bb, self.piece_on_sq(mv.to()), opp_color),
+            Flag::CAPTURE => self.toggle(to_bb, captured_piece, opp_color),
             Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT),
             Flag::BISHOP_PROMO => self.toggle_promotion(to_bb, Piece::BISHOP),
             Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK),
             Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN),
-            Flag::KNIGHT_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, mv.to(), Piece::KNIGHT),
-            Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, mv.to(), Piece::BISHOP),
-            Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, mv.to(), Piece::ROOK),
-            Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, mv.to(), Piece::QUEEN),
+            Flag::KNIGHT_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::KNIGHT),
+            Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::BISHOP),
+            Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::ROOK),
+            Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::QUEEN),
             _ => (),
         }
 
@@ -762,6 +796,7 @@ impl Board {
         }
 
         self.castle_rights.update(mv);
+        self.color_to_move = self.color_to_move.flip();
 
         Some(self)
     }

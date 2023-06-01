@@ -36,7 +36,7 @@ impl MoveStage {
 }
 
 const MOVE_LIST_SIZE: usize = u8::MAX as usize;
-struct MoveGenerator {
+pub struct MoveGenerator {
     stage: MoveStage,
     movelist: [Move; MOVE_LIST_SIZE],
     len: usize,
@@ -44,7 +44,7 @@ struct MoveGenerator {
 }
 
 impl MoveGenerator {
-    const fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             stage: MoveStage::START,
             movelist: [Move::nullmove(); MOVE_LIST_SIZE],
@@ -162,7 +162,7 @@ impl MoveGenerator {
         self.generic_movegen(board, empty, Flag::NONE);
     }
 
-    fn next(&mut self, board: &Board) -> Option<Move> {
+    pub fn next(&mut self, board: &Board) -> Option<Move> {
         while self.stage_complete() {
             self.advance_stage();
 

@@ -9,15 +9,15 @@ impl Flag {
     pub const QS_CASTLE: Self = Self(2 << Move::FLAGS_OFFSET);
     pub const EP: Self = Self(3 << Move::FLAGS_OFFSET);
     pub const DOUBLE_PUSH: Self = Self(4 << Move::FLAGS_OFFSET);
-    pub const CAPTURE: Self = Self(5 << Move::FLAGS_OFFSET);
-    pub const KNIGHT_PROMO: Self = Self(6 << Move::FLAGS_OFFSET);
-    pub const BISHOP_PROMO: Self = Self(7 << Move::FLAGS_OFFSET);
-    pub const ROOK_PROMO: Self = Self(8 << Move::FLAGS_OFFSET);
-    pub const QUEEN_PROMO: Self = Self(9 << Move::FLAGS_OFFSET);
-    pub const KNIGHT_CAPTURE_PROMO: Self = Self(10 << Move::FLAGS_OFFSET);
-    pub const BISHOP_CAPTURE_PROMO: Self = Self(11 << Move::FLAGS_OFFSET);
-    pub const ROOK_CAPTURE_PROMO: Self = Self(12 << Move::FLAGS_OFFSET);
-    pub const QUEEN_CAPTURE_PROMO: Self = Self(13 << Move::FLAGS_OFFSET);
+    pub const KNIGHT_PROMO: Self = Self(5 << Move::FLAGS_OFFSET);
+    pub const BISHOP_PROMO: Self = Self(6 << Move::FLAGS_OFFSET);
+    pub const ROOK_PROMO: Self = Self(7 << Move::FLAGS_OFFSET);
+    pub const QUEEN_PROMO: Self = Self(8 << Move::FLAGS_OFFSET);
+    pub const KNIGHT_CAPTURE_PROMO: Self = Self(9 << Move::FLAGS_OFFSET);
+    pub const BISHOP_CAPTURE_PROMO: Self = Self(10 << Move::FLAGS_OFFSET);
+    pub const ROOK_CAPTURE_PROMO: Self = Self(11 << Move::FLAGS_OFFSET);
+    pub const QUEEN_CAPTURE_PROMO: Self = Self(12 << Move::FLAGS_OFFSET);
+    pub const CAPTURE: Self = Self(13 << Move::FLAGS_OFFSET);
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -72,7 +72,27 @@ impl Move {
     }
 
     pub fn is_promo(self) -> bool {
-        self.flag() >= Flag::KNIGHT_PROMO
+        (self.flag() >= Flag::KNIGHT_PROMO) && (self.flag() <= Flag::QUEEN_CAPTURE_PROMO)
+    }
+
+    pub fn is_capture(self) -> bool {
+        self.flag() >= Flag::KNIGHT_CAPTURE_PROMO
+    }
+
+    pub fn as_string(self) -> String {
+        let mut move_str = String::new();
+        move_str.push_str(self.from().as_string().as_str());
+        move_str.push_str(self.to().as_string().as_str());
+
+        match self.flag() {
+            Flag::KNIGHT_PROMO | Flag::KNIGHT_CAPTURE_PROMO => move_str.push('n'),
+            Flag::BISHOP_PROMO | Flag::BISHOP_CAPTURE_PROMO => move_str.push('b'),
+            Flag::ROOK_PROMO | Flag::ROOK_CAPTURE_PROMO => move_str.push('r'),
+            Flag::QUEEN_PROMO | Flag::QUEEN_CAPTURE_PROMO => move_str.push('q'),
+            _ => (),
+        }
+
+        move_str
     }
 }
 

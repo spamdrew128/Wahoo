@@ -9,8 +9,10 @@ mod board_representation;
 mod chess_move;
 mod magic;
 mod movegen;
+mod perft;
 mod util_macros;
 
 fn main() {
-    println!("Hello, world!");
+    use crate::perft::run_test_suite;
+    run_test_suite();
 }
