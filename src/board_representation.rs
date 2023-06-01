@@ -314,6 +314,14 @@ impl Bitboard {
         self.r_shift(8 * shift)
     }
 
+    pub const fn shift_east(self, shift: u8) -> Self {
+        self.l_shift(shift)
+    }
+
+    pub const fn shift_west(self, shift: u8) -> Self {
+        self.r_shift(shift)
+    }
+
     pub const fn no_wrap_shift_east(self, count: u8) -> Self {
         let mut result = self;
         let mut i = 0;
@@ -762,8 +770,8 @@ impl Board {
 
         let flag = mv.flag();
         match flag {
-            Flag::KS_CASTLE => self.toggle(from_bb.r_shift(1) | from_bb.r_shift(3), Piece::ROOK, color),
-            Flag::QS_CASTLE => self.toggle(from_bb.l_shift(1) | from_bb.l_shift(4), Piece::ROOK, color),
+            Flag::KS_CASTLE => self.toggle(from_bb.shift_east(1) | from_bb.shift_east(3), Piece::ROOK, color),
+            Flag::QS_CASTLE => self.toggle(from_bb.shift_west(1) | from_bb.shift_west(4), Piece::ROOK, color),
             Flag::EP => {
                 let ep_bb = self.ep_sq.unwrap().retreat(1, color).as_bitboard();
                 self.toggle(ep_bb, Piece::PAWN, opp_color);
