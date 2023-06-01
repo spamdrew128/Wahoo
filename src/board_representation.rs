@@ -592,7 +592,7 @@ impl Board {
     }
 
     #[allow(clippy::wrong_self_convention)]
-    fn to_fen(&self) -> String {
+    pub fn to_fen(&self) -> String {
         let mut pos = String::new();
         let mut blank_space: u8 = 0;
 
@@ -769,7 +769,7 @@ impl Board {
         self.toggle(from_bb | to_bb, piece, color);
 
         self.ep_sq = None;
-        
+
         let flag = mv.flag();
         match flag {
             Flag::KS_CASTLE => self.toggle(from_bb.shift_east(1) | from_bb.shift_east(3), Piece::ROOK, color),
