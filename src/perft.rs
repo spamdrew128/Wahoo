@@ -3,19 +3,18 @@ use crate::movegen::MoveGenerator;
 
 struct PerftTest{
     fen: &'static str,
-    depth: u16,
     expected: Vec<u64>
 }
 
 impl PerftTest {
     fn new(fen: &'static str, expected: Vec<u64>) -> Self {
-        Self { fen, depth: 0, expected }
+        Self { fen, expected }
     }
 }
 
 #[allow(clippy::too_many_lines)]
 #[rustfmt::skip]
-fn get_test_postions() -> Vec<PerftTest> {
+fn test_postions() -> Vec<PerftTest> {
     vec![
     PerftTest::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", vec![20, 400, 8902, 197281, 4865609, 119060324]),
     PerftTest::new("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", vec![48, 2039, 97862, 4085603, 193690690]),
@@ -192,5 +191,33 @@ pub fn split_perft(fen: &str, depth: u16) {
             perft(new_board, depth - 1, &mut count);
             println!("{} - {}", mv.as_string(), count);
         }
+    }
+}
+
+fn run_test_suite() {
+    let test_vec: Vec<PerftTest> = test_postions();
+    let mut index: usize = 0;
+
+    loop {
+        let mut tests_run = 0;
+        for entry in &test_vec {
+            if index < entry.expected.len() {
+                let depth = (index + 1) as u16;
+                let board = Board::from_fen(entry.fen);
+                let expected = entry.expected[index];
+                let mut actual = 0;
+
+                perft(board, depth, &mut actual);
+                
+                assert_eq!(expected, actual, "Failed at depth {}, FEN: {}\n", depth, entry.fen);
+                tests_run += 1;
+            }
+        }
+
+        if tests_run == 0 {
+            break;
+        }
+
+        index += 1;
     }
 }
