@@ -751,6 +751,7 @@ impl Board {
     }
 
     #[rustfmt::skip]
+    #[doc="returns success: bool"]
     pub fn try_play_move(&mut self, mv: Move) -> bool {
         let color = self.color_to_move;
         let opp_color = color.flip();
