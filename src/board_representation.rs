@@ -751,13 +751,16 @@ impl Board {
     }
 
     #[rustfmt::skip]
-    pub fn try_play_move(mut self, mv: Move) -> Option<Self> {
+    #[doc="returns success: bool"]
+    pub fn try_play_move(&mut self, mv: Move) -> bool {
         let color = self.color_to_move;
         let opp_color = color.flip();
 
-        let to_bb = mv.to().as_bitboard();
-        let from_bb = mv.from().as_bitboard();
-        let piece = self.piece_on_sq(mv.from());
+        let to_sq = mv.to();
+        let from_sq = mv.from();
+        let to_bb = to_sq.as_bitboard();
+        let from_bb = from_sq.as_bitboard();
+        let piece = self.piece_on_sq(from_sq);
         debug_assert!(piece != Piece::NONE);
 
         let captured_piece = if mv.is_capture() {
@@ -772,33 +775,34 @@ impl Board {
 
         let flag = mv.flag();
         match flag {
+            Flag::NONE => (),
+            Flag::CAPTURE => self.toggle(to_bb, captured_piece, opp_color),
+            Flag::DOUBLE_PUSH => self.ep_sq = self.ep_sq_after_double_push(to_sq),
             Flag::KS_CASTLE => self.toggle(from_bb.shift_east(1) | from_bb.shift_east(3), Piece::ROOK, color),
             Flag::QS_CASTLE => self.toggle(from_bb.shift_west(1) | from_bb.shift_west(4), Piece::ROOK, color),
+            Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN),
+            Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::QUEEN),
+            Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT),
+            Flag::KNIGHT_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::KNIGHT),
+            Flag::BISHOP_PROMO => self.toggle_promotion(to_bb, Piece::BISHOP),
+            Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::BISHOP),
+            Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK),
+            Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::ROOK),
             Flag::EP => {
-                let ep_bb = mv.to().retreat(1, color).as_bitboard();
+                let ep_bb = to_sq.retreat(1, color).as_bitboard();
                 self.toggle(ep_bb, Piece::PAWN, opp_color);
             }
-            Flag::DOUBLE_PUSH => self.ep_sq = self.ep_sq_after_double_push(mv.to()),
-            Flag::CAPTURE => self.toggle(to_bb, captured_piece, opp_color),
-            Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT),
-            Flag::BISHOP_PROMO => self.toggle_promotion(to_bb, Piece::BISHOP),
-            Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK),
-            Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN),
-            Flag::KNIGHT_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::KNIGHT),
-            Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::BISHOP),
-            Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::ROOK),
-            Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::QUEEN),
-            _ => (),
+            _ => panic!("Invalid Move!"),
         }
 
-        if self.king_sq().is_attacked(&self) {
-            return None;
+        if self.king_sq().is_attacked(self) {
+            return false;
         }
 
         self.castle_rights.update(mv);
         self.color_to_move = self.color_to_move.flip();
 
-        Some(self)
+        true
     }
 }
 

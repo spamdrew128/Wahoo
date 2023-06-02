@@ -13,6 +13,6 @@ mod perft;
 mod util_macros;
 
 fn main() {
-    use crate::perft::run_test_suite;
-    run_test_suite();
+    use crate::perft::speed_test;
+    speed_test();
 }

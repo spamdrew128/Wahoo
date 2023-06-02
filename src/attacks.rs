@@ -66,7 +66,6 @@ pub const fn pawn(sq: Square, color: Color) -> Bitboard {
     PAWN_ATTACKS[color.as_index()][sq.as_index()]
 }
 
-#[inline]
 pub const fn pawn_setwise(pawns: Bitboard, color: Color) -> Bitboard {
     match color {
         Color::White => pawns.northeast_one().union(pawns.northwest_one()),
@@ -74,7 +73,6 @@ pub const fn pawn_setwise(pawns: Bitboard, color: Color) -> Bitboard {
     }
 }
 
-#[inline]
 pub const fn pawn_single_push(pawns: Bitboard, empty: Bitboard, color: Color) -> Bitboard {
     match color {
         Color::White => pawns.north_one().intersection(empty),
@@ -82,7 +80,6 @@ pub const fn pawn_single_push(pawns: Bitboard, empty: Bitboard, color: Color) ->
     }
 }
 
-#[inline]
 pub const fn pawn_double_push(single_pushes: Bitboard, empty: Bitboard, color: Color) -> Bitboard {
     match color {
         Color::White => single_pushes

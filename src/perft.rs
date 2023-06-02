@@ -1,4 +1,4 @@
-use crate::board_representation::Board;
+use crate::board_representation::{Board, START_FEN};
 use crate::movegen::MoveGenerator;
 
 struct PerftTest {
@@ -166,7 +166,7 @@ fn test_postions() -> Vec<PerftTest> {
     ]
 }
 
-fn perft(board: Board, depth: u16, count: &mut u64) {
+fn perft(board: &Board, depth: u16, count: &mut u64) {
     if depth == 0 {
         *count += 1;
         return;
@@ -174,9 +174,10 @@ fn perft(board: Board, depth: u16, count: &mut u64) {
 
     let mut generator = MoveGenerator::new();
 
-    while let Some(mv) = generator.next(&board) {
-        if let Some(new_board) = board.try_play_move(mv) {
-            perft(new_board, depth - 1, count);
+    while let Some(mv) = generator.next(board) {
+        let mut new_board = *board;
+        if new_board.try_play_move(mv) {
+            perft(&new_board, depth - 1, count);
         }
     }
 }
@@ -186,9 +187,10 @@ pub fn split_perft(fen: &str, depth: u16) {
     let mut generator = MoveGenerator::new();
 
     while let Some(mv) = generator.next(&board) {
-        if let Some(new_board) = board.try_play_move(mv) {
+        let mut new_board = board;
+        if new_board.try_play_move(mv) {
             let mut count = 0;
-            perft(new_board, depth - 1, &mut count);
+            perft(&new_board, depth - 1, &mut count);
             println!("{} - {}", mv.as_string(), count);
         }
     }
@@ -207,7 +209,7 @@ pub fn run_test_suite() {
                 let expected = entry.expected[index];
                 let mut actual = 0;
 
-                perft(board, depth, &mut actual);
+                perft(&board, depth, &mut actual);
 
                 assert_eq!(
                     expected, actual,
@@ -226,4 +228,16 @@ pub fn run_test_suite() {
 
         index += 1;
     }
+}
+
+#[allow(clippy::cast_precision_loss)]
+pub fn speed_test() {
+    let board = Board::from_fen(START_FEN);
+    let timer = std::time::Instant::now();
+    let mut count = 0;
+
+    perft(&board, 6, &mut count);
+
+    let elapsed = timer.elapsed().as_secs_f64();
+    println!("{} Nodes in {} seconds\n{} MNPS", count, elapsed, (count as f64 / elapsed) / f64::from(1000000));
 }
