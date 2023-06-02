@@ -14,6 +14,7 @@ mod uci;
 mod util_macros;
 
 fn main() {
-    use crate::perft::speed_test;
-    speed_test();
+    let uci_handler = uci::UciHandler::new();
+
+    while matches!(uci_handler.execute_instructions(), uci::ProgramStatus::Run) {}
 }
