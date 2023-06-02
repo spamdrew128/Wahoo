@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use crate::board_representation::{Square, Board};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -103,10 +101,12 @@ impl Move {
         let to_str = format!("{}{}", chars.next().unwrap(), chars.next().unwrap());
         let promo = chars.next();
 
-        let from = Square::from_string(from_str.as_str());
-        let to = Square::from_string(to_str.as_str());
+        let from = Square::from_string(from_str.as_str()).unwrap();
+        let to = Square::from_string(to_str.as_str()).unwrap();
+        let piece = board.piece_on_sq(from);
+        let captured_piece = board.piece_on_sq(to);
 
-        
+            
     }
 }
 
