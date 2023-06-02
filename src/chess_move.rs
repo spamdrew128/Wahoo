@@ -1,4 +1,6 @@
-use crate::board_representation::Square;
+use std::fmt::format;
+
+use crate::board_representation::{Square, Board};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Flag(u16);
@@ -93,6 +95,18 @@ impl Move {
         }
 
         move_str
+    }
+
+    pub fn from_string(mv_str: &str, board: &Board) {
+        let mut chars = mv_str.chars();
+        let from_str = format!("{}{}", chars.next().unwrap(), chars.next().unwrap());
+        let to_str = format!("{}{}", chars.next().unwrap(), chars.next().unwrap());
+        let promo = chars.next();
+
+        let from = Square::from_string(from_str.as_str());
+        let to = Square::from_string(to_str.as_str());
+
+        
     }
 }
 

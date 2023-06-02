@@ -77,6 +77,18 @@ impl Piece {
         Some(ch)
     }
 
+    pub const fn from_char(char: char) -> Option<Self> {
+        match char {
+            'n' | 'N' => Some(Self::KNIGHT),
+            'b' | 'B' => Some(Self::BISHOP),
+            'r' | 'R' => Some(Self::ROOK),
+            'q' | 'Q' => Some(Self::QUEEN),
+            'p' | 'P' => Some(Self::PAWN),
+            'k' | 'K' => Some(Self::KING),
+            _ => return None,
+        }
+    }
+
     pub const fn as_index(self) -> usize {
         self.0 as usize
     }
