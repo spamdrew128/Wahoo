@@ -1,8 +1,16 @@
 use crate::board_representation::{Board, START_FEN};
 
+
+#[derive(Debug, Copy, Clone)]
 pub enum ProgramStatus {
     Run,
     Quit,
+}
+
+#[derive(Debug, Copy, Clone)]
+enum UciCommand {
+    Uci,
+    IsReady,
 }
 
 pub struct UciHandler {
@@ -17,11 +25,25 @@ impl UciHandler {
     }
 
     pub fn execute_instructions(&self) -> ProgramStatus {
-        let mut input = String::new();
+        let mut buffer = String::new();
         std::io::stdin()
-            .read_line(&mut input)
+            .read_line(&mut buffer)
             .expect("UCI Input Failure");
 
+        let message = buffer.split_whitespace().collect::<Vec<&str>>();
+        if let Some(cmd) = message.first() {
+            match *cmd {
+                "uci" => self.process_command(UciCommand::Uci),
+                "isready" => self.process_command(UciCommand::IsReady),
+                "quit" => return ProgramStatus::Quit,
+                _ => (),
+            }
+        }
+
         ProgramStatus::Run
+    }
+
+    fn process_command(&self, command: UciCommand) {
+
     }
 }
