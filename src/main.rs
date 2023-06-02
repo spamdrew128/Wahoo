@@ -14,7 +14,7 @@ mod uci;
 mod util_macros;
 
 fn main() {
-    let uci_handler = uci::UciHandler::new();
+    let mut uci_handler = uci::UciHandler::new();
 
     while matches!(uci_handler.execute_instructions(), uci::ProgramStatus::Run) {}
 }
