@@ -10,6 +10,7 @@ mod chess_move;
 mod magic;
 mod movegen;
 mod perft;
+mod uci;
 mod util_macros;
 
 fn main() {
