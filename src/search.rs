@@ -10,6 +10,11 @@ pub struct Searcher {
     best_move: Move, // TODO: replace with PV Table
 }
 
+fn report_search_info(score: EvalScore, depth: Depth) {
+    print!("info ");
+    println!("score {score} depth {depth}");
+}
+
 impl Searcher {
     pub fn new() -> Self {
         Self {
@@ -19,11 +24,25 @@ impl Searcher {
         }
     }
 
-    pub fn go(&mut self, board: &mut Board, search_timer: SearchTimer) {
+    pub fn go(&mut self, board: &Board, search_timer: SearchTimer) {
         self.timer = search_timer;
-        let best_move = MoveGenerator::first_legal_move(board).unwrap();
+        let mut best_move = MoveGenerator::first_legal_move(board).unwrap();
+        let mut depth: Depth = 1;
 
-        // search stuff
+        loop {
+            let score = self.negamax(board, depth);
+
+            best_move = self.best_move;
+            report_search_info(score, depth);
+
+            if depth > 5 {
+                break;
+            }
+
+            depth += 1;
+        }
+
+        println!("bestmove {}", best_move.as_string());
 
         self.reset();
     }

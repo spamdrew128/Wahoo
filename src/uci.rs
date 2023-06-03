@@ -152,7 +152,7 @@ impl UciHandler {
                     .time_manager
                     .construct_search_timer(time_args, self.board.color_to_move);
 
-                self.searcher.go(&mut self.board, search_timer);
+                self.searcher.go(&self.board, search_timer);
             }
         }
     }
