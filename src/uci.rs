@@ -1,7 +1,7 @@
 use crate::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
-    search::{GoArgs, Milliseconds},
+    time_management::{Milliseconds, TimeArgs, TimeManager},
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -20,12 +20,14 @@ enum UciCommand {
 
 pub struct UciHandler {
     board: Board,
+    time_manager: TimeManager,
 }
 
 impl UciHandler {
     pub fn new() -> Self {
         Self {
             board: Board::from_fen(START_FEN),
+            time_manager: TimeManager::new(),
         }
     }
 
@@ -99,21 +101,51 @@ impl UciHandler {
                 self.board.print();
             }
             UciCommand::Go(arg_vec) => {
-                let mut go_args = GoArgs::default();
+                let mut time_args = TimeArgs::default();
                 let mut args_iterator = arg_vec.iter();
 
                 while let Some(arg) = args_iterator.next() {
                     match arg.as_str() {
-                        "wtime" => go_args.w_time = args_iterator.next().unwrap().parse::<Milliseconds>().unwrap(),
-                        "btime" => go_args.b_time = args_iterator.next().unwrap().parse::<Milliseconds>().unwrap(),
-                        "winc" => go_args.w_inc = args_iterator.next().unwrap().parse::<Milliseconds>().unwrap(),
-                        "binc" => go_args.b_inc = args_iterator.next().unwrap().parse::<Milliseconds>().unwrap(),
-                        "movetime" => go_args.move_time = args_iterator.next().unwrap().parse::<Milliseconds>().unwrap(),
-                        "infinite" => go_args.infinite_mode = true,
+                        "wtime" => {
+                            time_args.w_time = args_iterator
+                                .next()
+                                .unwrap()
+                                .parse::<Milliseconds>()
+                                .unwrap()
+                        }
+                        "btime" => {
+                            time_args.b_time = args_iterator
+                                .next()
+                                .unwrap()
+                                .parse::<Milliseconds>()
+                                .unwrap()
+                        }
+                        "winc" => {
+                            time_args.w_inc = args_iterator
+                                .next()
+                                .unwrap()
+                                .parse::<Milliseconds>()
+                                .unwrap()
+                        }
+                        "binc" => {
+                            time_args.b_inc = args_iterator
+                                .next()
+                                .unwrap()
+                                .parse::<Milliseconds>()
+                                .unwrap()
+                        }
+                        "movetime" => {
+                            time_args.move_time = args_iterator
+                                .next()
+                                .unwrap()
+                                .parse::<Milliseconds>()
+                                .unwrap()
+                        }
+                        "infinite" => time_args.infinite_mode = true,
                         _ => (),
                     }
                 }
-                println!("{:?}", go_args);
+                println!("{:?}", time_args);
             }
         }
     }

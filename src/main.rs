@@ -11,6 +11,7 @@ mod magic;
 mod movegen;
 mod perft;
 mod search;
+mod time_management;
 mod uci;
 mod util_macros;
 
