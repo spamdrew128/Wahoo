@@ -1,6 +1,7 @@
 use crate::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
+    search::{GoArgs, Milliseconds},
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -98,7 +99,18 @@ impl UciHandler {
                 self.board.print();
             }
             UciCommand::Go(arg_vec) => {
+                let mut go_args = GoArgs::default();
+                let mut args_iterator = arg_vec.iter();
 
+                while let Some(arg) = args_iterator.next() {
+                    match arg.as_str() {
+                        "wtime" => go_args.w_time = args_iterator.next().unwrap().parse::<Milliseconds>().unwrap(),
+                        "btime" => go_args.b_time = args_iterator.next().unwrap().parse::<Milliseconds>().unwrap(),
+                        "winc" => go_args.w_inc = args_iterator.next().unwrap().parse::<Milliseconds>().unwrap(),
+                        "binc" => go_args.b_inc = args_iterator.next().unwrap().parse::<Milliseconds>().unwrap(),
+                        _ => (),
+                    }
+                }
             }
         }
     }

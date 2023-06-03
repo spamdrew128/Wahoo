@@ -1,27 +1,12 @@
 pub type Milliseconds = i64;
 pub type Nodes = u64;
 
+#[derive(Debug, Copy, Clone, Default)]
 pub struct GoArgs {
-    w_time: Milliseconds,
-    b_time: Milliseconds,
-    w_inc: Milliseconds,
-    b_inc: Milliseconds,
-}
-
-impl GoArgs {
-    pub const fn new(
-        w_time: Milliseconds,
-        b_time: Milliseconds,
-        w_inc: Milliseconds,
-        b_inc: Milliseconds,
-    ) -> Self {
-        Self {
-            w_time,
-            b_time,
-            w_inc,
-            b_inc,
-        }
-    }
+    pub w_time: Milliseconds,
+    pub b_time: Milliseconds,
+    pub w_inc: Milliseconds,
+    pub b_inc: Milliseconds,
 }
 
 pub struct Searcher {
