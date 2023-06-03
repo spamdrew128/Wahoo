@@ -52,7 +52,7 @@ impl UciHandler {
                     };
 
                     let mut mv_vec: Vec<String> = vec![];
-                    for mv_str in &message[i..] {
+                    for mv_str in &message[i+1..] {
                         mv_vec.push((*mv_str).to_string());
                     }
                     self.process_command(UciCommand::Position(fen, mv_vec));
@@ -77,7 +77,7 @@ impl UciHandler {
             UciCommand::Position(fen, move_vec) => {
                 let mut new_board = Board::from_fen(fen.as_str());
                 for mv_str in move_vec {
-                    let mv = Move::from_string(mv_str.as_str(), &self.board);
+                    let mv = Move::from_string(mv_str.as_str(), &new_board);
                     let success = new_board.try_play_move(mv);
                     if !success {
                         return;
