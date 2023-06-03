@@ -14,6 +14,7 @@ enum UciCommand {
     IsReady,
     UciNewGame,
     Position(String, Vec<String>),
+    Go(Vec<String>),
 }
 
 pub struct UciHandler {
@@ -60,6 +61,13 @@ impl UciHandler {
 
                     self.process_command(UciCommand::Position(fen, mv_vec));
                 }
+                "go" => {
+                    let mut arg_vec: Vec<String> = vec![];
+                    for arg in &message[1..] {
+                        arg_vec.push((*arg).to_string());
+                    }
+                    self.process_command(UciCommand::Go(arg_vec));
+                }
                 "quit" => return ProgramStatus::Quit,
                 _ => (),
             }
@@ -88,6 +96,9 @@ impl UciHandler {
                 }
                 self.board = new_board;
                 self.board.print();
+            }
+            UciCommand::Go(arg_vec) => {
+
             }
         }
     }
