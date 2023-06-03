@@ -1,4 +1,7 @@
-use crate::board_representation::{Board, START_FEN};
+use crate::{
+    board_representation::{Board, START_FEN},
+    chess_move::Move,
+};
 
 #[derive(Debug, Copy, Clone)]
 pub enum ProgramStatus {
@@ -42,7 +45,10 @@ impl UciHandler {
                         START_FEN.to_owned()
                     } else {
                         i = 7;
-                        format!("{} {} {} {} {} {}", message[1], message[2], message[3], message[4], message[5], message[6])
+                        format!(
+                            "{} {} {} {} {} {}",
+                            message[1], message[2], message[3], message[4], message[5], message[6]
+                        )
                     };
 
                     let mut mv_vec: Vec<String> = vec![];
@@ -68,10 +74,17 @@ impl UciHandler {
             }
             UciCommand::IsReady => println!("readyok"),
             UciCommand::UciNewGame => unimplemented!(),
-            UciCommand::Position(fen, moves) => {
-                self.board = Board::from_fen(fen.as_str());
-                
-            },
+            UciCommand::Position(fen, move_vec) => {
+                let mut new_board = Board::from_fen(fen.as_str());
+                for mv_str in move_vec {
+                    let mv = Move::from_string(mv_str.as_str(), &self.board);
+                    let success = new_board.try_play_move(mv);
+                    if !success {
+                        return;
+                    }
+                }
+                self.board = new_board;
+            }
         }
     }
 }

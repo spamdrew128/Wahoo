@@ -1,4 +1,4 @@
-use crate::board_representation::{Square, Board, Piece};
+use crate::board_representation::{Board, Piece, Square};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Flag(u16);
@@ -95,7 +95,7 @@ impl Move {
         move_str
     }
 
-    pub fn from_string(mv_str: &str, board: &Board) -> Move {
+    pub fn from_string(mv_str: &str, board: &Board) -> Self {
         let mut chars = mv_str.chars();
         let from_str = format!("{}{}", chars.next().unwrap(), chars.next().unwrap());
         let to_str = format!("{}{}", chars.next().unwrap(), chars.next().unwrap());
@@ -106,15 +106,25 @@ impl Move {
         let piece = board.piece_on_sq(from);
         let captured_piece = board.piece_on_sq(to);
 
-        let promo_flags = [Flag::KNIGHT_PROMO, Flag::BISHOP_PROMO, Flag::ROOK_PROMO, Flag::QUEEN_PROMO];
-        let cap_promo_flags = [Flag::KNIGHT_PROMO, Flag::BISHOP_PROMO, Flag::ROOK_PROMO, Flag::QUEEN_PROMO];
+        let promo_flags = [
+            Flag::KNIGHT_PROMO,
+            Flag::BISHOP_PROMO,
+            Flag::ROOK_PROMO,
+            Flag::QUEEN_PROMO,
+        ];
+        let cap_promo_flags = [
+            Flag::KNIGHT_PROMO,
+            Flag::BISHOP_PROMO,
+            Flag::ROOK_PROMO,
+            Flag::QUEEN_PROMO,
+        ];
 
         if piece == Piece::KING {
             if to == from.right(2) {
-                return Move::new_ks_castle(from);
-            } 
+                return Self::new_ks_castle(from);
+            }
             if to == from.left(2) {
-                return Move::new_qs_castle(from);
+                return Self::new_qs_castle(from);
             }
         }
 
@@ -125,10 +135,26 @@ impl Move {
             } else {
                 cap_promo_flags[promo_type.as_index()]
             };
-            return Move::new(to, from, flag);
+            return Self::new(to, from, flag);
         }
 
-        Move::new(to, from, Flag::NONE)
+        if piece == Piece::PAWN {
+            if let Some(ep_sq) = board.ep_sq {
+                if ep_sq == to {
+                    return Self::new(to, from, Flag::EP);
+                }
+            }
+
+            if from == to.retreat(2, board.color_to_move) {
+                return Self::new(to, from, Flag::DOUBLE_PUSH);
+            }
+        }
+
+        if captured_piece == Piece::NONE {
+            Self::new(to, from, Flag::NONE)
+        } else {
+            Self::new(to, from, Flag::CAPTURE)
+        }
     }
 }
 

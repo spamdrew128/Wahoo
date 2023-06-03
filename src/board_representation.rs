@@ -85,7 +85,7 @@ impl Piece {
             'q' | 'Q' => Some(Self::QUEEN),
             'p' | 'P' => Some(Self::PAWN),
             'k' | 'K' => Some(Self::KING),
-            _ => return None,
+            _ => None,
         }
     }
 
