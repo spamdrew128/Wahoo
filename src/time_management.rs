@@ -12,7 +12,7 @@ pub struct TimeArgs {
     pub infinite_mode: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone,)]
 pub struct TimeManager {
     pub overhead: Milliseconds,
 }
@@ -27,7 +27,7 @@ impl TimeManager {
         }
     }
 
-    pub const fn search_time(&self, args: TimeArgs, color: Color) -> Milliseconds {
+    pub const fn search_time(self, args: TimeArgs, color: Color) -> Milliseconds {
         if args.infinite_mode {
             return Self::MAX_TIME;
         }

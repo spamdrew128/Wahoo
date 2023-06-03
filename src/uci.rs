@@ -98,7 +98,6 @@ impl UciHandler {
                     }
                 }
                 self.board = new_board;
-                self.board.print();
             }
             UciCommand::Go(arg_vec) => {
                 let mut time_args = TimeArgs::default();
