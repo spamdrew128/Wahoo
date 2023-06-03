@@ -60,6 +60,6 @@ impl SearchTimer {
     }
 
     pub fn timer_expired(&self) -> bool {
-        (self.timer.elapsed().as_millis() as Milliseconds) > self.search_time
+        (self.timer.elapsed().as_millis() as Milliseconds) > self.search_time // todo: make this more precise?
     }
 }

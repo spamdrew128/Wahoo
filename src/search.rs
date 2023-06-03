@@ -1,4 +1,4 @@
-use crate::{time_management::SearchTimer, movegen::MoveGenerator, board_representation::Board};
+use crate::{board_representation::Board, movegen::MoveGenerator, time_management::SearchTimer};
 
 pub type Nodes = u64;
 
@@ -18,7 +18,7 @@ impl Searcher {
 
     pub fn go(&mut self, board: &mut Board, search_timer: SearchTimer) {
         self.timer = search_timer;
-        let best_move = MoveGenerator::first_legal_move(board);
+        let best_move = MoveGenerator::first_legal_move(board).unwrap();
 
         // search stuff
 
@@ -28,6 +28,4 @@ impl Searcher {
     fn reset(&mut self) {
         self.node_count = 0;
     }
-
-
 }

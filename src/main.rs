@@ -7,6 +7,7 @@
 mod attacks;
 mod board_representation;
 mod chess_move;
+mod evaluation;
 mod magic;
 mod movegen;
 mod perft;
