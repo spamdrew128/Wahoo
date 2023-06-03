@@ -35,7 +35,7 @@ impl TimeManager {
         }
 
         if args.move_time > 0 {
-            return SearchTimer::new(args.move_time);
+            return SearchTimer::new(args.move_time - self.overhead);
         }
 
         match color {
