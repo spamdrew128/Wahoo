@@ -76,7 +76,7 @@ impl UciHandler {
                 println!("uci ok");
             }
             UciCommand::IsReady => println!("readyok"),
-            UciCommand::UciNewGame => unimplemented!(),
+            UciCommand::UciNewGame => (),
             UciCommand::Position(fen, move_vec) => {
                 let mut new_board = Board::from_fen(fen.as_str());
                 for mv_str in move_vec {
