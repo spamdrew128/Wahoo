@@ -4,6 +4,7 @@ use crate::{
 };
 
 pub type EvalScore = i16;
+pub const INF: EvalScore = i16::MAX;
 
 const PIECE_VALUES: [EvalScore; NUM_PIECES as usize] = [300, 320, 500, 900, 100, 0];
 
@@ -19,5 +20,9 @@ pub fn evaluate(board: &Board) -> EvalScore {
             score -= PIECE_VALUES[piece.as_index()];
         });
     }
-    score
+
+    match board.color_to_move {
+        Color::White => score,
+        Color::Black => -score,
+    }
 }
