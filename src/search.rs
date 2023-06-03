@@ -18,5 +18,13 @@ impl Searcher {
 
     pub fn go(&mut self, search_timer: SearchTimer) {
         self.timer = search_timer;
+
+        // search stuff
+
+        self.reset();
+    }
+
+    fn reset(&mut self) {
+        self.node_count = 0;
     }
 }
