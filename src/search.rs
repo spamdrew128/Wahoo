@@ -7,6 +7,8 @@ pub struct GoArgs {
     pub b_time: Milliseconds,
     pub w_inc: Milliseconds,
     pub b_inc: Milliseconds,
+    pub move_time: Milliseconds,
+    pub infinite_mode: bool,
 }
 
 pub struct Searcher {

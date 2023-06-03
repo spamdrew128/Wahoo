@@ -108,9 +108,12 @@ impl UciHandler {
                         "btime" => go_args.b_time = args_iterator.next().unwrap().parse::<Milliseconds>().unwrap(),
                         "winc" => go_args.w_inc = args_iterator.next().unwrap().parse::<Milliseconds>().unwrap(),
                         "binc" => go_args.b_inc = args_iterator.next().unwrap().parse::<Milliseconds>().unwrap(),
+                        "movetime" => go_args.move_time = args_iterator.next().unwrap().parse::<Milliseconds>().unwrap(),
+                        "infinite" => go_args.infinite_mode = true,
                         _ => (),
                     }
                 }
+                println!("{:?}", go_args);
             }
         }
     }
