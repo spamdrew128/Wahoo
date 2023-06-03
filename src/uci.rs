@@ -41,20 +41,23 @@ impl UciHandler {
                 "position" => {
                     let mut i = 1;
                     let fen = if message[i] == "startpos" {
-                        i += 1;
+                        i += 2;
                         START_FEN.to_owned()
                     } else {
-                        i = 7;
+                        i = 9;
                         format!(
                             "{} {} {} {} {} {}",
-                            message[1], message[2], message[3], message[4], message[5], message[6]
+                            message[2], message[3], message[4], message[5], message[6], message[7]
                         )
                     };
 
                     let mut mv_vec: Vec<String> = vec![];
-                    for mv_str in &message[i+1..] {
-                        mv_vec.push((*mv_str).to_string());
+                    if i < message.len() {
+                        for mv_str in &message[i..] {
+                            mv_vec.push((*mv_str).to_string());
+                        }
                     }
+
                     self.process_command(UciCommand::Position(fen, mv_vec));
                 }
                 "quit" => return ProgramStatus::Quit,
@@ -84,6 +87,7 @@ impl UciHandler {
                     }
                 }
                 self.board = new_board;
+                self.board.print();
             }
         }
     }
