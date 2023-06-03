@@ -109,12 +109,21 @@ impl Move {
         let promo_flags = [Flag::KNIGHT_PROMO, Flag::BISHOP_PROMO, Flag::ROOK_PROMO, Flag::QUEEN_PROMO];
         let cap_promo_flags = [Flag::KNIGHT_PROMO, Flag::BISHOP_PROMO, Flag::ROOK_PROMO, Flag::QUEEN_PROMO];
 
+        if piece == Piece::KING {
+            if to == from.right(2) {
+                return Move::new_ks_castle(from);
+            } 
+            if to == from.left(2) {
+                return Move::new_qs_castle(from);
+            }
+        }
+
         if board.promotable_pawns().overlaps(from.as_bitboard()) {
             let promo_type = Piece::from_char(promo.unwrap()).unwrap();
-            let flag = if captured_piece != Piece::NONE {
-                cap_promo_flags[promo_type.as_index()]
-            } else {
+            let flag = if captured_piece == Piece::NONE {
                 promo_flags[promo_type.as_index()]
+            } else {
+                cap_promo_flags[promo_type.as_index()]
             };
             return Move::new(to, from, flag);
         }
