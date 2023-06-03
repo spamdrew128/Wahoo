@@ -145,7 +145,6 @@ impl UciHandler {
                         _ => (),
                     }
                 }
-                println!("{:?}", time_args);
             }
         }
     }
