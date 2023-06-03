@@ -1,4 +1,4 @@
-use crate::board_representation::{Square, Board};
+use crate::board_representation::{Square, Board, Piece};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Flag(u16);
@@ -95,7 +95,7 @@ impl Move {
         move_str
     }
 
-    pub fn from_string(mv_str: &str, board: &Board) {
+    pub fn from_string(mv_str: &str, board: &Board) -> Move {
         let mut chars = mv_str.chars();
         let from_str = format!("{}{}", chars.next().unwrap(), chars.next().unwrap());
         let to_str = format!("{}{}", chars.next().unwrap(), chars.next().unwrap());
@@ -106,7 +106,20 @@ impl Move {
         let piece = board.piece_on_sq(from);
         let captured_piece = board.piece_on_sq(to);
 
-            
+        let promo_flags = [Flag::KNIGHT_PROMO, Flag::BISHOP_PROMO, Flag::ROOK_PROMO, Flag::QUEEN_PROMO];
+        let cap_promo_flags = [Flag::KNIGHT_PROMO, Flag::BISHOP_PROMO, Flag::ROOK_PROMO, Flag::QUEEN_PROMO];
+
+        if board.promotable_pawns().overlaps(from.as_bitboard()) {
+            let promo_type = Piece::from_char(promo.unwrap()).unwrap();
+            let flag = if captured_piece != Piece::NONE {
+                cap_promo_flags[promo_type.as_index()]
+            } else {
+                promo_flags[promo_type.as_index()]
+            };
+            return Move::new(to, from, flag);
+        }
+
+        Move::new(to, from, Flag::NONE)
     }
 }
 
