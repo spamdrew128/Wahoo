@@ -35,7 +35,7 @@ impl Searcher {
             best_move = self.best_move;
             report_search_info(score, depth);
 
-            if depth > 5 {
+            if depth > 3 {
                 break;
             }
 
