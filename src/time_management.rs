@@ -52,7 +52,7 @@ pub struct SearchTimer {
 }
 
 impl SearchTimer {
-    fn new(time_to_use: Milliseconds) -> Self {
+    pub fn new(time_to_use: Milliseconds) -> Self {
         Self {
             timer: Instant::now(),
             search_time: time_to_use,
@@ -63,4 +63,3 @@ impl SearchTimer {
         (self.timer.elapsed().as_millis() as Milliseconds) > self.search_time
     }
 }
-

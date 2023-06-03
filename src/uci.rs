@@ -1,6 +1,7 @@
 use crate::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
+    search::Searcher,
     time_management::{Milliseconds, TimeArgs, TimeManager},
 };
 
@@ -21,6 +22,7 @@ enum UciCommand {
 pub struct UciHandler {
     board: Board,
     time_manager: TimeManager,
+    searcher: Searcher,
 }
 
 impl UciHandler {
@@ -28,6 +30,7 @@ impl UciHandler {
         Self {
             board: Board::from_fen(START_FEN),
             time_manager: TimeManager::new(),
+            searcher: Searcher::new(),
         }
     }
 
@@ -144,6 +147,11 @@ impl UciHandler {
                         _ => (),
                     }
                 }
+
+                self.searcher.add_timer(
+                    self.time_manager
+                        .search_timer(time_args, self.board.color_to_move),
+                );
             }
         }
     }
