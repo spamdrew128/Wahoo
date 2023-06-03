@@ -29,7 +29,7 @@ impl TimeManager {
         }
     }
 
-    pub fn search_timer(self, args: TimeArgs, color: Color) -> SearchTimer {
+    pub fn construct_search_timer(self, args: TimeArgs, color: Color) -> SearchTimer {
         if args.infinite_mode {
             return SearchTimer::new(Self::MAX_TIME);
         }

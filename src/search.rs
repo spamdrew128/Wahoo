@@ -16,7 +16,7 @@ impl Searcher {
         }
     }
 
-    pub fn add_timer(&mut self, timer: SearchTimer) {
-        self.timer = timer;
+    pub fn go(&mut self, search_timer: SearchTimer) {
+        self.timer = search_timer;
     }
 }

@@ -148,10 +148,11 @@ impl UciHandler {
                     }
                 }
 
-                self.searcher.add_timer(
-                    self.time_manager
-                        .search_timer(time_args, self.board.color_to_move),
-                );
+                let search_timer = self
+                    .time_manager
+                    .construct_search_timer(time_args, self.board.color_to_move);
+
+                self.searcher.go(search_timer);
             }
         }
     }
