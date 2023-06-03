@@ -111,35 +111,35 @@ impl UciHandler {
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
-                                .unwrap()
+                                .unwrap();
                         }
                         "btime" => {
                             time_args.b_time = args_iterator
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
-                                .unwrap()
+                                .unwrap();
                         }
                         "winc" => {
                             time_args.w_inc = args_iterator
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
-                                .unwrap()
+                                .unwrap();
                         }
                         "binc" => {
                             time_args.b_inc = args_iterator
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
-                                .unwrap()
+                                .unwrap();
                         }
                         "movetime" => {
                             time_args.move_time = args_iterator
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
-                                .unwrap()
+                                .unwrap();
                         }
                         "infinite" => time_args.infinite_mode = true,
                         _ => (),
