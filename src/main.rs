@@ -10,9 +10,12 @@ mod chess_move;
 mod magic;
 mod movegen;
 mod perft;
+mod search;
+mod uci;
 mod util_macros;
 
 fn main() {
-    use crate::perft::speed_test;
-    speed_test();
+    let mut uci_handler = uci::UciHandler::new();
+    std::env::set_var("RUST_BACKTRACE", "1");
+    while matches!(uci_handler.execute_instructions(), uci::ProgramStatus::Run) {}
 }

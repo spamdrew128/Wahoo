@@ -239,5 +239,10 @@ pub fn speed_test() {
     perft(&board, 6, &mut count);
 
     let elapsed = timer.elapsed().as_secs_f64();
-    println!("{} Nodes in {} seconds\n{} MNPS", count, elapsed, (count as f64 / elapsed) / f64::from(1000000));
+    println!(
+        "{} Nodes in {} seconds\n{} MNPS",
+        count,
+        elapsed,
+        (count as f64 / elapsed) / f64::from(1000000)
+    );
 }
