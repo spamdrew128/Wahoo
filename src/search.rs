@@ -1,4 +1,10 @@
-use crate::{board_representation::Board, movegen::MoveGenerator, time_management::SearchTimer, chess_move::Move, evaluation::{EvalScore, INF, evaluate}};
+use crate::{
+    board_representation::Board,
+    chess_move::Move,
+    evaluation::{evaluate, EvalScore, INF},
+    movegen::MoveGenerator,
+    time_management::SearchTimer,
+};
 
 pub type Nodes = u64;
 pub type Depth = i8;
@@ -36,12 +42,12 @@ impl Searcher {
         loop {
             let score = self.negamax(board, depth);
 
-            if !self.out_of_time {
-                best_move = self.best_move;
-                report_search_info(score, self.node_count, depth);
-            } else {
+            if self.out_of_time {
                 break;
             }
+
+            best_move = self.best_move;
+            report_search_info(score, self.node_count, depth);
 
             depth += 1;
         }
@@ -84,7 +90,8 @@ impl Searcher {
 
             let score = -self.negamax(&next_board, depth - 1);
 
-            if score >= best_score { // todo: change this to > once we have mate scores
+            if score >= best_score {
+                // todo: change this to > once we have mate scores
                 best_score = score;
                 best_move = mv;
             }
