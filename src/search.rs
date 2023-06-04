@@ -10,9 +10,9 @@ pub struct Searcher {
     best_move: Move, // TODO: replace with PV Table
 }
 
-fn report_search_info(score: EvalScore, depth: Depth) {
+fn report_search_info(score: EvalScore, nodes: Nodes, depth: Depth) {
     print!("info ");
-    println!("score {score} depth {depth}");
+    println!("score cp {score} nodes {nodes} depth {depth}");
 }
 
 impl Searcher {
@@ -33,7 +33,7 @@ impl Searcher {
             let score = self.negamax(board, depth);
 
             best_move = self.best_move;
-            report_search_info(score, depth);
+            report_search_info(score, self.node_count, depth);
 
             if depth > 3 {
                 break;

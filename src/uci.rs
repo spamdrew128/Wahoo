@@ -87,7 +87,7 @@ impl UciHandler {
             UciCommand::Uci => {
                 println!("id name Wahoo v0.0.0");
                 println!("id author Andrew Hockman");
-                println!("uci ok");
+                println!("uciok");
             }
             UciCommand::IsReady => println!("readyok"),
             UciCommand::UciNewGame => (),
