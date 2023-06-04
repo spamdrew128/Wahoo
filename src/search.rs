@@ -38,6 +38,14 @@ impl Searcher {
         }
     }
 
+    pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
+        for depth in 1..depth {
+            self.negamax(board, depth);
+        }
+
+        self.node_count
+    }
+
     pub fn go(&mut self, board: &Board, search_timer: SearchTimer) {
         self.timer = search_timer;
         let stopwatch = std::time::Instant::now();
