@@ -39,8 +39,12 @@ impl TimeManager {
         }
 
         match color {
-            Color::White => SearchTimer::new((args.w_time / 25 + args.w_inc / 2).saturating_sub(self.overhead)),
-            Color::Black => SearchTimer::new((args.b_time / 25 + args.b_inc / 2).saturating_sub(self.overhead)),
+            Color::White => {
+                SearchTimer::new((args.w_time / 25 + args.w_inc / 2).saturating_sub(self.overhead))
+            }
+            Color::Black => {
+                SearchTimer::new((args.b_time / 25 + args.b_inc / 2).saturating_sub(self.overhead))
+            }
         }
     }
 }

@@ -4,8 +4,8 @@
 #![allow(clippy::module_name_repetitions)]
 #![allow(dead_code)] // remove later
 
-mod util_macros;
 mod attacks;
+mod bench;
 mod board_representation;
 mod chess_move;
 mod evaluation;
@@ -15,7 +15,7 @@ mod perft;
 mod search;
 mod time_management;
 mod uci;
-mod bench;
+mod util_macros;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();

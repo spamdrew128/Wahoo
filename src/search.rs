@@ -21,7 +21,7 @@ pub struct Searcher {
 
 fn report_search_info(score: EvalScore, nodes: Nodes, depth: Depth, stopwatch: Instant) {
     let elapsed = stopwatch.elapsed().as_millis();
-    let nps = (u128::from(nodes) * 1_000_000) / stopwatch.elapsed().as_micros() ;
+    let nps = (u128::from(nodes) * 1_000_000) / stopwatch.elapsed().as_micros();
     print!("info ");
     println!("score cp {score} nodes {nodes} time {elapsed} nps {nps} depth {depth}");
 }
@@ -41,8 +41,8 @@ impl Searcher {
     pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
         self.timer = SearchTimer::new(999999999); // just some big number idc
 
-        for depth in 1..depth {
-            self.negamax(board, depth);
+        for d in 1..depth {
+            self.negamax(board, d);
         }
 
         let nodes = self.node_count;

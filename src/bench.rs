@@ -1,4 +1,8 @@
-use crate::{perft::{PerftTest, test_postions}, board_representation::Board, search::Searcher};
+use crate::{
+    board_representation::Board,
+    perft::{test_postions, PerftTest},
+    search::Searcher,
+};
 
 pub fn bench() {
     let positions: Vec<PerftTest> = test_postions();
