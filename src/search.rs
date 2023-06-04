@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use crate::{
     board_representation::Board,
     chess_move::Move,
@@ -17,9 +19,11 @@ pub struct Searcher {
     best_move: Move, // TODO: replace with PV Table
 }
 
-fn report_search_info(score: EvalScore, nodes: Nodes, depth: Depth) {
+fn report_search_info(score: EvalScore, nodes: Nodes, depth: Depth, stopwatch: Instant) {
+    let elapsed = stopwatch.elapsed().as_millis();
+    let nps = (u128::from(nodes) * 1_000_000) / stopwatch.elapsed().as_micros() ;
     print!("info ");
-    println!("score cp {score} nodes {nodes} depth {depth}");
+    println!("score cp {score} nodes {nodes} time {elapsed} nps {nps} depth {depth}");
 }
 
 impl Searcher {
@@ -36,6 +40,7 @@ impl Searcher {
 
     pub fn go(&mut self, board: &Board, search_timer: SearchTimer) {
         self.timer = search_timer;
+        let stopwatch = std::time::Instant::now();
         let mut best_move = MoveGenerator::first_legal_move(board).unwrap();
         let mut depth: Depth = 1;
 
@@ -47,7 +52,7 @@ impl Searcher {
             }
 
             best_move = self.best_move;
-            report_search_info(score, self.node_count, depth);
+            report_search_info(score, self.node_count, depth, stopwatch);
 
             depth += 1;
         }
