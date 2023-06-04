@@ -1,6 +1,8 @@
 use crate::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
+    search::Searcher,
+    time_management::{Milliseconds, TimeArgs, TimeManager},
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -14,16 +16,21 @@ enum UciCommand {
     IsReady,
     UciNewGame,
     Position(String, Vec<String>),
+    Go(Vec<String>),
 }
 
 pub struct UciHandler {
     board: Board,
+    time_manager: TimeManager,
+    searcher: Searcher,
 }
 
 impl UciHandler {
     pub fn new() -> Self {
         Self {
             board: Board::from_fen(START_FEN),
+            time_manager: TimeManager::new(),
+            searcher: Searcher::new(),
         }
     }
 
@@ -60,6 +67,13 @@ impl UciHandler {
 
                     self.process_command(UciCommand::Position(fen, mv_vec));
                 }
+                "go" => {
+                    let mut arg_vec: Vec<String> = vec![];
+                    for arg in &message[1..] {
+                        arg_vec.push((*arg).to_string());
+                    }
+                    self.process_command(UciCommand::Go(arg_vec));
+                }
                 "quit" => return ProgramStatus::Quit,
                 _ => (),
             }
@@ -73,7 +87,7 @@ impl UciHandler {
             UciCommand::Uci => {
                 println!("id name Wahoo v0.0.0");
                 println!("id author Andrew Hockman");
-                println!("uci ok");
+                println!("uciok");
             }
             UciCommand::IsReady => println!("readyok"),
             UciCommand::UciNewGame => (),
@@ -87,7 +101,58 @@ impl UciHandler {
                     }
                 }
                 self.board = new_board;
-                self.board.print();
+            }
+            UciCommand::Go(arg_vec) => {
+                let mut time_args = TimeArgs::default();
+                let mut args_iterator = arg_vec.iter();
+
+                while let Some(arg) = args_iterator.next() {
+                    match arg.as_str() {
+                        "wtime" => {
+                            time_args.w_time = args_iterator
+                                .next()
+                                .unwrap()
+                                .parse::<Milliseconds>()
+                                .unwrap();
+                        }
+                        "btime" => {
+                            time_args.b_time = args_iterator
+                                .next()
+                                .unwrap()
+                                .parse::<Milliseconds>()
+                                .unwrap();
+                        }
+                        "winc" => {
+                            time_args.w_inc = args_iterator
+                                .next()
+                                .unwrap()
+                                .parse::<Milliseconds>()
+                                .unwrap();
+                        }
+                        "binc" => {
+                            time_args.b_inc = args_iterator
+                                .next()
+                                .unwrap()
+                                .parse::<Milliseconds>()
+                                .unwrap();
+                        }
+                        "movetime" => {
+                            time_args.move_time = args_iterator
+                                .next()
+                                .unwrap()
+                                .parse::<Milliseconds>()
+                                .unwrap();
+                        }
+                        "infinite" => time_args.infinite_mode = true,
+                        _ => (),
+                    }
+                }
+
+                let search_timer = self
+                    .time_manager
+                    .construct_search_timer(time_args, self.board.color_to_move);
+
+                self.searcher.go(&self.board, search_timer);
             }
         }
     }

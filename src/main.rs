@@ -7,10 +7,12 @@
 mod attacks;
 mod board_representation;
 mod chess_move;
+mod evaluation;
 mod magic;
 mod movegen;
 mod perft;
 mod search;
+mod time_management;
 mod uci;
 mod util_macros;
 

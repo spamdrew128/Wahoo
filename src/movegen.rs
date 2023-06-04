@@ -175,6 +175,18 @@ impl MoveGenerator {
 
         Some(self.next_move_in_stage())
     }
+
+    pub fn first_legal_move(board: &Board) -> Option<Move> {
+        let mut generator = Self::new();
+        while let Some(mv) = generator.next(board) {
+            let mut new_board = (*board).clone();
+            if new_board.try_play_move(mv) {
+                return Some(mv);
+            }
+        }
+
+        None
+    }
 }
 
 #[cfg(test)]

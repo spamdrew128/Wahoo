@@ -1,31 +1,84 @@
-pub type Milliseconds = i64;
-pub type Nodes = u64;
+use crate::{board_representation::Board, movegen::MoveGenerator, time_management::SearchTimer, chess_move::Move, evaluation::{EvalScore, INF, evaluate}};
 
-pub struct GoArgs {
-    w_time: Milliseconds,
-    b_time: Milliseconds,
-    w_inc: Milliseconds,
-    b_inc: Milliseconds,
+pub type Nodes = u64;
+pub type Depth = i8;
+
+#[derive(Debug)]
+pub struct Searcher {
+    timer: SearchTimer,
+    node_count: Nodes,
+    best_move: Move, // TODO: replace with PV Table
 }
 
-impl GoArgs {
-    pub const fn new(
-        w_time: Milliseconds,
-        b_time: Milliseconds,
-        w_inc: Milliseconds,
-        b_inc: Milliseconds,
-    ) -> Self {
+fn report_search_info(score: EvalScore, nodes: Nodes, depth: Depth) {
+    print!("info ");
+    println!("score cp {score} nodes {nodes} depth {depth}");
+}
+
+impl Searcher {
+    pub fn new() -> Self {
         Self {
-            w_time,
-            b_time,
-            w_inc,
-            b_inc,
+            timer: SearchTimer::new(0),
+            node_count: 0,
+            best_move: Move::nullmove(),
         }
     }
-}
 
-pub struct Searcher {
-    pub overhead: Milliseconds,
+    pub fn go(&mut self, board: &Board, search_timer: SearchTimer) {
+        self.timer = search_timer;
+        let mut best_move = MoveGenerator::first_legal_move(board).unwrap();
+        let mut depth: Depth = 1;
 
-    node_count: Nodes,
+        loop {
+            let score = self.negamax(board, depth);
+
+            best_move = self.best_move;
+            report_search_info(score, self.node_count, depth);
+
+            if depth > 3 {
+                break;
+            }
+
+            depth += 1;
+        }
+
+        assert!(best_move.to() != best_move.from(), "INVALID MOVE");
+        println!("bestmove {}", best_move.as_string());
+
+        self.reset();
+    }
+
+    fn reset(&mut self) {
+        self.node_count = 0;
+    }
+
+    fn negamax(&mut self, board: &Board, depth: Depth) -> EvalScore {
+        if depth == 0 {
+            return evaluate(board);
+        }
+
+        self.node_count += 1;
+
+        let mut generator = MoveGenerator::new();
+
+        let mut best_score = -INF;
+        let mut best_move = Move::nullmove();
+        while let Some(mv) = generator.next(board) {
+            let mut next_board = (*board).clone();
+            let is_legal = next_board.try_play_move(mv);
+            if !is_legal {
+                continue;
+            }
+
+            let score = -self.negamax(&next_board, depth - 1);
+
+            if score >= best_score { // todo: change this to > once we have mate scores
+                best_score = score;
+                best_move = mv;
+            }
+        }
+
+        self.best_move = best_move;
+        best_score
+    }
 }
