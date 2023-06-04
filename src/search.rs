@@ -42,6 +42,7 @@ impl Searcher {
             depth += 1;
         }
 
+        assert!(best_move.to() != best_move.from(), "INVALID MOVE");
         println!("bestmove {}", best_move.as_string());
 
         self.reset();
@@ -71,7 +72,7 @@ impl Searcher {
 
             let score = -self.negamax(&next_board, depth - 1);
 
-            if score > best_score {
+            if score >= best_score { // todo: change this to > once we have mate scores
                 best_score = score;
                 best_move = mv;
             }

@@ -4,7 +4,7 @@ use crate::{
 };
 
 pub type EvalScore = i16;
-pub const INF: EvalScore = i16::MAX;
+pub const INF: EvalScore = i16::MAX - 10;
 
 const PIECE_VALUES: [EvalScore; NUM_PIECES as usize] = [300, 320, 500, 900, 100, 0];
 
