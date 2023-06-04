@@ -36,10 +36,10 @@ impl Searcher {
         loop {
             let score = self.negamax(board, depth);
 
-            best_move = self.best_move;
-            report_search_info(score, self.node_count, depth);
-
-            if depth > 3 {
+            if !self.out_of_time {
+                best_move = self.best_move;
+                report_search_info(score, self.node_count, depth);
+            } else {
                 break;
             }
 
