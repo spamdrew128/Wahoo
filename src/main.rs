@@ -4,6 +4,7 @@
 #![allow(clippy::module_name_repetitions)]
 #![allow(dead_code)] // remove later
 
+mod util_macros;
 mod attacks;
 mod board_representation;
 mod chess_move;
@@ -14,10 +15,17 @@ mod perft;
 mod search;
 mod time_management;
 mod uci;
-mod util_macros;
+mod bench;
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    for arg in args {
+        if arg == "bench" {
+            bench::bench();
+            return;
+        }
+    }
+
     let mut uci_handler = uci::UciHandler::new();
-    std::env::set_var("RUST_BACKTRACE", "1");
     while matches!(uci_handler.execute_instructions(), uci::ProgramStatus::Run) {}
 }

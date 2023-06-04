@@ -2,7 +2,7 @@ use crate::board_representation::{Board, START_FEN};
 use crate::movegen::MoveGenerator;
 
 pub struct PerftTest {
-    fen: &'static str,
+    pub fen: &'static str,
     expected: Vec<u64>,
 }
 

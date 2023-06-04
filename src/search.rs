@@ -39,11 +39,15 @@ impl Searcher {
     }
 
     pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
+        self.timer = SearchTimer::new(999999999); // just some big number idc
+
         for depth in 1..depth {
             self.negamax(board, depth);
         }
 
-        self.node_count
+        let nodes = self.node_count;
+        self.reset();
+        nodes
     }
 
     pub fn go(&mut self, board: &Board, search_timer: SearchTimer) {
