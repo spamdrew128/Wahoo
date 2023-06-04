@@ -6,6 +6,7 @@ pub type Depth = i8;
 #[derive(Debug)]
 pub struct Searcher {
     timer: SearchTimer,
+    out_of_time: bool,
     node_count: Nodes,
     best_move: Move, // TODO: replace with PV Table
 }
@@ -16,9 +17,12 @@ fn report_search_info(score: EvalScore, nodes: Nodes, depth: Depth) {
 }
 
 impl Searcher {
+    const TIMER_CHECK_FREQ: u64 = 1024;
+
     pub fn new() -> Self {
         Self {
             timer: SearchTimer::new(0),
+            out_of_time: false,
             node_count: 0,
             best_move: Move::nullmove(),
         }
@@ -49,6 +53,7 @@ impl Searcher {
     }
 
     fn reset(&mut self) {
+        self.out_of_time = false;
         self.node_count = 0;
     }
 
@@ -57,7 +62,10 @@ impl Searcher {
             return evaluate(board);
         }
 
-        self.node_count += 1;
+        if (self.node_count % Self::TIMER_CHECK_FREQ == 0) && self.timer.is_expired() {
+            self.out_of_time = true;
+            return 0;
+        }
 
         let mut generator = MoveGenerator::new();
 
@@ -69,6 +77,10 @@ impl Searcher {
             if !is_legal {
                 continue;
             }
+            if self.out_of_time {
+                return 0;
+            }
+            self.node_count += 1;
 
             let score = -self.negamax(&next_board, depth - 1);
 
