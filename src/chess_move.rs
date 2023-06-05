@@ -113,10 +113,10 @@ impl Move {
             Flag::QUEEN_PROMO,
         ];
         let cap_promo_flags = [
-            Flag::KNIGHT_PROMO,
-            Flag::BISHOP_PROMO,
-            Flag::ROOK_PROMO,
-            Flag::QUEEN_PROMO,
+            Flag::KNIGHT_CAPTURE_PROMO,
+            Flag::BISHOP_CAPTURE_PROMO,
+            Flag::ROOK_CAPTURE_PROMO,
+            Flag::QUEEN_CAPTURE_PROMO,
         ];
 
         if piece == Piece::KING {
