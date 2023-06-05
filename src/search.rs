@@ -80,7 +80,13 @@ impl Searcher {
         self.node_count = 0;
     }
 
-    fn negamax(&mut self, board: &Board, depth: Depth, mut alpha: EvalScore, mut beta: EvalScore) -> EvalScore {
+    fn negamax(
+        &mut self,
+        board: &Board,
+        depth: Depth,
+        mut alpha: EvalScore,
+        beta: EvalScore,
+    ) -> EvalScore {
         if depth == 0 {
             return evaluate(board);
         }
@@ -112,10 +118,10 @@ impl Searcher {
                 best_score = score;
                 best_move = mv;
 
-                if score >= beta  {
+                if score >= beta {
                     break;
                 }
-    
+
                 if score > alpha {
                     alpha = score;
                 }
