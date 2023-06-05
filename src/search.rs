@@ -42,7 +42,7 @@ impl Searcher {
         self.timer = SearchTimer::new(999999999); // just some big number idc
 
         for d in 1..depth {
-            self.negamax(board, d);
+            self.negamax(board, d, -INF, INF);
         }
 
         let nodes = self.node_count;
@@ -57,7 +57,7 @@ impl Searcher {
         let mut depth: Depth = 1;
 
         loop {
-            let score = self.negamax(board, depth);
+            let score = self.negamax(board, depth, -INF, INF);
 
             if self.out_of_time {
                 break;
@@ -80,7 +80,7 @@ impl Searcher {
         self.node_count = 0;
     }
 
-    fn negamax(&mut self, board: &Board, depth: Depth) -> EvalScore {
+    fn negamax(&mut self, board: &Board, depth: Depth, mut alpha: EvalScore, mut beta: EvalScore) -> EvalScore {
         if depth == 0 {
             return evaluate(board);
         }
@@ -105,12 +105,20 @@ impl Searcher {
             }
             self.node_count += 1;
 
-            let score = -self.negamax(&next_board, depth - 1);
+            let score = -self.negamax(&next_board, depth - 1, -beta, -alpha);
 
             if score >= best_score {
                 // todo: change this to > once we have mate scores
                 best_score = score;
                 best_move = mv;
+
+                if score >= beta  {
+                    break;
+                }
+    
+                if score > alpha {
+                    alpha = score;
+                }
             }
         }
 
