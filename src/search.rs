@@ -10,6 +10,7 @@ use crate::{
 
 pub type Nodes = u64;
 pub type Depth = i8;
+pub type Ply = u8;
 
 #[derive(Debug)]
 pub struct Searcher {
@@ -42,7 +43,7 @@ impl Searcher {
         self.timer = SearchTimer::new(999999999); // just some big number idc
 
         for d in 1..depth {
-            self.negamax(board, d);
+            self.negamax(board, d, 0, -INF, INF);
         }
 
         let nodes = self.node_count;
@@ -57,7 +58,7 @@ impl Searcher {
         let mut depth: Depth = 1;
 
         loop {
-            let score = self.negamax(board, depth);
+            let score = self.negamax(board, depth, 0, -INF, INF);
 
             if self.out_of_time {
                 break;
@@ -80,7 +81,14 @@ impl Searcher {
         self.node_count = 0;
     }
 
-    fn negamax(&mut self, board: &Board, depth: Depth) -> EvalScore {
+    fn negamax(
+        &mut self,
+        board: &Board,
+        depth: Depth,
+        ply: Ply,
+        mut alpha: EvalScore,
+        beta: EvalScore,
+    ) -> EvalScore {
         if depth == 0 {
             return evaluate(board);
         }
@@ -92,7 +100,7 @@ impl Searcher {
 
         let mut generator = MoveGenerator::new();
 
-        let mut best_score = -INF;
+        let mut best_score = -INF + i16::from(ply);
         let mut best_move = Move::nullmove();
         while let Some(mv) = generator.next(board) {
             let mut next_board = (*board).clone();
@@ -105,12 +113,19 @@ impl Searcher {
             }
             self.node_count += 1;
 
-            let score = -self.negamax(&next_board, depth - 1);
+            let score = -self.negamax(&next_board, depth - 1, ply + 1, -beta, -alpha);
 
-            if score >= best_score {
-                // todo: change this to > once we have mate scores
+            if score > best_score {
                 best_score = score;
                 best_move = mv;
+
+                if score >= beta {
+                    break;
+                }
+
+                if score > alpha {
+                    alpha = score;
+                }
             }
         }
 

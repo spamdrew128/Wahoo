@@ -13,7 +13,7 @@ pub fn bench() {
 
     for pos in positions {
         let board = Board::from_fen(pos.fen);
-        nodes += searcher.bench(&board, 6);
+        nodes += searcher.bench(&board, 10);
     }
 
     let nps = (u128::from(nodes) * 1_000_000) / stopwatch.elapsed().as_micros();

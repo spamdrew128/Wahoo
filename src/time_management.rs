@@ -59,7 +59,7 @@ impl SearchTimer {
     pub fn new(time_to_use: Milliseconds) -> Self {
         Self {
             timer: Instant::now(),
-            search_time: time_to_use * 1000,
+            search_time: time_to_use.saturating_mul(1000),
         }
     }
 
