@@ -2,7 +2,7 @@ use crate::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
     search::Searcher,
-    time_management::{TimeArgs, TimeManager, Milliseconds},
+    time_management::{Milliseconds, TimeArgs, TimeManager},
 };
 
 #[derive(Debug, Copy, Clone)]

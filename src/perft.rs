@@ -1,8 +1,8 @@
 use crate::board_representation::{Board, START_FEN};
 use crate::movegen::MoveGenerator;
 
-struct PerftTest {
-    fen: &'static str,
+pub struct PerftTest {
+    pub fen: &'static str,
     expected: Vec<u64>,
 }
 
@@ -14,7 +14,7 @@ impl PerftTest {
 
 #[allow(clippy::too_many_lines)]
 #[rustfmt::skip]
-fn test_postions() -> Vec<PerftTest> {
+pub fn test_postions() -> Vec<PerftTest> {
     vec![
     PerftTest::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", vec![20, 400, 8902, 197281, 4865609, 119060324]),
     PerftTest::new("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", vec![48, 2039, 97862, 4085603, 193690690]),
