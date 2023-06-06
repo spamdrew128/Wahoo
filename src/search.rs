@@ -30,9 +30,9 @@ fn report_search_info(score: EvalScore, nodes: Nodes, depth: Depth, stopwatch: I
 impl Searcher {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
-    pub fn new() -> Self {
+    pub const fn new(timer: SearchTimer) -> Self {
         Self {
-            timer: SearchTimer::new(0),
+            timer,
             out_of_time: false,
             node_count: 0,
             best_move: Move::nullmove(),
@@ -51,8 +51,7 @@ impl Searcher {
         nodes
     }
 
-    pub fn go(&mut self, board: &Board, search_timer: SearchTimer) {
-        self.timer = search_timer;
+    pub fn go(&mut self, board: &Board) {
         let stopwatch = std::time::Instant::now();
         let mut best_move = MoveGenerator::first_legal_move(board).unwrap();
         let mut depth: Depth = 1;
