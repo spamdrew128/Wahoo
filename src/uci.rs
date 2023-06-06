@@ -5,6 +5,8 @@ use crate::{
     time_management::{Milliseconds, TimeArgs, TimeManager},
 };
 
+use std::thread;
+
 #[derive(Debug, Copy, Clone)]
 pub enum ProgramStatus {
     Run,
@@ -149,9 +151,14 @@ impl UciHandler {
                 let search_timer = self
                     .time_manager
                     .construct_search_timer(time_args, self.board.color_to_move);
+
                 let mut searcher = Searcher::new(search_timer);
 
-                searcher.go(&self.board);
+                let board = self.board.clone();
+
+                thread::spawn(move || {
+                    searcher.go(&board);
+                });
             }
         }
     }
