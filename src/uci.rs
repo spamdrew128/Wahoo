@@ -22,7 +22,6 @@ enum UciCommand {
 pub struct UciHandler {
     board: Board,
     time_manager: TimeManager,
-    searcher: Searcher,
 }
 
 impl UciHandler {
@@ -30,7 +29,6 @@ impl UciHandler {
         Self {
             board: Board::from_fen(START_FEN),
             time_manager: TimeManager::new(),
-            searcher: Searcher::new(),
         }
     }
 
@@ -151,8 +149,9 @@ impl UciHandler {
                 let search_timer = self
                     .time_manager
                     .construct_search_timer(time_args, self.board.color_to_move);
+                let mut searcher = Searcher::new(search_timer);
 
-                self.searcher.go(&self.board, search_timer);
+                searcher.go(&self.board);
             }
         }
     }

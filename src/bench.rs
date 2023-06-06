@@ -2,11 +2,12 @@ use crate::{
     board_representation::Board,
     perft::{test_postions, PerftTest},
     search::Searcher,
+    time_management::SearchTimer,
 };
 
 pub fn bench() {
     let positions: Vec<PerftTest> = test_postions();
-    let mut searcher = Searcher::new();
+    let mut searcher = Searcher::new(SearchTimer::new(0));
 
     let stopwatch = std::time::Instant::now();
     let mut nodes = 0;
