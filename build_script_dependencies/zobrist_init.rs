@@ -25,10 +25,11 @@ pub fn table_init_string() -> String {
         for _ in 0..NUM_PIECES {
             init_keys!(rng, table, NUM_SQUARES);
         }
-        table.push_str("],");
+        table.push_str("],\n");
     }
-    table.push_str("],");
+    table.push_str("],\n");
 
+    table.push_str("castling: ");
     init_keys!(rng, table, NUM_CASTLING_CONFIGURATIONS);
 
     table.push_str("ep_file: ");
@@ -36,7 +37,7 @@ pub fn table_init_string() -> String {
 
     table.push_str(format!("side_to_move: [0, {:#x}],\n", rng.rand_u64()).as_str());
 
-    table.push_str("}\n");
+    table.push_str("};\n");
 
     table
 }
