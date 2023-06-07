@@ -15,7 +15,7 @@ fn table_init_string() -> String {
         for _ in 0..NUM_PIECES {
             table.push_str("[\n");
             for _ in 0..NUM_SQUARES {
-                table.push_str(format!("{}", rng.rand_u64()).as_str());
+                table.push_str(format!("{}, ", rng.rand_u64()).as_str());
             }
             table.push_str("],");
         }
@@ -25,17 +25,17 @@ fn table_init_string() -> String {
 
     table.push_str("castling: [\n");
     for _ in 0..NUM_CASTLING_CONFIGURATIONS {
-        table.push_str(format!("{}", rng.rand_u64()).as_str());
+        table.push_str(format!("{}, ", rng.rand_u64()).as_str());
     }
     table.push_str("],");
 
     table.push_str("ep_file: [\n");
     for _ in 0..NUM_FILES {
-        table.push_str(format!("{}", rng.rand_u64()).as_str());
+        table.push_str(format!("{}, ", rng.rand_u64()).as_str());
     }
     table.push_str("],");
 
-    table.push_str(format!("side_to_move: [0 {}],\n", rng.rand_u64()).as_str());
+    table.push_str(format!("side_to_move: [0, {}],\n", rng.rand_u64()).as_str());
     table.push_str("}\n");
 
     table
