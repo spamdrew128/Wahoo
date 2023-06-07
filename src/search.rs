@@ -47,7 +47,6 @@ impl Searcher {
         }
 
         let nodes = self.node_count;
-        self.reset();
         nodes
     }
 
@@ -71,13 +70,6 @@ impl Searcher {
 
         assert!(best_move.to() != best_move.from(), "INVALID MOVE");
         println!("bestmove {}", best_move.as_string());
-
-        self.reset();
-    }
-
-    fn reset(&mut self) {
-        self.out_of_time = false;
-        self.node_count = 0;
     }
 
     fn negamax(
