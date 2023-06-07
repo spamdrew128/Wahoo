@@ -133,7 +133,7 @@ impl Searcher {
         if moves_played == 0 {
             // either checkmate or stalemate
             if board.king_sq().is_attacked(board) {
-                return EVAL_MAX + i16::from(ply);
+                return -EVAL_MAX + i16::from(ply);
             }
             return 0;
         }
