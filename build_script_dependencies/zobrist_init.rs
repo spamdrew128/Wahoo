@@ -6,11 +6,11 @@ const NUM_FILES: usize = 2;
 
 macro_rules! init_keys {
     ($rng:ident, $table:ident, $count:ident) => {{
-        $table.push_str(format!("["));
+        $table.push_str("[");
         for _ in 0..$count {
-            $table.push_str(format!("{}, ", rng.rand_u64()).as_str());
+            $table.push_str(format!("{:#x}, ", $rng.rand_u64()).as_str());
         }
-        $table.push_str(format!("]"));
+        $table.push_str("],\n");
     }};
 }
 
@@ -23,29 +23,19 @@ pub fn table_init_string() -> String {
     for _ in 0..NUM_COLORS {
         table.push_str("[\n");
         for _ in 0..NUM_PIECES {
-            table.push_str("[\n");
-            for _ in 0..NUM_SQUARES {
-                table.push_str(format!("{}, ", rng.rand_u64()).as_str());
-            }
-            table.push_str("],");
+            init_keys!(rng, table, NUM_SQUARES);
         }
         table.push_str("],");
     }
     table.push_str("],");
 
-    table.push_str("castling: [\n");
-    for _ in 0..NUM_CASTLING_CONFIGURATIONS {
-        table.push_str(format!("{}, ", rng.rand_u64()).as_str());
-    }
-    table.push_str("],");
+    init_keys!(rng, table, NUM_CASTLING_CONFIGURATIONS);
 
-    table.push_str("ep_file: [\n");
-    for _ in 0..NUM_FILES {
-        table.push_str(format!("{}, ", rng.rand_u64()).as_str());
-    }
-    table.push_str("],");
+    table.push_str("ep_file: ");
+    init_keys!(rng, table, NUM_FILES);
 
-    table.push_str(format!("side_to_move: [0, {}],\n", rng.rand_u64()).as_str());
+    table.push_str(format!("side_to_move: [0, {:#x}],\n", rng.rand_u64()).as_str());
+
     table.push_str("}\n");
 
     table
