@@ -46,8 +46,7 @@ impl Searcher {
             self.negamax(board, d, 0, -INF, INF);
         }
 
-        let nodes = self.node_count;
-        nodes
+        self.node_count
     }
 
     pub fn go(&mut self, board: &Board) {
