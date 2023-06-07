@@ -11,7 +11,7 @@ impl Pcg32State {
     fn next(&mut self) -> u32 {
         let oldstate: u64 = self.state;
         // Advance internal state
-        self.state = oldstate * 6364136223846793005 + (self.inc | 1);
+        self.state = oldstate.wrapping_mul(6364136223846793005).wrapping_add(self.inc | 1);
         // Calculate output function (XSH RR), uses old state for max ILP
         let xorshifted: u32 = (((oldstate >> 18) ^ oldstate) >> 27) as u32;
         let rot: u32 = (oldstate >> 59) as u32;

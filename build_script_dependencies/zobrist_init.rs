@@ -4,7 +4,17 @@ use crate::build_script_dependencies::dummy_types::{NUM_SQUARES, NUM_PIECES, NUM
 const NUM_CASTLING_CONFIGURATIONS: usize = 16;
 const NUM_FILES: usize = 2;
 
-fn table_init_string() -> String {
+macro_rules! init_keys {
+    ($rng:ident, $table:ident, $count:ident) => {{
+        $table.push_str(format!("["));
+        for _ in 0..$count {
+            $table.push_str(format!("{}, ", rng.rand_u64()).as_str());
+        }
+        $table.push_str(format!("]"));
+    }};
+}
+
+pub fn table_init_string() -> String {
     let mut rng = Rng::new();
     let mut table = String::new();
     table.push_str("ZobristKeys {\n");
