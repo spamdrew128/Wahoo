@@ -12,11 +12,11 @@ mod evaluation;
 mod magic;
 mod movegen;
 mod perft;
-mod rng;
 mod search;
 mod time_management;
 mod uci;
 mod util_macros;
+mod zobrist;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();

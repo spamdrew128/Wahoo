@@ -20,7 +20,7 @@ impl Pcg32State {
 }
 
 #[derive(Debug)]
-struct Rng {
+pub struct Rng {
     state: Pcg32State,
 }
 
