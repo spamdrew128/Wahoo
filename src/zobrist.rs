@@ -1,4 +1,4 @@
-use crate::board_representation::{NUM_SQUARES, NUM_PIECES, NUM_COLORS};
+use crate::board_representation::{NUM_COLORS, NUM_PIECES, NUM_SQUARES};
 
 const NUM_CASTLING_CONFIGURATIONS: usize = 16;
 const NUM_FILES: usize = 2;

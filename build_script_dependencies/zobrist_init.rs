@@ -1,5 +1,5 @@
+use crate::build_script_dependencies::dummy_types::{NUM_COLORS, NUM_PIECES, NUM_SQUARES};
 use crate::build_script_dependencies::rng::Rng;
-use crate::build_script_dependencies::dummy_types::{NUM_SQUARES, NUM_PIECES, NUM_COLORS};
 
 const NUM_CASTLING_CONFIGURATIONS: usize = 16;
 const NUM_FILES: usize = 2;
@@ -14,7 +14,7 @@ macro_rules! init_keys {
     }};
 }
 
-pub fn table_init_string() -> String {
+pub fn zobrist_keys_init_string() -> String {
     let mut rng = Rng::new();
     let mut table = String::new();
     table.push_str("ZobristKeys {\n");
