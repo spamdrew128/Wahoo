@@ -30,13 +30,13 @@ impl Rng {
         inc: 0xda3e39cb94b95bdb,
     };
 
-    const fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             state: Self::DEFAULT_SEED,
         }
     }
 
-    fn rand_u64(&mut self) -> u64 {
+    pub fn rand_u64(&mut self) -> u64 {
         (u64::from(self.state.next()) << 32) | u64::from(self.state.next())
     }
 }
