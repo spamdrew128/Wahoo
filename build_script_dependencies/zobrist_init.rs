@@ -37,7 +37,7 @@ pub fn zobrist_keys_init_string() -> String {
 
     table.push_str(format!("side_to_move: [0, {:#x}],\n", rng.rand_u64()).as_str());
 
-    table.push_str("};\n");
+    table.push_str("}\n");
 
     table
 }
