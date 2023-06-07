@@ -19,6 +19,8 @@ pub enum Color {
 }
 
 impl Color {
+    pub const LIST: [Self; NUM_COLORS as usize] = [Self::White, Self::Black];
+
     pub const fn flip(self) -> Self {
         match self {
             Self::White => Self::Black,
@@ -416,7 +418,7 @@ impl BitXorAssign for Bitboard {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-struct CastleRights(u8);
+pub struct CastleRights(u8);
 
 impl CastleRights {
     const W_KINGSIDE_MASK: u8 = 0b0001;
@@ -469,7 +471,7 @@ impl CastleRights {
         }
     }
 
-    const fn can_ks_castle(self, board: &Board) -> bool {
+    pub const fn can_ks_castle(self, board: &Board) -> bool {
         let color = board.color_to_move;
         let thru_sq = Self::KS_THRU_SQUARE[color.as_index()];
         let occ_mask = Self::KS_OCC_MASK[color.as_index()];
@@ -479,7 +481,7 @@ impl CastleRights {
                 || board.king_sq().is_attacked(board))
     }
 
-    const fn can_qs_castle(self, board: &Board) -> bool {
+    pub const fn can_qs_castle(self, board: &Board) -> bool {
         let color = board.color_to_move;
         let thru_sq_1 = Self::QS_THRU_SQUARES[color.as_index()][0];
         let thru_sq_2 = Self::QS_THRU_SQUARES[color.as_index()][1];
@@ -489,6 +491,10 @@ impl CastleRights {
                 || thru_sq_1.is_attacked(board)
                 || thru_sq_2.is_attacked(board)
                 || board.king_sq().is_attacked(board))
+    }
+
+    pub const fn as_index(self) -> usize {
+        self.0 as usize
     }
 
     fn update(&mut self, mv: Move) {
@@ -502,7 +508,7 @@ pub struct Board {
     pub pieces: [Bitboard; NUM_PIECES as usize],
     pub color_to_move: Color,
     pub ep_sq: Option<Square>,
-    castle_rights: CastleRights,
+    pub castle_rights: CastleRights,
 }
 
 const fn fen_index_as_bitboard(i: u8) -> Bitboard {
@@ -721,14 +727,6 @@ impl Board {
             }
         }
         Piece::NONE
-    }
-
-    pub const fn ks_castle_availible(&self) -> bool {
-        self.castle_rights.can_ks_castle(self)
-    }
-
-    pub const fn qs_castle_availible(&self) -> bool {
-        self.castle_rights.can_qs_castle(self)
     }
 
     fn toggle(&mut self, mask: Bitboard, piece: Piece, color: Color) {
