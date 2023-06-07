@@ -28,6 +28,6 @@ release:
 	cargo rustc --release -- -C target-cpu=x86-64-v4 --emit link=$(V4NAME)
 
 clean:
-	$(RM_COMMAND) $(NAME) $(V1NAME) $(V2NAME) $(V3NAME) $(V4NAME) 
 	cargo clean
+	$(RM_COMMAND) $(NAME) $(V1NAME) $(V2NAME) $(V3NAME) $(V4NAME) 
 	

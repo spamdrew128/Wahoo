@@ -3,7 +3,7 @@ use std::time::Instant;
 use crate::{
     board_representation::Board,
     chess_move::Move,
-    evaluation::{evaluate, EvalScore, INF},
+    evaluation::{evaluate, EvalScore, EVAL_MAX, INF},
     movegen::MoveGenerator,
     time_management::SearchTimer,
 };
@@ -99,8 +99,9 @@ impl Searcher {
 
         let mut generator = MoveGenerator::new();
 
-        let mut best_score = -INF + i16::from(ply);
+        let mut best_score = -INF;
         let mut best_move = Move::nullmove();
+        let mut moves_played = 0;
         while let Some(mv) = generator.next(board) {
             let mut next_board = (*board).clone();
             let is_legal = next_board.try_play_move(mv);
@@ -111,6 +112,7 @@ impl Searcher {
                 return 0;
             }
             self.node_count += 1;
+            moves_played += 1;
 
             let score = -self.negamax(&next_board, depth - 1, ply + 1, -beta, -alpha);
 
@@ -126,6 +128,14 @@ impl Searcher {
                     alpha = score;
                 }
             }
+        }
+
+        if moves_played == 0 {
+            // either checkmate or stalemate
+            if board.king_sq().is_attacked(board) {
+                return -EVAL_MAX + i16::from(ply);
+            }
+            return 0;
         }
 
         self.best_move = best_move;
