@@ -824,6 +824,12 @@ impl Board {
 
         draw_detector.add_zobrist_hash(hash_position(self));
 
+        if mv.is_capture() {
+            draw_detector.reset_halfmoves();
+        } else {
+            draw_detector.increment_halfmoves();
+        };
+
         true
     }
 
