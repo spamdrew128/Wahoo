@@ -13,13 +13,13 @@ pub type Nodes = u64;
 pub type Depth = i8;
 pub type Ply = u8;
 const MAX_DEPTH: Depth = i8::MAX;
-const MAX_PLY: Ply = MAX_DEPTH as u8;
+pub const MAX_PLY: Ply = MAX_DEPTH as u8;
 
 #[derive(Debug)]
 pub struct Searcher {
     timer: SearchTimer,
     zobrist_stack: ZobristStack,
-    
+
     depth_limit: Option<Depth>,
     out_of_time: bool,
     node_count: Nodes,
@@ -36,7 +36,11 @@ fn report_search_info(score: EvalScore, nodes: Nodes, depth: Depth, stopwatch: I
 impl Searcher {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
-    pub const fn new(timer: SearchTimer, zobrist_stack: ZobristStack, depth_limit: Option<Depth>) -> Self {
+    pub const fn new(
+        timer: SearchTimer,
+        zobrist_stack: ZobristStack,
+        depth_limit: Option<Depth>,
+    ) -> Self {
         Self {
             timer,
             zobrist_stack,
