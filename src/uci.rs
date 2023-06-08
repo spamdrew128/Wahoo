@@ -1,9 +1,10 @@
 use crate::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
+    draw_detection::DrawDetector,
     search::Searcher,
     time_management::{Milliseconds, TimeArgs, TimeManager},
-    zobrist::{hash_position, ZobristHash},
+    zobrist::hash_position,
 };
 
 use std::thread;
@@ -24,15 +25,17 @@ enum UciCommand {
 
 pub struct UciHandler {
     board: Board,
-    hash_vec: Vec<ZobristHash>,
+    draw_detector: DrawDetector,
     time_manager: TimeManager,
 }
 
 impl UciHandler {
     pub fn new() -> Self {
+        let board = Board::from_fen(START_FEN);
+        let draw_detector = DrawDetector::new(&board);
         Self {
-            board: Board::from_fen(START_FEN),
-            hash_vec: vec![],
+            board,
+            draw_detector,
             time_manager: TimeManager::new(),
         }
     }
@@ -96,7 +99,7 @@ impl UciHandler {
             UciCommand::UciNewGame => (),
             UciCommand::Position(fen, move_vec) => {
                 let mut new_board = Board::from_fen(fen.as_str());
-                let mut new_hash_vec = vec![hash_position(&new_board)];
+                let mut new_detector = DrawDetector::new(&new_board);
 
                 for mv_str in move_vec {
                     let mv = Move::from_string(mv_str.as_str(), &new_board);
@@ -104,11 +107,11 @@ impl UciHandler {
                     if !success {
                         return;
                     }
-                    new_hash_vec.push(hash_position(&new_board));
+                    new_detector.add_zobrist_hash(hash_position(&new_board));
                 }
 
                 self.board = new_board;
-                self.hash_vec = new_hash_vec;
+                self.draw_detector = new_detector;
             }
             UciCommand::Go(arg_vec) => {
                 let mut time_args = TimeArgs::default();

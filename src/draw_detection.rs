@@ -1,13 +1,19 @@
-use crate::{zobrist::{ZobristHash, hash_position}, board_representation::Board};
+use crate::{
+    board_representation::Board,
+    zobrist::{hash_position, ZobristHash},
+};
 
-struct DrawDetector {
+pub struct DrawDetector {
     zobrist_vec: Vec<ZobristHash>,
     halfmoves: u32,
 }
 
 impl DrawDetector {
     pub fn new(board: &Board) -> Self {
-        Self { zobrist_vec: vec![hash_position(board)], halfmoves: 0 }
+        Self {
+            zobrist_vec: vec![hash_position(board)],
+            halfmoves: 0,
+        }
     }
 
     pub fn add_zobrist_hash(&mut self, hash: ZobristHash) {
@@ -34,7 +40,14 @@ impl DrawDetector {
         }
 
         let current_hash = self.current_zobrist_hash();
-        for &hash in self.zobrist_vec.iter().rev().take(self.halfmoves as usize).skip(2).step_by(2) {
+        for &hash in self
+            .zobrist_vec
+            .iter()
+            .rev()
+            .take(self.halfmoves as usize)
+            .skip(2)
+            .step_by(2)
+        {
             if hash == current_hash {
                 return true;
             }
