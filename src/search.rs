@@ -94,20 +94,20 @@ impl Searcher {
         mut alpha: EvalScore,
         beta: EvalScore,
     ) -> EvalScore {
+        let is_root: bool = ply == 0;
+
+        if !is_root
+            && (self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw())
+        {
+            return 0;
+        }
+
         if depth == 0 {
             return evaluate(board);
         }
 
         if (self.node_count % Self::TIMER_CHECK_FREQ == 0) && self.timer.is_expired() {
             self.out_of_time = true;
-            return 0;
-        }
-
-        let is_root: bool = ply == 0;
-
-        if !is_root
-            && (self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw())
-        {
             return 0;
         }
 
