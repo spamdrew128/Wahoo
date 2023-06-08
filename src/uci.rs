@@ -3,7 +3,6 @@ use crate::{
     chess_move::Move,
     search::{Depth, Searcher},
     time_management::{Milliseconds, TimeArgs, TimeManager},
-    zobrist::hash_position,
     zobrist_stack::ZobristStack,
 };
 
@@ -107,7 +106,6 @@ impl UciHandler {
                     if !success {
                         return;
                     }
-                    new_zobrist_stack.add_hash(hash_position(&new_board));
                 }
 
                 self.board = new_board;
