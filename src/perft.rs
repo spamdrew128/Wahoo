@@ -176,7 +176,7 @@ fn perft(board: &Board, depth: u16, count: &mut u64) {
 
     while let Some(mv) = generator.next(board) {
         let mut new_board = (*board).clone();
-        if new_board.try_play_move(mv) {
+        if new_board.simple_try_play_move(mv) {
             perft(&new_board, depth - 1, count);
         }
     }
@@ -188,7 +188,7 @@ pub fn split_perft(fen: &str, depth: u16) {
 
     while let Some(mv) = generator.next(&board) {
         let mut new_board = board.clone();
-        if new_board.try_play_move(mv) {
+        if new_board.simple_try_play_move(mv) {
             let mut count = 0;
             perft(&new_board, depth - 1, &mut count);
             println!("{} - {}", mv.as_string(), count);

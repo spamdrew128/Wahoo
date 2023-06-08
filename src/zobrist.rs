@@ -4,7 +4,7 @@ use crate::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-struct ZobristHash(u64);
+pub struct ZobristHash(u64);
 
 impl ZobristHash {
     pub const fn as_index(self) -> usize {
@@ -13,7 +13,7 @@ impl ZobristHash {
 }
 
 const NUM_CASTLING_CONFIGURATIONS: usize = 16;
-const NUM_FILES: usize = 2;
+const NUM_FILES: usize = 8;
 pub struct ZobristKeys {
     pieces: [[[u64; NUM_SQUARES as usize]; NUM_PIECES as usize]; NUM_COLORS as usize],
     castling: [u64; NUM_CASTLING_CONFIGURATIONS],
@@ -23,7 +23,7 @@ pub struct ZobristKeys {
 
 const ZOBRIST_KEYS: ZobristKeys = include!(concat!(env!("OUT_DIR"), "/zobrist_keys_init.rs"));
 
-fn hash_position(board: &Board) -> ZobristHash {
+pub fn hash_position(board: &Board) -> ZobristHash {
     let mut hash: u64 = 0;
 
     for color in Color::LIST {
@@ -48,13 +48,13 @@ fn hash_position(board: &Board) -> ZobristHash {
 
 #[cfg(test)]
 mod tests {
-    use crate::chess_move::Move;
-
     #[test]
+    #[rustfmt::skip]
     fn zobrist_transpositions() {
         // credit to Cozy Chess for this test
         // https://github.com/analog-hors/cozy-chess/blob/master/cozy-chess/src/board/zobrist.rs#L191 
         use super::*;
+        use crate::chess_move::Move;
         const MOVES: &[[[&str; 4]; 2]] = &[
             [["e2c4", "h8f8", "d2h6", "b4b3"], ["e2c4", "b4b3", "d2h6", "h8f8"]],
             [["c3a4", "f6g8", "e1d1", "a8c8"], ["c3a4", "a8c8", "e1d1", "f6g8"]],
@@ -84,10 +84,10 @@ mod tests {
             let mut board_a = board.clone();
             let mut board_b = board.clone();
             for mv in moves_a {
-                board_a.try_play_move(Move::from_string(mv, &board_a));
+                board_a.simple_try_play_move(Move::from_string(mv, &board_a));
             }
             for mv in moves_b {
-                board_b.try_play_move(Move::from_string(mv, &board_b));
+                board_b.simple_try_play_move(Move::from_string(mv, &board_b));
             }
 
             assert_eq!(hash_position(&board_a), hash_position(&board_b), "Test {}", i + 1);

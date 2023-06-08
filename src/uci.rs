@@ -1,8 +1,9 @@
 use crate::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
-    search::Searcher,
+    search::{Depth, Searcher},
     time_management::{Milliseconds, TimeArgs, TimeManager},
+    zobrist_stack::ZobristStack,
 };
 
 use std::thread;
@@ -23,13 +24,17 @@ enum UciCommand {
 
 pub struct UciHandler {
     board: Board,
+    zobrist_stack: ZobristStack,
     time_manager: TimeManager,
 }
 
 impl UciHandler {
     pub fn new() -> Self {
+        let board = Board::from_fen(START_FEN);
+        let zobrist_stack = ZobristStack::new(&board);
         Self {
-            board: Board::from_fen(START_FEN),
+            board,
+            zobrist_stack,
             time_manager: TimeManager::new(),
         }
     }
@@ -93,19 +98,24 @@ impl UciHandler {
             UciCommand::UciNewGame => (),
             UciCommand::Position(fen, move_vec) => {
                 let mut new_board = Board::from_fen(fen.as_str());
+                let mut new_zobrist_stack = ZobristStack::new(&new_board);
+
                 for mv_str in move_vec {
                     let mv = Move::from_string(mv_str.as_str(), &new_board);
-                    let success = new_board.try_play_move(mv);
+                    let success = new_board.try_play_move(mv, &mut new_zobrist_stack);
                     if !success {
                         return;
                     }
                 }
+
                 self.board = new_board;
+                self.zobrist_stack = new_zobrist_stack;
             }
             UciCommand::Go(arg_vec) => {
                 let mut time_args = TimeArgs::default();
                 let mut args_iterator = arg_vec.iter();
 
+                let mut depth_limit: Option<Depth> = None;
                 while let Some(arg) = args_iterator.next() {
                     match arg.as_str() {
                         "wtime" => {
@@ -144,6 +154,13 @@ impl UciHandler {
                                 .unwrap_or(0);
                         }
                         "infinite" => time_args.infinite_mode = true,
+                        "depth" => {
+                            let limit = args_iterator.next().unwrap().parse::<Depth>().unwrap_or(0);
+                            if limit > 0 {
+                                depth_limit = Some(limit);
+                                time_args.infinite_mode = true;
+                            }
+                        },
                         _ => (),
                     }
                 }
@@ -152,7 +169,7 @@ impl UciHandler {
                     .time_manager
                     .construct_search_timer(time_args, self.board.color_to_move);
 
-                let mut searcher = Searcher::new(search_timer);
+                let mut searcher = Searcher::new(search_timer, self.zobrist_stack.clone(), depth_limit);
 
                 let board = self.board.clone();
 

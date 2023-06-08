@@ -1,5 +1,7 @@
 use crate::chess_move::Move;
 use crate::tuple_constants_enum;
+use crate::zobrist::hash_position;
+use crate::zobrist_stack::ZobristStack;
 use crate::{attacks, chess_move::Flag};
 use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
@@ -517,6 +519,7 @@ pub struct Board {
     pub color_to_move: Color,
     pub ep_sq: Option<Square>,
     pub castle_rights: CastleRights,
+    pub halfmoves: u32,
 }
 
 const fn fen_index_as_bitboard(i: u8) -> Bitboard {
@@ -770,7 +773,7 @@ impl Board {
 
     #[rustfmt::skip]
     #[doc="returns success: bool"]
-    pub fn try_play_move(&mut self, mv: Move) -> bool {
+    pub fn try_play_move(&mut self, mv: Move, zobrist_stack: &mut ZobristStack) -> bool {
         let color = self.color_to_move;
         let opp_color = color.flip();
 
@@ -781,9 +784,15 @@ impl Board {
         let piece = self.piece_on_sq(from_sq);
         debug_assert!(piece != Piece::NONE);
 
+        if piece == Piece::PAWN {
+            self.halfmoves = 0;
+        }
+
         let captured_piece = if mv.is_capture() {
+            self.halfmoves = 0;
             self.piece_on_sq(mv.to())
         } else {
+            self.halfmoves += 1;
             Piece::NONE
         };
 
@@ -820,7 +829,18 @@ impl Board {
         self.castle_rights.update(mv);
         self.color_to_move = self.color_to_move.flip();
 
+        zobrist_stack.add_hash(hash_position(self));
+
         true
+    }
+
+    pub fn simple_try_play_move(&mut self, mv: Move) -> bool {
+        let mut dummy_dd = ZobristStack::new(self);
+        self.try_play_move(mv, &mut dummy_dd)
+    }
+
+    pub const fn fifty_move_draw(&self) -> bool {
+        self.halfmoves >= 100
     }
 }
 
@@ -916,6 +936,7 @@ mod tests {
             color_to_move: Color::White,
             castle_rights: CastleRights::new(0b1111),
             ep_sq: None,
+            halfmoves: 0,
         };
 
         assert_eq!(actual, expected);

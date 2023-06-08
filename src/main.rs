@@ -17,6 +17,7 @@ mod time_management;
 mod uci;
 mod util_macros;
 mod zobrist;
+mod zobrist_stack;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -26,6 +27,8 @@ fn main() {
             return;
         }
     }
+
+    std::env::set_var("RUST_BACKTRACE", "1");
 
     let mut uci_handler = uci::UciHandler::new();
     while matches!(uci_handler.execute_instructions(), uci::ProgramStatus::Run) {}
