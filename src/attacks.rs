@@ -38,7 +38,7 @@ const PAWN_ATTACKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = [
     init_lookup!(|sq_bb|, pawn_setwise(sq_bb, Color::Black)),
 ];
 
-const MAGIC_LOOKUP: MagicLookup = include!(concat!(env!("OUT_DIR"), "/magic_lookup_init.txt"));
+const MAGIC_LOOKUP: MagicLookup = include!(concat!(env!("OUT_DIR"), "/magic_lookup_init.rs"));
 
 pub const fn king(sq: Square) -> Bitboard {
     KING_ATTACKS[sq.as_index()]

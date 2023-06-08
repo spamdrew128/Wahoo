@@ -151,11 +151,11 @@ impl MoveGenerator {
             self.add_move(Move::new(to, from, Flag::DOUBLE_PUSH));
         });
 
-        if board.ks_castle_availible() {
+        if board.castle_rights.can_ks_castle(board) {
             self.add_move(Move::new_ks_castle(board.king_sq()));
         }
 
-        if board.qs_castle_availible() {
+        if board.castle_rights.can_qs_castle(board) {
             self.add_move(Move::new_qs_castle(board.king_sq()));
         }
 

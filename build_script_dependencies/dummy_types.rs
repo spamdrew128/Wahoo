@@ -1,6 +1,8 @@
 use std::ops::{BitOrAssign, Not};
 
 pub const NUM_SQUARES: u8 = 64;
+pub const NUM_PIECES: u8 = 6;
+pub const NUM_COLORS: u8 = 2;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Square(u8);
