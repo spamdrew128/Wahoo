@@ -784,6 +784,10 @@ impl Board {
         let piece = self.piece_on_sq(from_sq);
         debug_assert!(piece != Piece::NONE);
 
+        if piece == Piece::PAWN {
+            self.halfmoves = 0;
+        }
+
         let captured_piece = if mv.is_capture() {
             self.halfmoves = 0;
             self.piece_on_sq(mv.to())
