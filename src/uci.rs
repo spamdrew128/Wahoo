@@ -99,19 +99,19 @@ impl UciHandler {
             UciCommand::UciNewGame => (),
             UciCommand::Position(fen, move_vec) => {
                 let mut new_board = Board::from_fen(fen.as_str());
-                let mut new_detector = ZobristStack::new(&new_board);
+                let mut new_zobrist_stack = ZobristStack::new(&new_board);
 
                 for mv_str in move_vec {
                     let mv = Move::from_string(mv_str.as_str(), &new_board);
-                    let success = new_board.try_play_move(mv, &mut new_detector);
+                    let success = new_board.try_play_move(mv, &mut new_zobrist_stack);
                     if !success {
                         return;
                     }
-                    new_detector.add_hash(hash_position(&new_board));
+                    new_zobrist_stack.add_hash(hash_position(&new_board));
                 }
 
                 self.board = new_board;
-                self.zobrist_stack = new_detector;
+                self.zobrist_stack = new_zobrist_stack;
             }
             UciCommand::Go(arg_vec) => {
                 let mut time_args = TimeArgs::default();
