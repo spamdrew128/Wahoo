@@ -21,7 +21,7 @@ pub struct ZobristKeys {
     side_to_move: [u64; NUM_COLORS as usize],
 }
 
-const ZOBRIST_KEYS: ZobristKeys = include!(concat!(env!("OUT_DIR"), "/zobrist_keys_init.txt"));
+const ZOBRIST_KEYS: ZobristKeys = include!(concat!(env!("OUT_DIR"), "/zobrist_keys_init.rs"));
 
 fn hash_position(board: &Board) -> ZobristHash {
     let mut hash: u64 = 0;
