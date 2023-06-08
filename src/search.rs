@@ -2,7 +2,6 @@ use std::time::Instant;
 
 use crate::{
     board_representation::Board,
-    chess_move::Move,
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF},
     movegen::MoveGenerator,
     pv_table::PvTable,
@@ -25,14 +24,6 @@ pub struct Searcher {
     depth_limit: Option<Depth>,
     out_of_time: bool,
     node_count: Nodes,
-    best_move: Move, // TODO: replace with PV Table
-}
-
-fn report_search_info(score: EvalScore, nodes: Nodes, depth: Depth, stopwatch: Instant) {
-    let elapsed = stopwatch.elapsed().as_millis();
-    let nps = (u128::from(nodes) * 1_000_000) / stopwatch.elapsed().as_micros().max(1);
-    print!("info ");
-    println!("score cp {score} nodes {nodes} time {elapsed} nps {nps} depth {depth}");
 }
 
 impl Searcher {
@@ -50,8 +41,17 @@ impl Searcher {
             depth_limit,
             out_of_time: false,
             node_count: 0,
-            best_move: Move::nullmove(),
         }
+    }
+
+    fn report_search_info(&self, score: EvalScore, depth: Depth, stopwatch: Instant) {
+        let elapsed = stopwatch.elapsed().as_millis();
+        let nps = (u128::from(self.node_count) * 1_000_000) / stopwatch.elapsed().as_micros().max(1);
+        let nodes = self.node_count;
+        let pv_str = self.pv_table.pv_string();
+
+        print!("info ");
+        println!("score cp {score} nodes {nodes} time {elapsed} nps {nps} depth {depth} pv{pv_str}");
     }
 
     pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
@@ -66,7 +66,6 @@ impl Searcher {
 
     pub fn go(&mut self, board: &Board) {
         let stopwatch = std::time::Instant::now();
-        let mut best_move = MoveGenerator::first_legal_move(board).unwrap();
         let mut depth: Depth = 1;
 
         while depth <= self.depth_limit.unwrap_or(MAX_DEPTH) {
@@ -76,11 +75,17 @@ impl Searcher {
                 break;
             }
 
-            best_move = self.best_move;
-            report_search_info(score, self.node_count, depth, stopwatch);
+            self.report_search_info(score, depth, stopwatch);
 
             depth += 1;
         }
+
+        let best_move = if depth == 1 {
+            // we didn't finish depth 1 search
+            MoveGenerator::first_legal_move(board).unwrap()
+        } else {
+            self.pv_table.best_move()
+        };
 
         assert!(best_move.to() != best_move.from(), "INVALID MOVE");
         println!("bestmove {}", best_move.as_string());
@@ -94,6 +99,8 @@ impl Searcher {
         mut alpha: EvalScore,
         beta: EvalScore,
     ) -> EvalScore {
+        self.pv_table.set_length(ply);
+
         let is_root: bool = ply == 0;
 
         if !is_root
@@ -114,7 +121,6 @@ impl Searcher {
         let mut generator = MoveGenerator::new();
 
         let mut best_score = -INF;
-        let mut best_move = Move::nullmove();
         let mut moves_played = 0;
         while let Some(mv) = generator.next(board) {
             let mut next_board = (*board).clone();
@@ -134,7 +140,6 @@ impl Searcher {
 
             if score > best_score {
                 best_score = score;
-                best_move = mv;
 
                 if score >= beta {
                     break;
@@ -142,6 +147,7 @@ impl Searcher {
 
                 if score > alpha {
                     alpha = score;
+                    self.pv_table.update(ply, mv);
                 }
             }
         }
@@ -155,7 +161,6 @@ impl Searcher {
             };
         }
 
-        self.best_move = best_move;
         best_score
     }
 }

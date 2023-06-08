@@ -40,4 +40,16 @@ impl PvTable {
         assert!(mv != Move::nullmove());
         mv
     }
+
+    pub fn pv_string(&self) -> String {
+        let mut result = String::new();
+        let variation_length = self.pv_length[0];
+        let pv = &self.triangular_move_matrix[0][..variation_length];
+
+        for mv in pv {
+            result.push(' ');
+            result.push_str(mv.as_string().as_str());
+        }
+        result
+    }
 }
