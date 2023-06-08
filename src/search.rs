@@ -71,6 +71,7 @@ impl Searcher {
         let stopwatch = std::time::Instant::now();
         let mut depth: Depth = 1;
 
+        let mut best_move = MoveGenerator::first_legal_move(board).unwrap();
         while depth <= self.depth_limit.unwrap_or(MAX_DEPTH) {
             let score = self.negamax(board, depth, 0, -INF, INF);
 
@@ -79,16 +80,10 @@ impl Searcher {
             }
 
             self.report_search_info(score, depth, stopwatch);
+            best_move = self.pv_table.best_move();
 
             depth += 1;
         }
-
-        let best_move = if depth == 1 {
-            // we didn't finish depth 1 search
-            MoveGenerator::first_legal_move(board).unwrap()
-        } else {
-            self.pv_table.best_move()
-        };
 
         assert!(best_move.to() != best_move.from(), "INVALID MOVE");
         println!("bestmove {}", best_move.as_string());
