@@ -22,6 +22,10 @@ impl DrawDetector {
         self.zobrist_vec.push(hash);
     }
 
+    pub fn remove_zobrist_hash(&mut self) {
+        self.zobrist_vec.pop();
+    }
+
     pub fn current_zobrist_hash(&self) -> ZobristHash {
         let len = self.zobrist_vec.len();
         self.zobrist_vec[len - 1]
