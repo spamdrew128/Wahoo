@@ -107,7 +107,7 @@ impl UciHandler {
                     if !success {
                         return;
                     }
-                    new_detector.add_zobrist_hash(hash_position(&new_board));
+                    new_detector.add_hash(hash_position(&new_board));
                 }
 
                 self.board = new_board;

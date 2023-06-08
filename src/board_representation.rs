@@ -825,7 +825,7 @@ impl Board {
         self.castle_rights.update(mv);
         self.color_to_move = self.color_to_move.flip();
 
-        zobrist_stack.add_zobrist_hash(hash_position(self));
+        zobrist_stack.add_hash(hash_position(self));
 
         true
     }

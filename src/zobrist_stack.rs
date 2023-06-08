@@ -15,7 +15,7 @@ impl ZobristStack {
         }
     }
 
-    pub fn add_zobrist_hash(&mut self, hash: ZobristHash) {
+    pub fn add_hash(&mut self, hash: ZobristHash) {
         self.zobrist_vec.push(hash);
     }
 
