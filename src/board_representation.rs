@@ -132,9 +132,17 @@ impl Square {
         self.0 as usize
     }
 
+    const fn rank(self) -> u8 {
+        self.0 / 8
+    }
+
+    pub const fn file(self) -> u8 {
+        self.0 % 8
+    }
+
     pub fn as_string(self) -> String {
-        let col: Col = self.0 % 8;
-        let row: Row = self.0 / 8;
+        let col: Col = self.file();
+        let row: Row = self.rank();
 
         let col_char = (col + 97) as char;
         let row_char = (row + 49) as char;
