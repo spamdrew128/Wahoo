@@ -91,6 +91,10 @@ impl Searcher {
             return 0;
         }
 
+        if self.draw_detector.detected_draw() {
+            return 0;
+        }
+
         let mut generator = MoveGenerator::new();
 
         let mut best_score = -INF;

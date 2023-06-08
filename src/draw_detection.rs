@@ -35,7 +35,7 @@ impl DrawDetector {
         self.halfmoves += 1;
     }
 
-    pub fn position_is_drawn(&self) -> bool {
+    pub fn detected_draw(&self) -> bool {
         // twofold repetition check
         if self.zobrist_vec.len() < 4 {
             return false;
