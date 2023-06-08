@@ -120,10 +120,12 @@ impl Move {
         ];
 
         if piece == Piece::KING {
-            if to.file() >= from.file() + 2 {
+            let to_file = i16::from(to.file());
+            let from_file = i16::from(from.file());
+            if to_file >= from_file + 2 {
                 return Self::new_ks_castle(from);
             }
-            if to.file() <= from.file() - 2 {
+            if to_file <= from_file - 2 {
                 return Self::new_qs_castle(from);
             }
         }
