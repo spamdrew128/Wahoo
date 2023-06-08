@@ -93,7 +93,7 @@ impl Searcher {
 
         let is_root: bool = ply == 0;
 
-        if !is_root && self.draw_detector.detected_draw() {
+        if !is_root && (self.draw_detector.twofold_repetition(board.halfmoves) || board.fifty_move_draw()) {
             return 0;
         }
 
@@ -116,7 +116,7 @@ impl Searcher {
 
             let score = -self.negamax(&next_board, depth - 1, ply + 1, -beta, -alpha);
 
-            self.draw_detector.remove_zobrist_hash();
+            self.draw_detector.revert_state();
 
             if score > best_score {
                 best_score = score;

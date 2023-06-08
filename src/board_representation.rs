@@ -519,6 +519,7 @@ pub struct Board {
     pub color_to_move: Color,
     pub ep_sq: Option<Square>,
     pub castle_rights: CastleRights,
+    pub halfmoves: u32,
 }
 
 const fn fen_index_as_bitboard(i: u8) -> Bitboard {
@@ -784,8 +785,10 @@ impl Board {
         debug_assert!(piece != Piece::NONE);
 
         let captured_piece = if mv.is_capture() {
+            self.halfmoves = 0;
             self.piece_on_sq(mv.to())
         } else {
+            self.halfmoves += 1;
             Piece::NONE
         };
 
@@ -824,18 +827,16 @@ impl Board {
 
         draw_detector.add_zobrist_hash(hash_position(self));
 
-        if mv.is_capture() {
-            draw_detector.reset_halfmoves();
-        } else {
-            draw_detector.increment_halfmoves();
-        };
-
         true
     }
 
     pub fn simple_try_play_move(&mut self, mv: Move) -> bool {
         let mut dummy_dd = DrawDetector::new(self);
         self.try_play_move(mv, &mut dummy_dd)
+    }
+
+    pub const fn fifty_move_draw(&self) -> bool {
+        self.halfmoves >= 100
     }
 }
 
@@ -931,6 +932,7 @@ mod tests {
             color_to_move: Color::White,
             castle_rights: CastleRights::new(0b1111),
             ep_sq: None,
+            halfmoves: 0
         };
 
         assert_eq!(actual, expected);
