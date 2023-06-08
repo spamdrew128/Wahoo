@@ -5,7 +5,7 @@ use crate::{
     chess_move::Move,
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF},
     movegen::MoveGenerator,
-    time_management::SearchTimer, draw_detection::DrawDetector,
+    time_management::SearchTimer, zobrist_stack::ZobristStack,
 };
 
 pub type Nodes = u64;
@@ -15,7 +15,7 @@ pub type Ply = u8;
 #[derive(Debug)]
 pub struct Searcher {
     timer: SearchTimer,
-    draw_detector: DrawDetector,
+    zobrist_stack: ZobristStack,
 
     out_of_time: bool,
     node_count: Nodes,
@@ -32,10 +32,10 @@ fn report_search_info(score: EvalScore, nodes: Nodes, depth: Depth, stopwatch: I
 impl Searcher {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
-    pub const fn new(timer: SearchTimer, draw_detector: DrawDetector) -> Self {
+    pub const fn new(timer: SearchTimer, zobrist_stack: ZobristStack) -> Self {
         Self {
             timer,
-            draw_detector,
+            zobrist_stack,
             out_of_time: false,
             node_count: 0,
             best_move: Move::nullmove(),
@@ -93,7 +93,7 @@ impl Searcher {
 
         let is_root: bool = ply == 0;
 
-        if !is_root && (self.draw_detector.twofold_repetition(board.halfmoves) || board.fifty_move_draw()) {
+        if !is_root && (self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw()) {
             return 0;
         }
 
@@ -104,7 +104,7 @@ impl Searcher {
         let mut moves_played = 0;
         while let Some(mv) = generator.next(board) {
             let mut next_board = (*board).clone();
-            let is_legal = next_board.try_play_move(mv, &mut self.draw_detector);
+            let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack);
             if !is_legal {
                 continue;
             }
@@ -116,7 +116,7 @@ impl Searcher {
 
             let score = -self.negamax(&next_board, depth - 1, ply + 1, -beta, -alpha);
 
-            self.draw_detector.revert_state();
+            self.zobrist_stack.revert_state();
 
             if score > best_score {
                 best_score = score;

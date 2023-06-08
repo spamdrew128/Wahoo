@@ -4,11 +4,11 @@ use crate::{
 };
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct DrawDetector {
+pub struct ZobristStack {
     zobrist_vec: Vec<ZobristHash>,
 }
 
-impl DrawDetector {
+impl ZobristStack {
     pub fn new(board: &Board) -> Self {
         Self {
             zobrist_vec: vec![hash_position(board)]
@@ -54,14 +54,14 @@ impl DrawDetector {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn detects_draw() {
+    fn twofold_repetition_works() {
         use super::*;
         use crate::board_representation::START_FEN;
         use crate::{chess_move::Move, board_representation::Square};
         use crate::chess_move::Flag;
 
         let mut board = Board::from_fen(START_FEN);
-        let mut detector = DrawDetector::new(&board);
+        let mut detector = ZobristStack::new(&board);
 
         let w_knight_out = Move::new(Square::F3, Square::G1, Flag::NONE);
         let b_knight_out = Move::new(Square::F6, Square::G8, Flag::NONE);

@@ -1,7 +1,7 @@
 use crate::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
-    draw_detection::DrawDetector,
+    zobrist_stack::ZobristStack,
     search::Searcher,
     time_management::{Milliseconds, TimeArgs, TimeManager},
     zobrist::hash_position,
@@ -25,17 +25,17 @@ enum UciCommand {
 
 pub struct UciHandler {
     board: Board,
-    draw_detector: DrawDetector,
+    zobrist_stack: ZobristStack,
     time_manager: TimeManager,
 }
 
 impl UciHandler {
     pub fn new() -> Self {
         let board = Board::from_fen(START_FEN);
-        let draw_detector = DrawDetector::new(&board);
+        let zobrist_stack = ZobristStack::new(&board);
         Self {
             board,
-            draw_detector,
+            zobrist_stack,
             time_manager: TimeManager::new(),
         }
     }
@@ -99,7 +99,7 @@ impl UciHandler {
             UciCommand::UciNewGame => (),
             UciCommand::Position(fen, move_vec) => {
                 let mut new_board = Board::from_fen(fen.as_str());
-                let mut new_detector = DrawDetector::new(&new_board);
+                let mut new_detector = ZobristStack::new(&new_board);
 
                 for mv_str in move_vec {
                     let mv = Move::from_string(mv_str.as_str(), &new_board);
@@ -111,7 +111,7 @@ impl UciHandler {
                 }
 
                 self.board = new_board;
-                self.draw_detector = new_detector;
+                self.zobrist_stack = new_detector;
             }
             UciCommand::Go(arg_vec) => {
                 let mut time_args = TimeArgs::default();
@@ -163,7 +163,7 @@ impl UciHandler {
                     .time_manager
                     .construct_search_timer(time_args, self.board.color_to_move);
 
-                let mut searcher = Searcher::new(search_timer, self.draw_detector.clone());
+                let mut searcher = Searcher::new(search_timer, self.zobrist_stack.clone());
 
                 let board = self.board.clone();
 
