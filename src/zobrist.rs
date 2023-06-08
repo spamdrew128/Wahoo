@@ -4,7 +4,7 @@ use crate::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-struct ZobristHash(u64);
+pub struct ZobristHash(u64);
 
 impl ZobristHash {
     pub const fn as_index(self) -> usize {
@@ -23,7 +23,7 @@ pub struct ZobristKeys {
 
 const ZOBRIST_KEYS: ZobristKeys = include!(concat!(env!("OUT_DIR"), "/zobrist_keys_init.rs"));
 
-fn hash_position(board: &Board) -> ZobristHash {
+pub fn hash_position(board: &Board) -> ZobristHash {
     let mut hash: u64 = 0;
 
     for color in Color::LIST {

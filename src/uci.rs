@@ -3,6 +3,7 @@ use crate::{
     chess_move::Move,
     search::Searcher,
     time_management::{Milliseconds, TimeArgs, TimeManager},
+    zobrist::{ZobristHash, hash_position},
 };
 
 use std::thread;
@@ -23,6 +24,7 @@ enum UciCommand {
 
 pub struct UciHandler {
     board: Board,
+    hash_vec: Vec<ZobristHash>,
     time_manager: TimeManager,
 }
 
@@ -30,6 +32,7 @@ impl UciHandler {
     pub fn new() -> Self {
         Self {
             board: Board::from_fen(START_FEN),
+            hash_vec: vec![],
             time_manager: TimeManager::new(),
         }
     }
@@ -93,14 +96,19 @@ impl UciHandler {
             UciCommand::UciNewGame => (),
             UciCommand::Position(fen, move_vec) => {
                 let mut new_board = Board::from_fen(fen.as_str());
+                let mut new_hash_vec = vec![hash_position(&new_board)];
+
                 for mv_str in move_vec {
                     let mv = Move::from_string(mv_str.as_str(), &new_board);
                     let success = new_board.try_play_move(mv);
                     if !success {
                         return;
                     }
+                    new_hash_vec.push(hash_position(&new_board));
                 }
+
                 self.board = new_board;
+                self.hash_vec = new_hash_vec;
             }
             UciCommand::Go(arg_vec) => {
                 let mut time_args = TimeArgs::default();
