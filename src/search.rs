@@ -5,18 +5,22 @@ use crate::{
     chess_move::Move,
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF},
     movegen::MoveGenerator,
-    time_management::SearchTimer, zobrist_stack::ZobristStack,
+    time_management::SearchTimer,
+    zobrist_stack::ZobristStack,
 };
 
 pub type Nodes = u64;
 pub type Depth = i8;
 pub type Ply = u8;
+const MAX_DEPTH: Depth = i8::MAX;
+const MAX_PLY: Ply = MAX_DEPTH as u8;
 
 #[derive(Debug)]
 pub struct Searcher {
     timer: SearchTimer,
     zobrist_stack: ZobristStack,
-
+    
+    depth_limit: Option<Depth>,
     out_of_time: bool,
     node_count: Nodes,
     best_move: Move, // TODO: replace with PV Table
@@ -32,10 +36,11 @@ fn report_search_info(score: EvalScore, nodes: Nodes, depth: Depth, stopwatch: I
 impl Searcher {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
-    pub const fn new(timer: SearchTimer, zobrist_stack: ZobristStack) -> Self {
+    pub const fn new(timer: SearchTimer, zobrist_stack: ZobristStack, depth_limit: Option<Depth>) -> Self {
         Self {
             timer,
             zobrist_stack,
+            depth_limit,
             out_of_time: false,
             node_count: 0,
             best_move: Move::nullmove(),
@@ -57,7 +62,7 @@ impl Searcher {
         let mut best_move = MoveGenerator::first_legal_move(board).unwrap();
         let mut depth: Depth = 1;
 
-        loop {
+        while depth <= self.depth_limit.unwrap_or(MAX_DEPTH) {
             let score = self.negamax(board, depth, 0, -INF, INF);
 
             if self.out_of_time {
@@ -93,7 +98,9 @@ impl Searcher {
 
         let is_root: bool = ply == 0;
 
-        if !is_root && (self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw()) {
+        if !is_root
+            && (self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw())
+        {
             return 0;
         }
 

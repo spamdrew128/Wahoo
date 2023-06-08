@@ -11,7 +11,7 @@ pub struct ZobristStack {
 impl ZobristStack {
     pub fn new(board: &Board) -> Self {
         Self {
-            zobrist_vec: vec![hash_position(board)]
+            zobrist_vec: vec![hash_position(board)],
         }
     }
 
@@ -57,8 +57,8 @@ mod tests {
     fn twofold_repetition_works() {
         use super::*;
         use crate::board_representation::START_FEN;
-        use crate::{chess_move::Move, board_representation::Square};
         use crate::chess_move::Flag;
+        use crate::{board_representation::Square, chess_move::Move};
 
         let mut board = Board::from_fen(START_FEN);
         let mut detector = ZobristStack::new(&board);

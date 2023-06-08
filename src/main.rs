@@ -8,7 +8,6 @@ mod attacks;
 mod bench;
 mod board_representation;
 mod chess_move;
-mod zobrist_stack;
 mod evaluation;
 mod magic;
 mod movegen;
@@ -18,6 +17,7 @@ mod time_management;
 mod uci;
 mod util_macros;
 mod zobrist;
+mod zobrist_stack;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();

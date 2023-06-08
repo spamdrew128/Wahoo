@@ -1,7 +1,7 @@
 use crate::chess_move::Move;
-use crate::zobrist_stack::ZobristStack;
 use crate::tuple_constants_enum;
 use crate::zobrist::hash_position;
+use crate::zobrist_stack::ZobristStack;
 use crate::{attacks, chess_move::Flag};
 use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
@@ -932,7 +932,7 @@ mod tests {
             color_to_move: Color::White,
             castle_rights: CastleRights::new(0b1111),
             ep_sq: None,
-            halfmoves: 0
+            halfmoves: 0,
         };
 
         assert_eq!(actual, expected);

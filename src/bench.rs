@@ -2,7 +2,8 @@ use crate::{
     board_representation::Board,
     perft::{test_postions, PerftTest},
     search::Searcher,
-    time_management::SearchTimer, zobrist_stack::ZobristStack,
+    time_management::SearchTimer,
+    zobrist_stack::ZobristStack,
 };
 
 pub fn bench() {
@@ -13,7 +14,7 @@ pub fn bench() {
 
     for pos in positions {
         let board = Board::from_fen(pos.fen);
-        let mut searcher = Searcher::new(SearchTimer::new(0), ZobristStack::new(&board));
+        let mut searcher = Searcher::new(SearchTimer::new(0), ZobristStack::new(&board), None);
         nodes += searcher.bench(&board, 10);
     }
 

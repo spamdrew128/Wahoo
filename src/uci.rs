@@ -1,10 +1,10 @@
 use crate::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
-    zobrist_stack::ZobristStack,
-    search::Searcher,
+    search::{Depth, Searcher},
     time_management::{Milliseconds, TimeArgs, TimeManager},
     zobrist::hash_position,
+    zobrist_stack::ZobristStack,
 };
 
 use std::thread;
@@ -117,6 +117,7 @@ impl UciHandler {
                 let mut time_args = TimeArgs::default();
                 let mut args_iterator = arg_vec.iter();
 
+                let mut depth_limit: Option<Depth> = None;
                 while let Some(arg) = args_iterator.next() {
                     match arg.as_str() {
                         "wtime" => {
@@ -155,6 +156,13 @@ impl UciHandler {
                                 .unwrap_or(0);
                         }
                         "infinite" => time_args.infinite_mode = true,
+                        "depth" => {
+                            let limit = args_iterator.next().unwrap().parse::<Depth>().unwrap_or(0);
+                            if limit > 0 {
+                                depth_limit = Some(limit);
+                                time_args.infinite_mode = true;
+                            }
+                        },
                         _ => (),
                     }
                 }
@@ -163,7 +171,7 @@ impl UciHandler {
                     .time_manager
                     .construct_search_timer(time_args, self.board.color_to_move);
 
-                let mut searcher = Searcher::new(search_timer, self.zobrist_stack.clone());
+                let mut searcher = Searcher::new(search_timer, self.zobrist_stack.clone(), depth_limit);
 
                 let board = self.board.clone();
 
