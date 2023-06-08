@@ -51,6 +51,7 @@ mod tests {
     use crate::chess_move::Move;
 
     #[test]
+    #[rustfmt::skip]
     fn zobrist_transpositions() {
         // credit to Cozy Chess for this test
         // https://github.com/analog-hors/cozy-chess/blob/master/cozy-chess/src/board/zobrist.rs#L191 

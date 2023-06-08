@@ -8,6 +8,7 @@ mod attacks;
 mod bench;
 mod board_representation;
 mod chess_move;
+mod draw_detection;
 mod evaluation;
 mod magic;
 mod movegen;

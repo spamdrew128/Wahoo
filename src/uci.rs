@@ -3,7 +3,7 @@ use crate::{
     chess_move::Move,
     search::Searcher,
     time_management::{Milliseconds, TimeArgs, TimeManager},
-    zobrist::{ZobristHash, hash_position},
+    zobrist::{hash_position, ZobristHash},
 };
 
 use std::thread;
