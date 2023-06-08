@@ -46,7 +46,7 @@ impl DrawDetector {
             .zobrist_vec
             .iter()
             .rev()
-            .take(self.halfmoves as usize)
+            .take((self.halfmoves + 1) as usize)
             .skip(2)
             .step_by(2)
         {
