@@ -13,7 +13,7 @@ impl ZobristHash {
 }
 
 const NUM_CASTLING_CONFIGURATIONS: usize = 16;
-const NUM_FILES: usize = 2;
+const NUM_FILES: usize = 8;
 pub struct ZobristKeys {
     pieces: [[[u64; NUM_SQUARES as usize]; NUM_PIECES as usize]; NUM_COLORS as usize],
     castling: [u64; NUM_CASTLING_CONFIGURATIONS],

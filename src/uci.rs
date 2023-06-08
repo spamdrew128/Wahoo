@@ -163,7 +163,7 @@ impl UciHandler {
                     .time_manager
                     .construct_search_timer(time_args, self.board.color_to_move);
 
-                let mut searcher = Searcher::new(search_timer);
+                let mut searcher = Searcher::new(search_timer, self.draw_detector.clone());
 
                 let board = self.board.clone();
 

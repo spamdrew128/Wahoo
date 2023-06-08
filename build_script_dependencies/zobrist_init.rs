@@ -2,7 +2,7 @@ use crate::build_script_dependencies::dummy_types::{NUM_COLORS, NUM_PIECES, NUM_
 use crate::build_script_dependencies::rng::Rng;
 
 const NUM_CASTLING_CONFIGURATIONS: usize = 16;
-const NUM_FILES: usize = 2;
+const NUM_FILES: usize = 8;
 
 macro_rules! init_keys {
     ($rng:ident, $table:ident, $count:ident) => {{

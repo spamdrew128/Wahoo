@@ -3,6 +3,8 @@ use crate::{
     zobrist::{hash_position, ZobristHash},
 };
 
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct DrawDetector {
     zobrist_vec: Vec<ZobristHash>,
     halfmoves: u32,

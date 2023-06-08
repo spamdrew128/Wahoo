@@ -5,7 +5,7 @@ use crate::{
     chess_move::Move,
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF},
     movegen::MoveGenerator,
-    time_management::SearchTimer,
+    time_management::SearchTimer, draw_detection::DrawDetector,
 };
 
 pub type Nodes = u64;
@@ -15,6 +15,8 @@ pub type Ply = u8;
 #[derive(Debug)]
 pub struct Searcher {
     timer: SearchTimer,
+    draw_detector: DrawDetector,
+
     out_of_time: bool,
     node_count: Nodes,
     best_move: Move, // TODO: replace with PV Table
@@ -30,9 +32,10 @@ fn report_search_info(score: EvalScore, nodes: Nodes, depth: Depth, stopwatch: I
 impl Searcher {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
-    pub const fn new(timer: SearchTimer) -> Self {
+    pub const fn new(timer: SearchTimer, draw_detector: DrawDetector) -> Self {
         Self {
             timer,
+            draw_detector,
             out_of_time: false,
             node_count: 0,
             best_move: Move::nullmove(),
