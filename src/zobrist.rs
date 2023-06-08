@@ -52,6 +52,8 @@ mod tests {
 
     #[test]
     fn zobrist_transpositions() {
+        // credit to Cozy Chess for this test
+        // https://github.com/analog-hors/cozy-chess/blob/master/cozy-chess/src/board/zobrist.rs#L191 
         use super::*;
         const MOVES: &[[[&str; 4]; 2]] = &[
             [["e2c4", "h8f8", "d2h6", "b4b3"], ["e2c4", "b4b3", "d2h6", "h8f8"]],
