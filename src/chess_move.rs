@@ -1,4 +1,4 @@
-use crate::board_representation::{Board, Piece, Square};
+use crate::{board_representation::{Board, Piece, Square}, attacks};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Flag(u16);
@@ -119,13 +119,11 @@ impl Move {
             Flag::QUEEN_CAPTURE_PROMO,
         ];
 
-        if piece == Piece::KING {
-            let to_file = i16::from(to.file());
-            let from_file = i16::from(from.file());
-            if to_file >= from_file + 2 {
+        if piece == Piece::KING && (!attacks::king(from).overlaps(to.as_bitboard())) {
+            if to.file() >= from.file() {
                 return Self::new_ks_castle(from);
             }
-            if to_file <= from_file - 2 {
+            if to.file() <= from.file() {
                 return Self::new_qs_castle(from);
             }
         }
