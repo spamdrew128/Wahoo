@@ -5,6 +5,7 @@ use crate::{
     chess_move::Move,
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF},
     movegen::MoveGenerator,
+    pv_table::PvTable,
     time_management::SearchTimer,
     zobrist_stack::ZobristStack,
 };
@@ -19,6 +20,7 @@ pub const MAX_PLY: Ply = MAX_DEPTH as u8;
 pub struct Searcher {
     timer: SearchTimer,
     zobrist_stack: ZobristStack,
+    pv_table: PvTable,
 
     depth_limit: Option<Depth>,
     out_of_time: bool,
@@ -44,6 +46,7 @@ impl Searcher {
         Self {
             timer,
             zobrist_stack,
+            pv_table: PvTable::new(),
             depth_limit,
             out_of_time: false,
             node_count: 0,

@@ -3,24 +3,25 @@ use crate::{
     search::{Ply, MAX_PLY},
 };
 
-struct PvTable {
+#[derive(Debug)]
+pub struct PvTable {
     triangular_move_matrix: [[Move; MAX_PLY as usize]; MAX_PLY as usize],
     pv_length: [usize; (MAX_PLY + 1) as usize],
 }
 
 impl PvTable {
-    const fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             triangular_move_matrix: [[Move::nullmove(); MAX_PLY as usize]; MAX_PLY as usize],
             pv_length: [0; (MAX_PLY + 1) as usize],
         }
     }
 
-    fn set_length(&mut self, ply: Ply) {
+    pub fn set_length(&mut self, ply: Ply) {
         self.pv_length[ply as usize] = ply as usize;
     }
 
-    fn update(&mut self, ply: Ply, mv: Move) {
+    pub fn update(&mut self, ply: Ply, mv: Move) {
         let ply = ply as usize;
 
         let new_len = self.pv_length[ply + 1];
@@ -34,7 +35,7 @@ impl PvTable {
         }
     }
 
-    fn best_move(&self) -> Move {
+    pub fn best_move(&self) -> Move {
         let mv = self.triangular_move_matrix[0][0];
         assert!(mv != Move::nullmove());
         mv
