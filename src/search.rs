@@ -98,7 +98,7 @@ impl Searcher {
         let mut moves_played = 0;
         while let Some(mv) = generator.next(board) {
             let mut next_board = (*board).clone();
-            let is_legal = next_board.try_play_move(mv);
+            let is_legal = next_board.try_play_move(mv, &mut self.draw_detector);
             if !is_legal {
                 continue;
             }

@@ -103,7 +103,7 @@ impl UciHandler {
 
                 for mv_str in move_vec {
                     let mv = Move::from_string(mv_str.as_str(), &new_board);
-                    let success = new_board.try_play_move(mv);
+                    let success = new_board.try_play_move(mv, &mut new_detector);
                     if !success {
                         return;
                     }

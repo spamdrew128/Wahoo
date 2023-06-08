@@ -1,5 +1,7 @@
 use crate::chess_move::Move;
+use crate::draw_detection::DrawDetector;
 use crate::tuple_constants_enum;
+use crate::zobrist::hash_position;
 use crate::{attacks, chess_move::Flag};
 use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
@@ -770,7 +772,7 @@ impl Board {
 
     #[rustfmt::skip]
     #[doc="returns success: bool"]
-    pub fn try_play_move(&mut self, mv: Move) -> bool {
+    pub fn try_play_move(&mut self, mv: Move, draw_detector: &mut DrawDetector) -> bool {
         let color = self.color_to_move;
         let opp_color = color.flip();
 
@@ -820,7 +822,14 @@ impl Board {
         self.castle_rights.update(mv);
         self.color_to_move = self.color_to_move.flip();
 
+        draw_detector.add_zobrist_hash(hash_position(self));
+
         true
+    }
+
+    pub fn simple_try_play_move(&mut self, mv: Move) -> bool {
+        let mut dummy_dd = DrawDetector::new(self);
+        self.try_play_move(mv, &mut dummy_dd)
     }
 }
 

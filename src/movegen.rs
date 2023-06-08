@@ -180,7 +180,7 @@ impl MoveGenerator {
         let mut generator = Self::new();
         while let Some(mv) = generator.next(board) {
             let mut new_board = (*board).clone();
-            if new_board.try_play_move(mv) {
+            if new_board.simple_try_play_move(mv) {
                 return Some(mv);
             }
         }

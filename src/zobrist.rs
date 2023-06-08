@@ -85,10 +85,10 @@ mod tests {
             let mut board_a = board.clone();
             let mut board_b = board.clone();
             for mv in moves_a {
-                board_a.try_play_move(Move::from_string(mv, &board_a));
+                board_a.simple_try_play_move(Move::from_string(mv, &board_a));
             }
             for mv in moves_b {
-                board_b.try_play_move(Move::from_string(mv, &board_b));
+                board_b.simple_try_play_move(Move::from_string(mv, &board_b));
             }
 
             assert_eq!(hash_position(&board_a), hash_position(&board_b), "Test {}", i + 1);
