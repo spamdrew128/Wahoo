@@ -20,6 +20,7 @@ enum UciCommand {
     UciNewGame,
     Position(String, Vec<String>),
     Go(Vec<String>),
+    SetOptionOverhead(Milliseconds),
 }
 
 pub struct UciHandler {
@@ -28,14 +29,33 @@ pub struct UciHandler {
     time_manager: TimeManager,
 }
 
+macro_rules! send_uci_option {
+    ($name:expr, $type:expr, $($format:tt)*) => {
+        print!("option name {} type {} ", $name, $type);
+        println!($($format)*);
+    };
+}
+
 impl UciHandler {
+    const OVERHEAD_DEFAULT: Milliseconds = 25;
+    const OVERHEAD_MIN: Milliseconds = 0;
+    const OVERHEAD_MAX: Milliseconds = 500;
+
+    const HASH_DEFAULT: u32 = 16;
+    const HASH_MIN: u32 = 0;
+    const HASH_MAX: u32 = 8192;
+
+    const THREADS_DEFAULT: u32 = 1;
+    const THREADS_MIN: u32 = 1;
+    const THREADS_MAX: u32 = 1;
+
     pub fn new() -> Self {
         let board = Board::from_fen(START_FEN);
         let zobrist_stack = ZobristStack::new(&board);
         Self {
             board,
             zobrist_stack,
-            time_manager: TimeManager::new(),
+            time_manager: TimeManager::new(Self::OVERHEAD_DEFAULT),
         }
     }
 
@@ -46,8 +66,8 @@ impl UciHandler {
             .expect("UCI Input Failure");
 
         let message = buffer.split_whitespace().collect::<Vec<&str>>();
-        if let Some(cmd) = message.first() {
-            match *cmd {
+        if let Some(&cmd) = message.first() {
+            match cmd {
                 "uci" => self.process_command(UciCommand::Uci),
                 "isready" => self.process_command(UciCommand::IsReady),
                 "position" => {
@@ -65,8 +85,8 @@ impl UciHandler {
 
                     let mut mv_vec: Vec<String> = vec![];
                     if i < message.len() {
-                        for mv_str in &message[i..] {
-                            mv_vec.push((*mv_str).to_string());
+                        for &mv_str in &message[i..] {
+                            mv_vec.push((mv_str).to_string());
                         }
                     }
 
@@ -78,6 +98,19 @@ impl UciHandler {
                         arg_vec.push((*arg).to_string());
                     }
                     self.process_command(UciCommand::Go(arg_vec));
+                }
+                "setoption" => {
+                    let name = message[2];
+                    let val = message[4];
+
+                    match name {
+                        "Overhead" => self.process_command(UciCommand::SetOptionOverhead(
+                            val.parse::<Milliseconds>()
+                                .unwrap_or(Self::OVERHEAD_DEFAULT),
+                        )),
+                        "clippy shut up" => todo!(), // replace with hash and threads later
+                        _ => (),
+                    }
                 }
                 "quit" => return ProgramStatus::Quit,
                 _ => (),
@@ -92,6 +125,32 @@ impl UciHandler {
             UciCommand::Uci => {
                 println!("id name Wahoo v0.0.0");
                 println!("id author Andrew Hockman");
+
+                send_uci_option!(
+                    "Overhead",
+                    "spin",
+                    "default {} min {} max {}",
+                    Self::OVERHEAD_DEFAULT,
+                    Self::OVERHEAD_MIN,
+                    Self::OVERHEAD_MAX
+                );
+                send_uci_option!(
+                    "Hash",
+                    "spin",
+                    "default {} min {} max {}",
+                    Self::HASH_DEFAULT,
+                    Self::HASH_MIN,
+                    Self::HASH_MAX
+                );
+                send_uci_option!(
+                    "Threads",
+                    "spin",
+                    "default {} min {} max {}",
+                    Self::THREADS_DEFAULT,
+                    Self::THREADS_MIN,
+                    Self::THREADS_MAX
+                );
+
                 println!("uciok");
             }
             UciCommand::IsReady => println!("readyok"),
@@ -177,6 +236,10 @@ impl UciHandler {
                 thread::spawn(move || {
                     searcher.go(&board);
                 });
+            }
+            UciCommand::SetOptionOverhead(overhead) => {
+                self.time_manager =
+                    TimeManager::new(overhead.clamp(Self::OVERHEAD_MIN, Self::OVERHEAD_MAX));
             }
         }
     }

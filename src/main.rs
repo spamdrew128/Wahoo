@@ -2,6 +2,7 @@
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::module_name_repetitions)]
+#![allow(clippy::too_many_lines)]
 #![allow(dead_code)] // remove later
 
 mod attacks;
