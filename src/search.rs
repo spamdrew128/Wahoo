@@ -56,15 +56,15 @@ impl Searcher {
         } else if score <= -MATE_THRESHOLD {
             let ply = EVAL_MAX + score;
             let score_value = (ply + 1) / 2;
-            
+
             format!("mate -{score_value}")
         } else {
-            format!("{score}")
+            format!("cp {score}")
         };
 
         print!("info ");
         println!(
-            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth 0 pv {}",
+            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth 30 pv {}",
             self.node_count,
             elapsed.as_millis(),
             self.pv_table.pv_string()
