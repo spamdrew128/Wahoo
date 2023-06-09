@@ -24,6 +24,7 @@ pub struct Searcher {
     depth_limit: Option<Depth>,
     out_of_time: bool,
     node_count: Nodes,
+    seldepth: u8,
 }
 
 impl Searcher {
@@ -41,6 +42,7 @@ impl Searcher {
             depth_limit,
             out_of_time: false,
             node_count: 0,
+            seldepth: 0,
         }
     }
 
@@ -64,9 +66,10 @@ impl Searcher {
 
         print!("info ");
         println!(
-            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth 30 pv {}",
+            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} pv {}",
             self.node_count,
             elapsed.as_millis(),
+            self.seldepth,
             self.pv_table.pv_string()
         );
     }
@@ -87,6 +90,8 @@ impl Searcher {
 
         let mut best_move = MoveGenerator::first_legal_move(board).unwrap();
         while depth <= self.depth_limit.unwrap_or(MAX_DEPTH) {
+            self.seldepth = 0;
+
             let score = self.negamax(board, depth, 0, -INF, INF);
 
             if self.out_of_time {
@@ -114,10 +119,10 @@ impl Searcher {
         self.pv_table.set_length(ply);
 
         let is_root: bool = ply == 0;
+        let is_drawn: bool =
+            self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
 
-        if !is_root
-            && (self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw())
-        {
+        if !is_root && is_drawn {
             return 0;
         }
 
@@ -129,6 +134,8 @@ impl Searcher {
             self.out_of_time = true;
             return 0;
         }
+
+        self.seldepth = ply;
 
         let mut generator = MoveGenerator::new();
 
