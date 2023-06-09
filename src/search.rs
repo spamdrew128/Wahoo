@@ -127,7 +127,7 @@ impl Searcher {
         }
 
         if depth == 0 {
-            return evaluate(board);
+            return self.qsearch(board, ply, alpha, beta);
         }
 
         if (self.node_count % Self::TIMER_CHECK_FREQ == 0) && self.timer.is_expired() {
