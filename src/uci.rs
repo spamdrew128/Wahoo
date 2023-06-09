@@ -226,7 +226,7 @@ impl UciHandler {
             }
             UciCommand::SetoptionOverhead(overhead) => {
                 self.time_manager =
-                    TimeManager::new(overhead.clamp(Self::OVERHEAD_MIN, Self::OVERHEAD_MAX))
+                    TimeManager::new(overhead.clamp(Self::OVERHEAD_MIN, Self::OVERHEAD_MAX));
             }
         }
     }

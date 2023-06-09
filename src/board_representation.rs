@@ -835,8 +835,8 @@ impl Board {
     }
 
     pub fn simple_try_play_move(&mut self, mv: Move) -> bool {
-        let mut dummy_dd = ZobristStack::new(self);
-        self.try_play_move(mv, &mut dummy_dd)
+        let mut dummy = ZobristStack::new(self);
+        self.try_play_move(mv, &mut dummy)
     }
 
     pub const fn fifty_move_draw(&self) -> bool {
