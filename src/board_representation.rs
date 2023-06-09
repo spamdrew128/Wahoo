@@ -519,7 +519,7 @@ pub struct Board {
     pub color_to_move: Color,
     pub ep_sq: Option<Square>,
     pub castle_rights: CastleRights,
-    pub halfmoves: u32,
+    pub halfmoves: u16,
 }
 
 const fn fen_index_as_bitboard(i: u8) -> Bitboard {

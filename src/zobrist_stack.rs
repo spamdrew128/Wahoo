@@ -28,7 +28,7 @@ impl ZobristStack {
         self.zobrist_vec[len - 1]
     }
 
-    pub fn twofold_repetition(&self, halfmoves: u32) -> bool {
+    pub fn twofold_repetition(&self, halfmoves: u16) -> bool {
         if self.zobrist_vec.len() < 4 {
             return false;
         }
