@@ -162,13 +162,17 @@ impl MoveGenerator {
         self.generic_movegen(board, empty, Flag::NONE);
     }
 
-    pub fn next(&mut self, board: &Board) -> Option<Move> {
+    pub fn next<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
         while self.stage_complete() {
             self.advance_stage();
 
             match self.stage {
                 MoveStage::CAPTURE => self.generate_captures(board),
-                MoveStage::QUIET => self.generate_quiets(board),
+                MoveStage::QUIET => {
+                    if INCLUDE_QUIETS {
+                        self.generate_quiets(board);
+                    }
+                }
                 _ => return None,
             }
         }
@@ -178,7 +182,7 @@ impl MoveGenerator {
 
     pub fn first_legal_move(board: &Board) -> Option<Move> {
         let mut generator = Self::new();
-        while let Some(mv) = generator.next(board) {
+        while let Some(mv) = generator.next::<true>(board) {
             let mut new_board = (*board).clone();
             if new_board.simple_try_play_move(mv) {
                 return Some(mv);
@@ -203,7 +207,7 @@ mod tests {
         let mut ep_count = 0;
 
         let mut generator = MoveGenerator::new();
-        while let Some(mv) = generator.next(&board) {
+        while let Some(mv) = generator.next::<true>(&board) {
             if generator.stage == MoveStage::CAPTURE {
                 let piece = board.piece_on_sq(mv.from());
                 counts[piece.as_index()] += 1;
@@ -240,7 +244,7 @@ mod tests {
         let mut castle_count = 0;
 
         let mut generator = MoveGenerator::new();
-        while let Some(mv) = generator.next(&board) {
+        while let Some(mv) = generator.next::<true>(&board) {
             if generator.stage == MoveStage::QUIET {
                 let piece = board.piece_on_sq(mv.from());
                 counts[piece.as_index()] += 1;

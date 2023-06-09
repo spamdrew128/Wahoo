@@ -141,7 +141,7 @@ impl Searcher {
 
         let mut best_score = -INF;
         let mut moves_played = 0;
-        while let Some(mv) = generator.next(board) {
+        while let Some(mv) = generator.next::<true>(board) {
             let mut next_board = (*board).clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack);
             if !is_legal {
@@ -178,6 +178,64 @@ impl Searcher {
             } else {
                 0
             };
+        }
+
+        best_score
+    }
+
+    fn qsearch(
+        &mut self,
+        board: &Board,
+        ply: Ply,
+        mut alpha: EvalScore,
+        beta: EvalScore,
+    ) -> EvalScore {
+        if (self.node_count % Self::TIMER_CHECK_FREQ == 0) && self.timer.is_expired() {
+            self.out_of_time = true;
+            return 0;
+        }
+
+        self.seldepth = ply;
+
+        let stand_pat = evaluate(board);
+        if stand_pat >= beta {
+            return stand_pat;
+        }
+
+        if stand_pat > alpha {
+            alpha = stand_pat;
+        }
+
+        let mut generator = MoveGenerator::new();
+
+        let mut best_score = stand_pat;
+        while let Some(mv) = generator.next::<false>(board) {
+            let mut next_board = (*board).clone();
+            let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack);
+            if !is_legal {
+                continue;
+            }
+            if self.out_of_time {
+                return 0;
+            }
+            self.node_count += 1;
+
+            let score = -self.qsearch(&next_board, ply + 1, -beta, -alpha);
+
+            self.zobrist_stack.revert_state();
+
+            if score > best_score {
+                best_score = score;
+
+                if score >= beta {
+                    break;
+                }
+
+                if score > alpha {
+                    alpha = score;
+                    self.pv_table.update(ply, mv);
+                }
+            }
         }
 
         best_score
