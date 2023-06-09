@@ -20,7 +20,7 @@ enum UciCommand {
     UciNewGame,
     Position(String, Vec<String>),
     Go(Vec<String>),
-    SetoptionOverhead(Milliseconds),
+    SetOptionOverhead(Milliseconds),
 }
 
 pub struct UciHandler {
@@ -104,7 +104,7 @@ impl UciHandler {
                     let val = message[4];
 
                     match name {
-                        "Overhead" => self.process_command(UciCommand::SetoptionOverhead(
+                        "Overhead" => self.process_command(UciCommand::SetOptionOverhead(
                             val.parse::<Milliseconds>()
                                 .unwrap_or(Self::OVERHEAD_DEFAULT),
                         )),
@@ -237,7 +237,7 @@ impl UciHandler {
                     searcher.go(&board);
                 });
             }
-            UciCommand::SetoptionOverhead(overhead) => {
+            UciCommand::SetOptionOverhead(overhead) => {
                 self.time_manager =
                     TimeManager::new(overhead.clamp(Self::OVERHEAD_MIN, Self::OVERHEAD_MAX));
             }
