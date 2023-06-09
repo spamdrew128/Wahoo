@@ -45,15 +45,15 @@ impl Searcher {
     }
 
     fn report_search_info(&self, score: EvalScore, depth: Depth, stopwatch: Instant) {
-        let elapsed = stopwatch.elapsed().as_millis();
-        let nps =
-            (u128::from(self.node_count) * 1_000_000) / stopwatch.elapsed().as_micros().max(1);
-        let nodes = self.node_count;
-        let pv_str = self.pv_table.pv_string();
+        let elapsed = stopwatch.elapsed();
+        let nps = (u128::from(self.node_count) * 1_000_000) / elapsed.as_micros().max(1);
 
         print!("info ");
         println!(
-            "score cp {score} nodes {nodes} time {elapsed} nps {nps} depth {depth} pv{pv_str}"
+            "score cp {score} nodes {} time {} nps {nps} depth {depth} pv {}",
+            self.node_count,
+            elapsed.as_micros(),
+            self.pv_table.pv_string()
         );
     }
 
