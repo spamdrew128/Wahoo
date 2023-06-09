@@ -20,6 +20,7 @@ enum UciCommand {
     UciNewGame,
     Position(String, Vec<String>),
     Go(Vec<String>),
+    SetoptionOverhead(Milliseconds),
 }
 
 pub struct UciHandler {
@@ -54,7 +55,7 @@ impl UciHandler {
         Self {
             board,
             zobrist_stack,
-            time_manager: TimeManager::new(),
+            time_manager: TimeManager::new(Self::OVERHEAD_DEFAULT),
         }
     }
 
@@ -222,6 +223,10 @@ impl UciHandler {
                 thread::spawn(move || {
                     searcher.go(&board);
                 });
+            }
+            UciCommand::SetoptionOverhead(overhead) => {
+                self.time_manager =
+                    TimeManager::new(overhead.clamp(Self::OVERHEAD_MIN, Self::OVERHEAD_MAX))
             }
         }
     }

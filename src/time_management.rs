@@ -20,13 +20,10 @@ pub struct TimeManager {
 }
 
 impl TimeManager {
-    const OVERHEAD_DEFAULT: Milliseconds = 25;
     const MAX_TIME: Milliseconds = u128::MAX;
 
-    pub const fn new() -> Self {
-        Self {
-            overhead: Self::OVERHEAD_DEFAULT,
-        }
+    pub const fn new(overhead: Milliseconds) -> Self {
+        Self { overhead }
     }
 
     pub fn construct_search_timer(self, args: TimeArgs, color: Color) -> SearchTimer {
