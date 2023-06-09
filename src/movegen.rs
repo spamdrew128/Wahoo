@@ -1,6 +1,6 @@
 use crate::attacks;
 use crate::bitloop;
-use crate::board_representation::{Bitboard, Board, Piece, Square};
+use crate::board_representation::{Bitboard, Board, Piece, Square, NUM_PIECES};
 use crate::chess_move::{Flag, Move};
 use crate::tuple_constants_enum;
 
@@ -13,6 +13,28 @@ macro_rules! into_moves {
             });
         });
     }};
+}
+
+const MVV_LVA: [[i16; (NUM_PIECES - 1) as usize]; (NUM_PIECES - 1) as usize] = {
+    let mut a = 0;
+    let mut v = 0;
+
+    let scores: [i16; (NUM_PIECES - 1) as usize] = [3, 4, 5, 9, 1];
+    let mut result: [[i16; (NUM_PIECES - 1) as usize]; (NUM_PIECES - 1) as usize] = [[0; (NUM_PIECES - 1) as usize]; (NUM_PIECES - 1) as usize];
+
+    while a < (NUM_PIECES - 1) as usize {
+        while v < (NUM_PIECES - 1) as usize {
+            result[a][v] = scores[a] - scores[v];
+            v += 1;
+        }
+        a += 1;
+    }
+
+    result
+};
+
+fn mvv_lva(attacker: Piece, victim: Piece) -> i16 {
+    MVV_LVA[attacker.as_index()][victim.as_index()]
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -210,8 +232,6 @@ impl MoveGenerator {
 
 #[cfg(test)]
 mod tests {
-    use crate::board_representation::NUM_PIECES;
-
     #[test]
     fn generates_captures() {
         use super::*;
