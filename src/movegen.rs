@@ -35,10 +35,25 @@ impl MoveStage {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+struct MoveElement {
+    mv: Move,
+    score: i16,
+}
+
+impl MoveElement {
+    const fn new() -> Self {
+        Self {
+            mv: Move::nullmove(),
+            score: 0,
+        }
+    }
+}
+
 const MOVE_LIST_SIZE: usize = u8::MAX as usize;
 pub struct MoveGenerator {
     stage: MoveStage,
-    movelist: [Move; MOVE_LIST_SIZE],
+    movelist: [MoveElement; MOVE_LIST_SIZE],
     len: usize,
     index: usize,
 }
@@ -47,7 +62,7 @@ impl MoveGenerator {
     pub const fn new() -> Self {
         Self {
             stage: MoveStage::START,
-            movelist: [Move::nullmove(); MOVE_LIST_SIZE],
+            movelist: [MoveElement::new(); MOVE_LIST_SIZE],
             len: 0,
             index: 0,
         }
@@ -64,14 +79,14 @@ impl MoveGenerator {
     }
 
     fn add_move(&mut self, mv: Move) {
-        self.movelist[self.len] = mv;
+        self.movelist[self.len].mv = mv;
         self.len += 1;
     }
 
     fn next_move_in_stage(&mut self) -> Move {
-        let mv = self.movelist[self.index];
+        let elem = self.movelist[self.index];
         self.index += 1;
-        mv
+        elem.mv
     }
 
     fn generic_movegen(&mut self, board: &Board, filter: Bitboard, flag: Flag) {
