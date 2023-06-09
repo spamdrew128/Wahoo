@@ -66,8 +66,8 @@ impl UciHandler {
             .expect("UCI Input Failure");
 
         let message = buffer.split_whitespace().collect::<Vec<&str>>();
-        if let Some(cmd) = message.first() {
-            match *cmd {
+        if let Some(&cmd) = message.first() {
+            match cmd {
                 "uci" => self.process_command(UciCommand::Uci),
                 "isready" => self.process_command(UciCommand::IsReady),
                 "position" => {
@@ -85,8 +85,8 @@ impl UciHandler {
 
                     let mut mv_vec: Vec<String> = vec![];
                     if i < message.len() {
-                        for mv_str in &message[i..] {
-                            mv_vec.push((*mv_str).to_string());
+                        for &mv_str in &message[i..] {
+                            mv_vec.push((mv_str).to_string());
                         }
                     }
 
@@ -98,6 +98,19 @@ impl UciHandler {
                         arg_vec.push((*arg).to_string());
                     }
                     self.process_command(UciCommand::Go(arg_vec));
+                }
+                "setoption" => {
+                    let name = message[2];
+                    let val = message[4];
+
+                    match name {
+                        "Overhead" => self.process_command(UciCommand::SetoptionOverhead(
+                            val.parse::<Milliseconds>()
+                                .unwrap_or(Self::OVERHEAD_DEFAULT),
+                        )),
+                        "clippy shut up" => todo!(), // replace with hash and threads later
+                        _ => (),
+                    }
                 }
                 "quit" => return ProgramStatus::Quit,
                 _ => (),
