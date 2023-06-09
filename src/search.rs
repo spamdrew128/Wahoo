@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use crate::{
     board_representation::Board,
-    evaluation::{evaluate, EvalScore, EVAL_MAX, INF},
+    evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     movegen::MoveGenerator,
     pv_table::PvTable,
     time_management::SearchTimer,
@@ -24,6 +24,7 @@ pub struct Searcher {
     depth_limit: Option<Depth>,
     out_of_time: bool,
     node_count: Nodes,
+    seldepth: u8,
 }
 
 impl Searcher {
@@ -41,19 +42,35 @@ impl Searcher {
             depth_limit,
             out_of_time: false,
             node_count: 0,
+            seldepth: 0,
         }
     }
 
     fn report_search_info(&self, score: EvalScore, depth: Depth, stopwatch: Instant) {
-        let elapsed = stopwatch.elapsed().as_millis();
-        let nps =
-            (u128::from(self.node_count) * 1_000_000) / stopwatch.elapsed().as_micros().max(1);
-        let nodes = self.node_count;
-        let pv_str = self.pv_table.pv_string();
+        let elapsed = stopwatch.elapsed();
+        let nps = (u128::from(self.node_count) * 1_000_000) / elapsed.as_micros().max(1);
+
+        let score_str = if score >= MATE_THRESHOLD {
+            let ply = EVAL_MAX - score;
+            let score_value = (ply + 1) / 2;
+
+            format!("mate {score_value}")
+        } else if score <= -MATE_THRESHOLD {
+            let ply = EVAL_MAX + score;
+            let score_value = (ply + 1) / 2;
+
+            format!("mate -{score_value}")
+        } else {
+            format!("cp {score}")
+        };
 
         print!("info ");
         println!(
-            "score cp {score} nodes {nodes} time {elapsed} nps {nps} depth {depth} pv{pv_str}"
+            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} pv {}",
+            self.node_count,
+            elapsed.as_millis(),
+            self.seldepth,
+            self.pv_table.pv_string()
         );
     }
 
@@ -73,6 +90,8 @@ impl Searcher {
 
         let mut best_move = MoveGenerator::first_legal_move(board).unwrap();
         while depth <= self.depth_limit.unwrap_or(MAX_DEPTH) {
+            self.seldepth = 0;
+
             let score = self.negamax(board, depth, 0, -INF, INF);
 
             if self.out_of_time {
@@ -100,10 +119,10 @@ impl Searcher {
         self.pv_table.set_length(ply);
 
         let is_root: bool = ply == 0;
+        let is_drawn: bool =
+            self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
 
-        if !is_root
-            && (self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw())
-        {
+        if !is_root && is_drawn {
             return 0;
         }
 
@@ -115,6 +134,8 @@ impl Searcher {
             self.out_of_time = true;
             return 0;
         }
+
+        self.seldepth = ply;
 
         let mut generator = MoveGenerator::new();
 
