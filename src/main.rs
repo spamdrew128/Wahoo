@@ -12,6 +12,7 @@ mod evaluation;
 mod magic;
 mod movegen;
 mod perft;
+mod pv_table;
 mod search;
 mod time_management;
 mod uci;

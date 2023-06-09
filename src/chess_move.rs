@@ -1,4 +1,7 @@
-use crate::{board_representation::{Board, Piece, Square}, attacks};
+use crate::{
+    attacks,
+    board_representation::{Board, Piece, Square},
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Flag(u16);

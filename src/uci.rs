@@ -160,7 +160,7 @@ impl UciHandler {
                                 depth_limit = Some(limit);
                                 time_args.infinite_mode = true;
                             }
-                        },
+                        }
                         _ => (),
                     }
                 }
@@ -169,7 +169,8 @@ impl UciHandler {
                     .time_manager
                     .construct_search_timer(time_args, self.board.color_to_move);
 
-                let mut searcher = Searcher::new(search_timer, self.zobrist_stack.clone(), depth_limit);
+                let mut searcher =
+                    Searcher::new(search_timer, self.zobrist_stack.clone(), depth_limit);
 
                 let board = self.board.clone();
 
