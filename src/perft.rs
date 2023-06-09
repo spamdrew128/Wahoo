@@ -12,7 +12,6 @@ impl PerftTest {
     }
 }
 
-#[allow(clippy::too_many_lines)]
 #[rustfmt::skip]
 pub fn test_postions() -> Vec<PerftTest> {
     vec![
