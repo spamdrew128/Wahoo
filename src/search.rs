@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use crate::{
     board_representation::Board,
-    evaluation::{evaluate, EvalScore, EVAL_MAX, INF},
+    evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     movegen::MoveGenerator,
     pv_table::PvTable,
     time_management::SearchTimer,
@@ -48,11 +48,25 @@ impl Searcher {
         let elapsed = stopwatch.elapsed();
         let nps = (u128::from(self.node_count) * 1_000_000) / elapsed.as_micros().max(1);
 
+        let score_str = if score >= MATE_THRESHOLD {
+            let ply = EVAL_MAX - score;
+            let score_value = (ply + 1) / 2;
+
+            format!("mate {score_value}")
+        } else if score <= -MATE_THRESHOLD {
+            let ply = EVAL_MAX + score;
+            let score_value = (ply + 1) / 2;
+            
+            format!("mate -{score_value}")
+        } else {
+            format!("{score}")
+        };
+
         print!("info ");
         println!(
-            "score cp {score} nodes {} time {} nps {nps} depth {depth} pv {}",
+            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth 0 pv {}",
             self.node_count,
-            elapsed.as_micros(),
+            elapsed.as_millis(),
             self.pv_table.pv_string()
         );
     }

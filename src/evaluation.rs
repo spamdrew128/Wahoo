@@ -1,11 +1,13 @@
 use crate::{
     bitloop,
     board_representation::{Board, Color, Piece, Square, NUM_PIECES},
+    search::MAX_PLY,
 };
 
 pub type EvalScore = i16;
 pub const INF: EvalScore = i16::MAX - 10;
 pub const EVAL_MAX: EvalScore = INF - 1;
+pub const MATE_THRESHOLD: EvalScore = EVAL_MAX - (MAX_PLY as i16);
 
 const PIECE_VALUES: [EvalScore; NUM_PIECES as usize] = [300, 320, 500, 900, 100, 0];
 
