@@ -233,7 +233,6 @@ impl Searcher {
 
                 if score > alpha {
                     alpha = score;
-                    self.pv_table.update(ply, mv);
                 }
             }
         }
