@@ -106,10 +106,21 @@ impl MoveGenerator {
         self.len += 1;
     }
 
-    fn next_move_in_stage(&mut self) -> Move {
-        let elem = self.movelist[self.index];
+    fn pick_move(&mut self) -> Move {
+        let mut best_index = self.index;
+        let mut best_score = self.movelist[self.index].score;
+        for i in self.index..self.len {
+            let score = self.movelist[i].score;
+            if score > best_score {
+                best_score = score;
+                best_index = i;
+            }
+        }
+
+        let mv = self.movelist[best_index].mv;
+        self.movelist.swap(self.index, best_index);
         self.index += 1;
-        elem.mv
+        mv
     }
 
     fn generic_movegen(&mut self, board: &Board, filter: Bitboard, flag: Flag) {
@@ -226,7 +237,7 @@ impl MoveGenerator {
             }
         }
 
-        Some(self.next_move_in_stage())
+        Some(self.pick_move())
     }
 
     pub fn first_legal_move(board: &Board) -> Option<Move> {
