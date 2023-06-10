@@ -1,6 +1,6 @@
 use crate::attacks;
 use crate::bitloop;
-use crate::board_representation::{Bitboard, Board, Piece, Square};
+use crate::board_representation::{Bitboard, Board, Piece, Square, NUM_PIECES};
 use crate::chess_move::{Flag, Move};
 use crate::tuple_constants_enum;
 
@@ -13,6 +13,29 @@ macro_rules! into_moves {
             });
         });
     }};
+}
+
+const MVV_LVA: [[i16; (NUM_PIECES + 1) as usize]; (NUM_PIECES + 1) as usize] = {
+    // knight, bishop, rook, queen, pawn, king, none (for en passant)
+    let scores: [i16; (NUM_PIECES + 1) as usize] = [3, 4, 5, 9, 1, 0, 1];
+    let mut result: [[i16; (NUM_PIECES + 1) as usize]; (NUM_PIECES + 1) as usize] =
+        [[0; (NUM_PIECES + 1) as usize]; (NUM_PIECES + 1) as usize];
+
+    let mut a = 0;
+    while a < (NUM_PIECES + 1) as usize {
+        let mut v = 0;
+        while v < (NUM_PIECES + 1) as usize {
+            result[a][v] = scores[v] - scores[a];
+            v += 1;
+        }
+        a += 1;
+    }
+
+    result
+};
+
+const fn mvv_lva(attacker: Piece, victim: Piece) -> i16 {
+    MVV_LVA[attacker.as_index()][victim.as_index()]
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -35,10 +58,25 @@ impl MoveStage {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+struct MoveElement {
+    mv: Move,
+    score: i16,
+}
+
+impl MoveElement {
+    const fn new() -> Self {
+        Self {
+            mv: Move::nullmove(),
+            score: 0,
+        }
+    }
+}
+
 const MOVE_LIST_SIZE: usize = u8::MAX as usize;
 pub struct MoveGenerator {
     stage: MoveStage,
-    movelist: [Move; MOVE_LIST_SIZE],
+    movelist: [MoveElement; MOVE_LIST_SIZE],
     len: usize,
     index: usize,
 }
@@ -47,7 +85,7 @@ impl MoveGenerator {
     pub const fn new() -> Self {
         Self {
             stage: MoveStage::START,
-            movelist: [Move::nullmove(); MOVE_LIST_SIZE],
+            movelist: [MoveElement::new(); MOVE_LIST_SIZE],
             len: 0,
             index: 0,
         }
@@ -64,12 +102,23 @@ impl MoveGenerator {
     }
 
     fn add_move(&mut self, mv: Move) {
-        self.movelist[self.len] = mv;
+        self.movelist[self.len].mv = mv;
         self.len += 1;
     }
 
-    fn next_move_in_stage(&mut self) -> Move {
-        let mv = self.movelist[self.index];
+    fn pick_move(&mut self) -> Move {
+        let mut best_index = self.index;
+        let mut best_score = self.movelist[self.index].score;
+        for i in (self.index + 1)..self.len {
+            let score = self.movelist[i].score;
+            if score > best_score {
+                best_score = score;
+                best_index = i;
+            }
+        }
+
+        let mv = self.movelist[best_index].mv;
+        self.movelist.swap(self.index, best_index);
         self.index += 1;
         mv
     }
@@ -162,12 +211,23 @@ impl MoveGenerator {
         self.generic_movegen(board, empty, Flag::NONE);
     }
 
+    fn score_captures(&mut self, board: &Board) {
+        for elem in self.movelist.iter_mut().take(self.len) {
+            let attacker = board.piece_on_sq(elem.mv.from());
+            let victim = board.piece_on_sq(elem.mv.to());
+            elem.score = mvv_lva(attacker, victim);
+        }
+    }
+
     pub fn next<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
         while self.stage_complete() {
             self.advance_stage();
 
             match self.stage {
-                MoveStage::CAPTURE => self.generate_captures(board),
+                MoveStage::CAPTURE => {
+                    self.generate_captures(board);
+                    self.score_captures(board);
+                }
                 MoveStage::QUIET => {
                     if INCLUDE_QUIETS {
                         self.generate_quiets(board);
@@ -177,7 +237,7 @@ impl MoveGenerator {
             }
         }
 
-        Some(self.next_move_in_stage())
+        Some(self.pick_move())
     }
 
     pub fn first_legal_move(board: &Board) -> Option<Move> {
@@ -195,8 +255,6 @@ impl MoveGenerator {
 
 #[cfg(test)]
 mod tests {
-    use crate::board_representation::NUM_PIECES;
-
     #[test]
     fn generates_captures() {
         use super::*;
