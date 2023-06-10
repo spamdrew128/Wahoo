@@ -15,17 +15,16 @@ macro_rules! into_moves {
     }};
 }
 
-const MVV_LVA: [[i16; (NUM_PIECES - 1) as usize]; (NUM_PIECES - 1) as usize] = {
+const MVV_LVA: [[i16; (NUM_PIECES + 1) as usize]; (NUM_PIECES + 1) as usize] = {
+    // knight, bishop, rook, queen, pawn, king, none (for en passant)
+    let scores: [i16; (NUM_PIECES + 1) as usize] = [3, 4, 5, 9, 1, 0, 1];
+    let mut result: [[i16; (NUM_PIECES + 1) as usize]; (NUM_PIECES + 1) as usize] =
+        [[0; (NUM_PIECES + 1) as usize]; (NUM_PIECES + 1) as usize];
+
     let mut a = 0;
-    let mut v = 0;
-
-    // knight, bishop, rook, queen, pawn
-    let scores: [i16; (NUM_PIECES - 1) as usize] = [3, 4, 5, 9, 1];
-    let mut result: [[i16; (NUM_PIECES - 1) as usize]; (NUM_PIECES - 1) as usize] =
-        [[0; (NUM_PIECES - 1) as usize]; (NUM_PIECES - 1) as usize];
-
-    while a < (NUM_PIECES - 1) as usize {
-        while v < (NUM_PIECES - 1) as usize {
+    while a < (NUM_PIECES + 1) as usize {
+        let mut v = 0;
+        while v < (NUM_PIECES + 1) as usize {
             result[a][v] = scores[a] - scores[v];
             v += 1;
         }
@@ -201,12 +200,23 @@ impl MoveGenerator {
         self.generic_movegen(board, empty, Flag::NONE);
     }
 
+    fn score_captures(&mut self, board: &Board) {
+        for elem in self.movelist.as_mut() {
+            let attacker = board.piece_on_sq(elem.mv.from());
+            let victim = board.piece_on_sq(elem.mv.to());
+            elem.score = mvv_lva(attacker, victim);
+        }
+    }
+
     pub fn next<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
         while self.stage_complete() {
             self.advance_stage();
 
             match self.stage {
-                MoveStage::CAPTURE => self.generate_captures(board),
+                MoveStage::CAPTURE => {
+                    self.generate_captures(board);
+                    self.score_captures(board);
+                }
                 MoveStage::QUIET => {
                     if INCLUDE_QUIETS {
                         self.generate_quiets(board);
