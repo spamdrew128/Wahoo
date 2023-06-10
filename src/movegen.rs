@@ -109,7 +109,7 @@ impl MoveGenerator {
     fn pick_move(&mut self) -> Move {
         let mut best_index = self.index;
         let mut best_score = self.movelist[self.index].score;
-        for i in self.index..self.len {
+        for i in (self.index + 1)..self.len {
             let score = self.movelist[i].score;
             if score > best_score {
                 best_score = score;
