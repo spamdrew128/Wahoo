@@ -25,7 +25,7 @@ const MVV_LVA: [[i16; (NUM_PIECES + 1) as usize]; (NUM_PIECES + 1) as usize] = {
     while a < (NUM_PIECES + 1) as usize {
         let mut v = 0;
         while v < (NUM_PIECES + 1) as usize {
-            result[a][v] = scores[a] - scores[v];
+            result[a][v] = scores[v] - scores[a];
             v += 1;
         }
         a += 1;
