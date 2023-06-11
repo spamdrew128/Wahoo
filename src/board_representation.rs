@@ -760,11 +760,12 @@ impl Board {
         self.toggle(mask, captured_piece, self.color_to_move.flip());
     }
 
-    const fn ep_sq_after_double_push(&self, to_sq: Square) -> Option<Square> {
+    const fn ep_sq_after_double_push(&self, to_sq: Square, hash_base: &mut ZobristHash) -> Option<Square> {
         let ep_sq = to_sq.retreat(1, self.color_to_move);
         let opp_pawns = self.piece_bb(Piece::PAWN, self.color_to_move.flip());
 
         if attacks::pawn(ep_sq, self.color_to_move).overlaps(opp_pawns) {
+            hash_base.hash_ep(ep_sq);
             Some(ep_sq)
         } else {
             None
@@ -773,7 +774,7 @@ impl Board {
 
     #[rustfmt::skip]
     #[doc="returns success: bool"]
-    pub fn try_play_move(&mut self, mv: Move, zobrist_stack: &mut ZobristStack) -> bool {
+    pub fn try_play_move(&mut self, mv: Move, zobrist_stack: &mut ZobristStack, mut hash_base: ZobristHash) -> bool {
         let color = self.color_to_move;
         let opp_color = color.flip();
 
@@ -796,7 +797,13 @@ impl Board {
             Piece::NONE
         };
 
+        if captured_piece != Piece::NONE {
+            hash_base.hash_piece(opp_color, captured_piece, to_sq);
+        }
+
         self.toggle(from_bb | to_bb, piece, color);
+        hash_base.hash_piece(color, piece, from_sq);
+        hash_base.hash_piece(color, piece, to_sq);
 
         self.ep_sq = None;
 
@@ -804,7 +811,7 @@ impl Board {
         match flag {
             Flag::NONE => (),
             Flag::CAPTURE => self.toggle(to_bb, captured_piece, opp_color),
-            Flag::DOUBLE_PUSH => self.ep_sq = self.ep_sq_after_double_push(to_sq),
+            Flag::DOUBLE_PUSH => self.ep_sq = self.ep_sq_after_double_push(to_sq, &mut hash_base),
             Flag::KS_CASTLE => self.toggle(from_bb.shift_east(1) | from_bb.shift_east(3), Piece::ROOK, color),
             Flag::QS_CASTLE => self.toggle(from_bb.shift_west(1) | from_bb.shift_west(4), Piece::ROOK, color),
             Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN),
@@ -816,8 +823,8 @@ impl Board {
             Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK),
             Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::ROOK),
             Flag::EP => {
-                let ep_bb = to_sq.retreat(1, color).as_bitboard();
-                self.toggle(ep_bb, Piece::PAWN, opp_color);
+                let ep_sq = to_sq.retreat(1, color);
+                self.toggle(ep_sq.as_bitboard(), Piece::PAWN, opp_color);
             }
             _ => panic!("Invalid Move!"),
         }
@@ -835,8 +842,9 @@ impl Board {
     }
 
     pub fn simple_try_play_move(&mut self, mv: Move) -> bool {
-        let mut dummy = ZobristStack::new(self);
-        self.try_play_move(mv, &mut dummy)
+        let mut dummy_stack = ZobristStack::new(self);
+        let dummy_base = ZobristHash::incremental_update_base(self);
+        self.try_play_move(mv, &mut dummy_stack, dummy_base)
     }
 
     pub const fn fifty_move_draw(&self) -> bool {

@@ -20,15 +20,15 @@ const ZOBRIST_KEYS: ZobristKeys = include!(concat!(env!("OUT_DIR"), "/zobrist_ke
 pub struct ZobristHash(u64);
 
 impl ZobristHash {
-    fn hash_piece(&mut self, color: Color, piece: Piece, sq: Square) {
+    pub fn hash_piece(&mut self, color: Color, piece: Piece, sq: Square) {
         self.0 ^= ZOBRIST_KEYS.pieces[color.as_index()][piece.as_index()][sq.as_index()];
     }
 
-    fn hash_castling(&mut self, castle_rights: CastleRights) {
+    pub fn hash_castling(&mut self, castle_rights: CastleRights) {
         self.0 ^= ZOBRIST_KEYS.castling[castle_rights.as_index()];
     }
 
-    fn hash_ep(&mut self, ep_sq: Square) {
+    pub fn hash_ep(&mut self, ep_sq: Square) {
         self.0 ^= ZOBRIST_KEYS.ep_file[ep_sq.file() as usize];
     }
 
