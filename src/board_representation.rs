@@ -745,9 +745,11 @@ impl Board {
         self.pieces[piece.as_index()] ^= mask;
     }
 
-    fn toggle_promotion(&mut self, mask: Bitboard, promo_piece: Piece) {
+    fn toggle_promotion(&mut self, mask: Bitboard, promo_piece: Piece, hash_base: &mut ZobristHash, to_sq: Square) {
         self.pieces[Piece::PAWN.as_index()] ^= mask;
         self.pieces[promo_piece.as_index()] ^= mask;
+        hash_base.hash_piece(self.color_to_move, Piece::PAWN, to_sq);
+        hash_base.hash_piece(self.color_to_move, promo_piece, to_sq);
     }
 
     fn toggle_capture_promotion(
@@ -755,8 +757,10 @@ impl Board {
         mask: Bitboard,
         captured_piece: Piece,
         promo_piece: Piece,
+        hash_base: &mut ZobristHash,
+        to_sq: Square
     ) {
-        self.toggle_promotion(mask, promo_piece);
+        self.toggle_promotion(mask, promo_piece, hash_base, to_sq);
         self.toggle(mask, captured_piece, self.color_to_move.flip());
     }
 
@@ -830,17 +834,18 @@ impl Board {
                 hash_base.hash_piece(color, Piece::ROOK, rook_to);
                 hash_base.hash_piece(color, Piece::ROOK, rook_from);
             }
-            Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN),
-            Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::QUEEN),
-            Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT),
-            Flag::KNIGHT_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::KNIGHT),
-            Flag::BISHOP_PROMO => self.toggle_promotion(to_bb, Piece::BISHOP),
-            Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::BISHOP),
-            Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK),
-            Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::ROOK),
+            Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN, &mut hash_base, to_sq),
+            Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::QUEEN, &mut hash_base, to_sq),
+            Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT, &mut hash_base, to_sq),
+            Flag::KNIGHT_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::KNIGHT, &mut hash_base, to_sq),
+            Flag::BISHOP_PROMO => self.toggle_promotion(to_bb, Piece::BISHOP, &mut hash_base, to_sq),
+            Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::BISHOP, &mut hash_base, to_sq),
+            Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK, &mut hash_base, to_sq),
+            Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::ROOK, &mut hash_base, to_sq),
             Flag::EP => {
                 let ep_sq = to_sq.retreat(1, color);
                 self.toggle(ep_sq.as_bitboard(), Piece::PAWN, opp_color);
+                hash_base.hash_piece(opp_color, Piece::PAWN, ep_sq);
             }
             _ => panic!("Invalid Move!"),
         }
