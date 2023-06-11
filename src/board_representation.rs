@@ -760,7 +760,11 @@ impl Board {
         self.toggle(mask, captured_piece, self.color_to_move.flip());
     }
 
-    const fn ep_sq_after_double_push(&self, to_sq: Square, hash_base: &mut ZobristHash) -> Option<Square> {
+    fn ep_sq_after_double_push(
+        &self,
+        to_sq: Square,
+        hash_base: &mut ZobristHash,
+    ) -> Option<Square> {
         let ep_sq = to_sq.retreat(1, self.color_to_move);
         let opp_pawns = self.piece_bb(Piece::PAWN, self.color_to_move.flip());
 
@@ -834,6 +838,8 @@ impl Board {
         }
 
         self.castle_rights.update(mv);
+        hash_base.hash_castling(self.castle_rights);
+
         self.color_to_move = self.color_to_move.flip();
 
         zobrist_stack.add_hash(ZobristHash::complete(self));
