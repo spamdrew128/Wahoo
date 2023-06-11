@@ -3,6 +3,7 @@ use crate::{
     chess_move::Move,
     search::{Depth, Searcher},
     time_management::{Milliseconds, TimeArgs, TimeManager},
+    zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
 
@@ -160,8 +161,9 @@ impl UciHandler {
                 let mut new_zobrist_stack = ZobristStack::new(&new_board);
 
                 for mv_str in move_vec {
+                    let hash_base = ZobristHash::incremental_update_base(&new_board);
                     let mv = Move::from_string(mv_str.as_str(), &new_board);
-                    let success = new_board.try_play_move(mv, &mut new_zobrist_stack);
+                    let success = new_board.try_play_move(mv, &mut new_zobrist_stack, hash_base);
                     if !success {
                         return;
                     }

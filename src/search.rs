@@ -6,6 +6,7 @@ use crate::{
     movegen::MoveGenerator,
     pv_table::PvTable,
     time_management::SearchTimer,
+    zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
 
@@ -137,13 +138,15 @@ impl Searcher {
 
         self.seldepth = ply;
 
+        let hash_base = ZobristHash::incremental_update_base(board);
+
         let mut generator = MoveGenerator::new();
 
         let mut best_score = -INF;
         let mut moves_played = 0;
         while let Some(mv) = generator.next::<true>(board) {
             let mut next_board = (*board).clone();
-            let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack);
+            let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
             if !is_legal {
                 continue;
             }
@@ -206,12 +209,14 @@ impl Searcher {
             alpha = stand_pat;
         }
 
+        let hash_base = ZobristHash::incremental_update_base(board);
+
         let mut generator = MoveGenerator::new();
 
         let mut best_score = stand_pat;
         while let Some(mv) = generator.next::<false>(board) {
             let mut next_board = (*board).clone();
-            let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack);
+            let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
             if !is_legal {
                 continue;
             }
