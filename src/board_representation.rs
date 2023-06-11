@@ -842,7 +842,9 @@ impl Board {
 
         self.color_to_move = self.color_to_move.flip();
 
-        zobrist_stack.add_hash(ZobristHash::complete(self));
+        zobrist_stack.add_hash(hash_base);
+
+        debug_assert_eq!(zobrist_stack.current_zobrist_hash().combine(hash_base), ZobristHash::complete(self));
 
         true
     }

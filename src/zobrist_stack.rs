@@ -12,8 +12,9 @@ impl ZobristStack {
         }
     }
 
-    pub fn add_hash(&mut self, hash: ZobristHash) {
-        self.zobrist_vec.push(hash);
+    pub fn add_hash(&mut self, hash_base: ZobristHash) {
+        let new_hash = self.current_zobrist_hash().combine(hash_base);
+        self.zobrist_vec.push(new_hash);
     }
 
     pub fn revert_state(&mut self) {

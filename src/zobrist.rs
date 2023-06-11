@@ -32,6 +32,10 @@ impl ZobristHash {
         self.0 ^= ZOBRIST_KEYS.ep_file[ep_sq.file() as usize];
     }
 
+    pub const fn combine(self, rhs: Self) -> Self {
+        Self(self.0 ^ rhs.0)
+    }
+
     pub fn complete(board: &Board) -> Self {
         let mut hash = if board.color_to_move == Color::Black {
             Self(ZOBRIST_KEYS.black_to_move)
