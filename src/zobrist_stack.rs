@@ -58,21 +58,21 @@ mod tests {
         use crate::{board_representation::Square, chess_move::Move};
 
         let mut board = Board::from_fen(START_FEN);
-        let mut detector = ZobristStack::new(&board);
+        let mut zobrist_stack = ZobristStack::new(&board);
 
         let w_knight_out = Move::new(Square::F3, Square::G1, Flag::NONE);
         let b_knight_out = Move::new(Square::F6, Square::G8, Flag::NONE);
         let w_knight_back = Move::new(Square::G1, Square::F3, Flag::NONE);
         let b_knight_back = Move::new(Square::G8, Square::F6, Flag::NONE);
 
-        board.try_play_move(w_knight_out, &mut detector);
-        board.try_play_move(b_knight_out, &mut detector);
-        board.try_play_move(w_knight_back, &mut detector);
+        board.try_play_move(w_knight_out, &mut zobrist_stack);
+        board.try_play_move(b_knight_out, &mut zobrist_stack);
+        board.try_play_move(w_knight_back, &mut zobrist_stack);
 
-        assert!(!detector.twofold_repetition(board.halfmoves));
+        assert!(!zobrist_stack.twofold_repetition(board.halfmoves));
 
-        board.try_play_move(b_knight_back, &mut detector);
+        board.try_play_move(b_knight_back, &mut zobrist_stack);
 
-        assert!(detector.twofold_repetition(board.halfmoves));
+        assert!(zobrist_stack.twofold_repetition(board.halfmoves));
     }
 }
