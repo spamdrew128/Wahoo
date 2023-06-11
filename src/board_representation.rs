@@ -816,8 +816,20 @@ impl Board {
             Flag::NONE => (),
             Flag::CAPTURE => self.toggle(to_bb, captured_piece, opp_color),
             Flag::DOUBLE_PUSH => self.ep_sq = self.ep_sq_after_double_push(to_sq, &mut hash_base),
-            Flag::KS_CASTLE => self.toggle(from_bb.shift_east(1) | from_bb.shift_east(3), Piece::ROOK, color),
-            Flag::QS_CASTLE => self.toggle(from_bb.shift_west(1) | from_bb.shift_west(4), Piece::ROOK, color),
+            Flag::KS_CASTLE => {
+                let rook_to = from_sq.right(1);
+                let rook_from = from_sq.right(3);
+                self.toggle(rook_to.as_bitboard() | rook_from.as_bitboard(), Piece::ROOK, color);
+                hash_base.hash_piece(color, Piece::ROOK, rook_to);
+                hash_base.hash_piece(color, Piece::ROOK, rook_from);
+            }
+            Flag::QS_CASTLE => {
+                let rook_to = from_sq.left(1);
+                let rook_from = from_sq.left(4);
+                self.toggle(rook_to.as_bitboard() | rook_from.as_bitboard(), Piece::ROOK, color);
+                hash_base.hash_piece(color, Piece::ROOK, rook_to);
+                hash_base.hash_piece(color, Piece::ROOK, rook_from);
+            }
             Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN),
             Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::QUEEN),
             Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT),
