@@ -119,6 +119,7 @@ impl MoveGenerator {
 
         let mv = self.movelist[best_index].mv;
         self.movelist.swap(self.index, best_index);
+        // self.movelist[best_index] = self.movelist[self.index]; todo! replace line above with this later (1 less operation)
         self.index += 1;
         mv
     }
