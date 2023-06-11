@@ -1,6 +1,6 @@
 use crate::chess_move::Move;
 use crate::tuple_constants_enum;
-use crate::zobrist::hash_position;
+use crate::zobrist::ZobristHash;
 use crate::zobrist_stack::ZobristStack;
 use crate::{attacks, chess_move::Flag};
 use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
@@ -829,7 +829,7 @@ impl Board {
         self.castle_rights.update(mv);
         self.color_to_move = self.color_to_move.flip();
 
-        zobrist_stack.add_hash(hash_position(self));
+        zobrist_stack.add_hash(ZobristHash::complete(self));
 
         true
     }

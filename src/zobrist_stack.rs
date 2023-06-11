@@ -1,7 +1,4 @@
-use crate::{
-    board_representation::Board,
-    zobrist::{hash_position, ZobristHash},
-};
+use crate::{board_representation::Board, zobrist::ZobristHash};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ZobristStack {
@@ -11,7 +8,7 @@ pub struct ZobristStack {
 impl ZobristStack {
     pub fn new(board: &Board) -> Self {
         Self {
-            zobrist_vec: vec![hash_position(board)],
+            zobrist_vec: vec![ZobristHash::complete(board)],
         }
     }
 

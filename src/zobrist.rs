@@ -1,20 +1,13 @@
 use crate::{
     bitloop,
-    board_representation::{Board, Color, Piece, Square, NUM_COLORS, NUM_PIECES, NUM_SQUARES},
+    board_representation::{
+        Board, CastleRights, Color, Piece, Square, NUM_COLORS, NUM_PIECES, NUM_SQUARES,
+    },
 };
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ZobristHash(u64);
-
-impl ZobristHash {
-    pub const fn as_index(self) -> usize {
-        self.0 as usize
-    }
-}
 
 const NUM_CASTLING_CONFIGURATIONS: usize = 16;
 const NUM_FILES: usize = 8;
-pub struct ZobristKeys {
+struct ZobristKeys {
     pieces: [[[u64; NUM_SQUARES as usize]; NUM_PIECES as usize]; NUM_COLORS as usize],
     castling: [u64; NUM_CASTLING_CONFIGURATIONS],
     ep_file: [u64; NUM_FILES],
@@ -23,29 +16,58 @@ pub struct ZobristKeys {
 
 const ZOBRIST_KEYS: ZobristKeys = include!(concat!(env!("OUT_DIR"), "/zobrist_keys_init.rs"));
 
-pub fn hash_position(board: &Board) -> ZobristHash {
-    let mut hash: u64 = 0;
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct ZobristHash(u64);
 
-    for color in Color::LIST {
-        for piece in Piece::LIST {
-            let mut piece_bb = board.piece_bb(piece, color);
-            bitloop!(|sq|, piece_bb, {
-                hash ^= ZOBRIST_KEYS.pieces[color.as_index()][piece.as_index()][sq.as_index()];
-            });
+impl ZobristHash {
+    fn hash_piece(&mut self, color: Color, piece: Piece, sq: Square) {
+        self.0 ^= ZOBRIST_KEYS.pieces[color.as_index()][piece.as_index()][sq.as_index()];
+    }
+
+    fn hash_castling(&mut self, castle_rights: CastleRights) {
+        self.0 ^= ZOBRIST_KEYS.castling[castle_rights.as_index()];
+    }
+
+    fn hash_ep(&mut self, ep_sq: Square) {
+        self.0 ^= ZOBRIST_KEYS.ep_file[ep_sq.file() as usize];
+    }
+
+    pub fn complete(board: &Board) -> Self {
+        let mut hash = if board.color_to_move == Color::Black {
+            Self(ZOBRIST_KEYS.black_to_move)
+        } else {
+            Self(0)
+        };
+
+        for color in Color::LIST {
+            for piece in Piece::LIST {
+                let mut piece_bb = board.piece_bb(piece, color);
+                bitloop!(|sq|, piece_bb, {
+                    hash.hash_piece(color, piece, sq);
+                });
+            }
         }
+
+        hash.hash_castling(board.castle_rights);
+
+        if let Some(ep_sq) = board.ep_sq {
+            hash.hash_ep(ep_sq);
+        }
+
+        hash
     }
 
-    hash ^= ZOBRIST_KEYS.castling[board.castle_rights.as_index()];
+    pub const fn incremental_update_base(board: &Board) -> Self {
+        let mut hash: u64 = ZOBRIST_KEYS.black_to_move;
 
-    if let Some(ep_sq) = board.ep_sq {
-        hash ^= ZOBRIST_KEYS.ep_file[ep_sq.file() as usize];
+        hash ^= ZOBRIST_KEYS.castling[board.castle_rights.as_index()];
+
+        if let Some(ep_sq) = board.ep_sq {
+            hash ^= ZOBRIST_KEYS.ep_file[ep_sq.file() as usize];
+        }
+
+        Self(hash)
     }
-
-    if board.color_to_move == Color::White {
-        hash ^= ZOBRIST_KEYS.black_to_move;
-    }
-
-    ZobristHash(hash)
 }
 
 #[cfg(test)]
@@ -92,7 +114,7 @@ mod tests {
                 board_b.simple_try_play_move(Move::from_string(mv, &board_b));
             }
 
-            assert_eq!(hash_position(&board_a), hash_position(&board_b), "Test {}", i + 1);
+            assert_eq!(ZobristHash::complete(&board_a), ZobristHash::complete(&board_b), "Test {}", i + 1);
         }
     }
 }
