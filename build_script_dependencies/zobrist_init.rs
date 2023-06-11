@@ -35,7 +35,7 @@ pub fn zobrist_keys_init_string() -> String {
     table.push_str("ep_file: ");
     init_keys!(rng, table, NUM_FILES);
 
-    table.push_str(format!("side_to_move: [0, {:#x}],\n", rng.rand_u64()).as_str());
+    table.push_str(format!("black_to_move: {:#x},\n", rng.rand_u64()).as_str());
 
     table.push_str("}\n");
 

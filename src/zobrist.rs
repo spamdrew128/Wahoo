@@ -18,7 +18,7 @@ pub struct ZobristKeys {
     pieces: [[[u64; NUM_SQUARES as usize]; NUM_PIECES as usize]; NUM_COLORS as usize],
     castling: [u64; NUM_CASTLING_CONFIGURATIONS],
     ep_file: [u64; NUM_FILES],
-    side_to_move: [u64; NUM_COLORS as usize],
+    black_to_move: u64,
 }
 
 const ZOBRIST_KEYS: ZobristKeys = include!(concat!(env!("OUT_DIR"), "/zobrist_keys_init.rs"));
@@ -41,7 +41,9 @@ pub fn hash_position(board: &Board) -> ZobristHash {
         hash ^= ZOBRIST_KEYS.ep_file[ep_sq.file() as usize];
     }
 
-    hash ^= ZOBRIST_KEYS.side_to_move[board.color_to_move.as_index()];
+    if board.color_to_move == Color::White {
+        hash ^= ZOBRIST_KEYS.black_to_move;
+    }
 
     ZobristHash(hash)
 }
