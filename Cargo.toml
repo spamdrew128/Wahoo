@@ -2,6 +2,7 @@
 members = [
     "datagen",
     "engine",
+    "uci_loop",
     "tuning",
 ]
 

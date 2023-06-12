@@ -16,3 +16,10 @@ version = "0.1.0"
 [[package]]
 name = "tuning"
 version = "0.1.0"
+
+[[package]]
+name = "uci_loop"
+version = "0.1.0"
+dependencies = [
+ "engine",
+]
