@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "engine",
-    "tuner",
+    "tuning",
 ]
 
 [profile.release]

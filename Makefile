@@ -24,8 +24,8 @@ endif
 rule:
 	cargo rustc --release -p engine -- -C target-cpu=native --emit link=$(NAME)
 
-tuning:
-	cargo rustc --release -p tuner -- -C target-cpu=native --emit link=$(TUNER_NAME)
+tuner:
+	cargo rustc --release -p tuning -- -C target-cpu=native --emit link=$(TUNER_NAME)
 
 release:
 	cargo rustc --release -p engine -- -C target-cpu=x86-64 --emit link=$(V1NAME)
