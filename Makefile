@@ -35,5 +35,5 @@ release:
 
 clean:
 	cargo clean
-	$(RM_COMMAND) $(NAME) $(V1NAME) $(V2NAME) $(V3NAME) $(V4NAME) 
+	$(RM_COMMAND) $(NAME) $(V1NAME) $(V2NAME) $(V3NAME) $(V4NAME) $(TUNER_NAME)
 	
