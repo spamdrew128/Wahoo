@@ -50,6 +50,7 @@ impl UciHandler {
     const THREADS_MIN: u32 = 1;
     const THREADS_MAX: u32 = 1;
 
+    #[must_use]
     pub fn new() -> Self {
         let board = Board::from_fen(START_FEN);
         let zobrist_stack = ZobristStack::new(&board);
@@ -109,7 +110,6 @@ impl UciHandler {
                             val.parse::<Milliseconds>()
                                 .unwrap_or(Self::OVERHEAD_DEFAULT),
                         )),
-                        "clippy shut up" => todo!(), // replace with hash and threads later
                         _ => (),
                     }
                 }
