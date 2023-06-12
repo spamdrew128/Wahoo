@@ -1,4 +1,5 @@
 EXE = wahoo
+TUNER_EXE := tuner
 
 ifeq ($(OS),Windows_NT)
 	NAME := $(EXE).exe
@@ -6,6 +7,7 @@ ifeq ($(OS),Windows_NT)
 	V2NAME := $(EXE)-x86_64-win-v2.exe
 	V3NAME := $(EXE)-x86_64-win-v3.exe
 	V4NAME := $(EXE)-x86_64-win-v4.exe
+	TUNER_NAME := $(TUNER_EXE).exe
 
 	RM_COMMAND := del
 else
@@ -14,12 +16,16 @@ else
 	V2NAME := $(EXE)-x86_64-linux-v2
 	V3NAME := $(EXE)-x86_64-linux-v3
 	V4NAME := $(EXE)-x86_64-linux-v4
+	TUNER_NAME := $(TUNER_EXE)
 
 	RM_COMMAND := rm
 endif
 
 rule:
 	cargo rustc --release -p engine -- -C target-cpu=native --emit link=$(NAME)
+
+tuner:
+	cargo rustc --release -p tuner -- -C target-cpu=native --emit link=$(TUNER_NAME)
 
 release:
 	cargo rustc --release -p engine -- -C target-cpu=x86-64 --emit link=$(V1NAME)
