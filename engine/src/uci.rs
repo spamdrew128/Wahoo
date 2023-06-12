@@ -50,7 +50,6 @@ impl UciHandler {
     const THREADS_MIN: u32 = 1;
     const THREADS_MAX: u32 = 1;
 
-    #[must_use]
     pub fn new() -> Self {
         let board = Board::from_fen(START_FEN);
         let zobrist_stack = ZobristStack::new(&board);

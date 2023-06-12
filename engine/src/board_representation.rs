@@ -29,7 +29,6 @@ impl Color {
             Self::Black => Self::White,
         }
     }
-
     pub const fn as_index(self) -> usize {
         self as usize
     }
