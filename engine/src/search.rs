@@ -236,14 +236,16 @@ impl Searcher {
             if !is_legal {
                 continue;
             }
-            if self.out_of_time {
-                return 0;
-            }
+
             self.node_count += 1;
 
             let score = -self.qsearch(&next_board, ply + 1, -beta, -alpha);
 
             self.zobrist_stack.revert_state();
+
+            if self.out_of_time {
+                return 0;
+            }
 
             if score > best_score {
                 best_score = score;
