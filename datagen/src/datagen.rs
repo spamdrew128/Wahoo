@@ -16,19 +16,6 @@ use engine::{
 
 use crate::rng::Rng;
 
-pub struct DataGenerator {
-    rng: Rng,
-    games_played: u64,
-
-    board: Board,
-    zobrist_stack: ZobristStack,
-    time_manager: TimeManager,
-    time_args: TimeArgs,
-    depth_limit: Option<Depth>,
-
-    file: BufWriter<File>,
-}
-
 fn simple_qsearch(
     board: &Board,
     mut alpha: EvalScore,
@@ -67,8 +54,22 @@ fn simple_qsearch(
     best_score
 }
 
-fn pos_is_quiet(board: &Board, score: EvalScore) -> bool {
-    simple_qsearch(board, -INF, INF) == score
+fn pos_is_quiet(board: &Board) -> bool {
+    simple_qsearch(board, -INF, INF) == evaluate(board)
+}
+
+pub struct DataGenerator {
+    rng: Rng,
+    games_played: u64,
+    positions_written: u64,
+
+    board: Board,
+    zobrist_stack: ZobristStack,
+    time_manager: TimeManager,
+    time_args: TimeArgs,
+    depth_limit: Option<Depth>,
+
+    file: BufWriter<File>,
 }
 
 impl DataGenerator {
@@ -93,6 +94,7 @@ impl DataGenerator {
         Self {
             rng: Rng::new(),
             games_played: 0,
+            positions_written: 0,
             board: board.clone(),
             zobrist_stack: ZobristStack::new(&board),
             time_manager: TimeManager::new(0),
@@ -191,7 +193,10 @@ impl DataGenerator {
         }
 
         for board in positions {
-            writeln!(&mut self.file, "{} [{}]", board.to_fen(), result).unwrap();
+            if pos_is_quiet(&board) {
+                writeln!(&mut self.file, "{} [{}]", board.to_fen(), result).unwrap();
+                self.positions_written += 1;
+            }
         }
     }
 
@@ -203,6 +208,7 @@ impl DataGenerator {
 
             self.games_played += 1;
             println!("{} games played", self.games_played);
+            println!("{} positions_saved\n", self.positions_written);
         }
 
         self.file.flush().unwrap();
