@@ -4,6 +4,12 @@ mod datagen;
 mod rng;
 
 fn main() {
-    let mut data_generator = datagen::DataGenerator::new(SearchLimit::Nodes(5000), "data.txt");
+    let args: Vec<String> = std::env::args().collect();
+    let file_name: &str = match args.get(1) {
+        Some(s) => s.as_str(),
+        None => "data.txt",
+    };
+
+    let mut data_generator = datagen::DataGenerator::new(SearchLimit::Nodes(5000), file_name);
     data_generator.generate_data(10);
 }
