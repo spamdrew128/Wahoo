@@ -149,7 +149,7 @@ impl DataGenerator {
         }
 
         for board in positions {
-            write!(&mut self.file, "{} [{}]\n", board.to_fen(), result).unwrap();
+            writeln!(&mut self.file, "{} [{}]", board.to_fen(), result).unwrap();
         }
     }
 

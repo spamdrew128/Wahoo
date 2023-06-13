@@ -17,18 +17,6 @@ pub type Ply = u8;
 const MAX_DEPTH: Depth = i8::MAX;
 pub const MAX_PLY: Ply = MAX_DEPTH as u8;
 
-#[derive(Debug)]
-pub struct Searcher {
-    timer: SearchTimer,
-    zobrist_stack: ZobristStack,
-    pv_table: PvTable,
-
-    depth_limit: Option<Depth>,
-    out_of_time: bool,
-    node_count: Nodes,
-    seldepth: u8,
-}
-
 pub struct SearchResults {
     pub best_move: Move,
     pub score: EvalScore,
@@ -41,6 +29,25 @@ impl SearchResults {
             score: 0,
         }
     }
+}
+
+// todo! refacto to use this, and only check timer at start of node
+// pub enum SearchLimit {
+//     Time(SearchTimer),
+//     Depth(Depth),
+//     NoLimit,
+// }
+
+#[derive(Debug)]
+pub struct Searcher {
+    timer: SearchTimer,
+    zobrist_stack: ZobristStack,
+    pv_table: PvTable,
+
+    depth_limit: Option<Depth>,
+    out_of_time: bool,
+    node_count: Nodes,
+    seldepth: u8,
 }
 
 impl Searcher {
