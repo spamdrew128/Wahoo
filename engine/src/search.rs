@@ -6,7 +6,7 @@ use crate::{
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     movegen::MoveGenerator,
     pv_table::PvTable,
-    time_management::SearchTimer,
+    time_management::{SearchTimer, Milliseconds},
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
@@ -31,14 +31,13 @@ impl SearchResults {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum SearchLimit {
-    Time(SearchTimer),
+    Time(Milliseconds),
     Depth(Depth),
     Nodes(Nodes),
     None,
 }
-
 
 #[derive(Debug)]
 pub struct Searcher {
@@ -98,7 +97,7 @@ impl Searcher {
         );
     }
 
-    fn stop_searching(&self, depth: Depth) -> bool {
+    const fn stop_searching(&self, depth: Depth) -> bool {
         match self.search_limit {
             SearchLimit::Time(_) => self.out_of_time,
             SearchLimit::Depth(depth_limit) => depth > depth_limit,
@@ -126,6 +125,10 @@ impl Searcher {
     }
 
     pub fn go(&mut self, board: &Board, report_info: bool) -> SearchResults {
+        if let SearchLimit::Time(limit) = self.search_limit {
+            self.timer = Some(SearchTimer::new(limit));
+        }
+
         let stopwatch = std::time::Instant::now();
         let mut depth: Depth = 1;
 

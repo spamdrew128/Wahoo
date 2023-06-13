@@ -23,23 +23,23 @@ impl TimeManager {
         Self { overhead }
     }
 
-    pub fn calculate_search_time(self, args: TimeArgs, color: Color) -> SearchTimer {
+    pub const fn calculate_search_time(self, args: TimeArgs, color: Color) -> Milliseconds {
         if args.move_time > 0 {
-            return SearchTimer::new(args.move_time.saturating_sub(self.overhead));
+            return args.move_time.saturating_sub(self.overhead);
         }
 
         match color {
             Color::White => {
-                SearchTimer::new((args.w_time / 25 + args.w_inc / 2).saturating_sub(self.overhead))
+                (args.w_time / 25 + args.w_inc / 2).saturating_sub(self.overhead)
             }
             Color::Black => {
-                SearchTimer::new((args.b_time / 25 + args.b_inc / 2).saturating_sub(self.overhead))
+                (args.b_time / 25 + args.b_inc / 2).saturating_sub(self.overhead)
             }
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct SearchTimer {
     timer: Instant,
     search_time: u128,
