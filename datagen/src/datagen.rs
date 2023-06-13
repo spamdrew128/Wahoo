@@ -1,4 +1,4 @@
-use engine::{board_representation::{Board, START_FEN}, movegen::MoveGenerator, chess_move::Move, search::Ply, zobrist_stack::{ZobristStack, self}, zobrist::ZobristHash, time_management::{SearchTimer, TimeManager, TimeArgs}};
+use engine::{board_representation::{Board, START_FEN}, movegen::MoveGenerator, chess_move::Move, search::{Ply, Searcher}, zobrist_stack::{ZobristStack, self}, zobrist::ZobristHash, time_management::{SearchTimer, TimeManager, TimeArgs}};
 
 use crate::rng::Rng;
 
@@ -13,6 +13,9 @@ pub struct DataGenerator {
 
 impl DataGenerator {
     const BASE_RAND_PLY: Ply = 9;
+    const WIN: i8 = 1;
+    const DRAW: i8 = 0;
+    const LOSS: i8 = -1;
 
     pub fn new(move_time: u128) -> Self {
         let board = Board::from_fen(START_FEN);
@@ -66,11 +69,25 @@ impl DataGenerator {
         }
     }
 
+    fn record_game(&mut self) {
+        let mut positions: Vec<Board> = vec![];
+        let mut result = Self::DRAW;
+
+        loop {
+            let timer = TimeManager::new(0).construct_search_timer(self.time_args, self.board.color_to_move);
+            let mut searcher = Searcher::new(timer, self.zobrist_stack.clone(), None);
+            let search_results = searcher.go(&self.board, false);
+
+            
+
+        }
+    }
+
     pub fn generate_data(&mut self, game_count: u32) {
         for _ in 0..game_count {
             self.set_random_opening();
 
-            self.board.print();
+            self.record_game();
 
             self.games_played += 1;
         }

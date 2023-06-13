@@ -235,7 +235,7 @@ impl UciHandler {
                 let board = self.board.clone();
 
                 thread::spawn(move || {
-                    searcher.go(&board);
+                    searcher.go(&board, true);
                 });
             }
             UciCommand::SetOptionOverhead(overhead) => {

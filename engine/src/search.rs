@@ -7,7 +7,7 @@ use crate::{
     pv_table::PvTable,
     time_management::SearchTimer,
     zobrist::ZobristHash,
-    zobrist_stack::ZobristStack,
+    zobrist_stack::ZobristStack, chess_move::Move,
 };
 
 pub type Nodes = u64;
@@ -26,6 +26,11 @@ pub struct Searcher {
     out_of_time: bool,
     node_count: Nodes,
     seldepth: u8,
+}
+
+pub struct SearchResults {
+    pub best_move: Move,
+    pub score: EvalScore,
 }
 
 impl Searcher {
@@ -85,28 +90,36 @@ impl Searcher {
         self.node_count
     }
 
-    pub fn go(&mut self, board: &Board) {
+    pub fn go(&mut self, board: &Board, report_info: bool) -> SearchResults {
         let stopwatch = std::time::Instant::now();
         let mut depth: Depth = 1;
 
         let mut best_move = MoveGenerator::first_legal_move(board).unwrap();
+        let mut score = 0;
         while depth <= self.depth_limit.unwrap_or(MAX_DEPTH) {
             self.seldepth = 0;
 
-            let score = self.negamax(board, depth, 0, -INF, INF);
+            score = self.negamax(board, depth, 0, -INF, INF);
 
             if self.out_of_time {
                 break;
             }
-
-            self.report_search_info(score, depth, stopwatch);
+            
+            if report_info {
+                self.report_search_info(score, depth, stopwatch);
+            }
             best_move = self.pv_table.best_move();
 
             depth += 1;
         }
 
         assert!(best_move.to() != best_move.from(), "INVALID MOVE");
-        println!("bestmove {}", best_move.as_string());
+
+        if report_info {
+            println!("bestmove {}", best_move.as_string());
+        }
+
+        SearchResults { best_move, score }
     }
 
     fn negamax(
