@@ -1,12 +1,14 @@
+use std::{fs::File, io::{BufWriter, Write}};
+
 use engine::{
     board_representation::{Board, Color, START_FEN},
     chess_move::Move,
     evaluation::MATE_THRESHOLD,
     movegen::MoveGenerator,
     search::{Ply, SearchResults, Searcher},
-    time_management::{SearchTimer, TimeArgs, TimeManager},
+    time_management::{TimeArgs, TimeManager},
     zobrist::ZobristHash,
-    zobrist_stack::{self, ZobristStack},
+    zobrist_stack::{ZobristStack},
 };
 
 use crate::rng::Rng;
@@ -19,6 +21,8 @@ pub struct DataGenerator {
     zobrist_stack: ZobristStack,
     time_manager: TimeManager,
     time_args: TimeArgs,
+
+    file: BufWriter<File>,
 }
 
 impl DataGenerator {
@@ -27,7 +31,7 @@ impl DataGenerator {
     const DRAW: i8 = 0;
     const LOSS: i8 = -1;
 
-    pub fn new(move_time: u128) -> Self {
+    pub fn new(move_time: u128, path: &str) -> Self {
         let board = Board::from_fen(START_FEN);
         Self {
             rng: Rng::new(),
@@ -39,6 +43,7 @@ impl DataGenerator {
                 move_time,
                 ..TimeArgs::default()
             },
+            file: BufWriter::new(File::create(path).unwrap()),
         }
     }
 
@@ -99,13 +104,13 @@ impl DataGenerator {
             let SearchResults { best_move, score } = searcher.go(&self.board, false);
 
             if score > MATE_THRESHOLD {
-                let result = match self.board.color_to_move {
+                result = match self.board.color_to_move {
                     Color::White => Self::WIN,
                     Color::Black => Self::LOSS,
                 };
                 break;
             } else if score < -MATE_THRESHOLD {
-                let result = match self.board.color_to_move {
+                result = match self.board.color_to_move {
                     Color::White => Self::LOSS,
                     Color::Black => Self::WIN,
                 };
@@ -123,6 +128,10 @@ impl DataGenerator {
                 &mut self.zobrist_stack,
                 ZobristHash::incremental_update_base(&self.board),
             );
+        }
+
+        for board in positions {
+            write!(&mut self.file, "{} [{}]", board.to_fen(), result).unwrap();
         }
     }
 
