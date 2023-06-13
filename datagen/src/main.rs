@@ -1,5 +1,5 @@
-mod rng;
 mod datagen;
+mod rng;
 
 fn main() {
     let mut data_generator = datagen::DataGenerator::new(50);

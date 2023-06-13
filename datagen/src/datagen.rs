@@ -1,4 +1,12 @@
-use engine::{board_representation::{Board, START_FEN}, movegen::MoveGenerator, chess_move::Move, search::{Ply, Searcher}, zobrist_stack::{ZobristStack, self}, zobrist::ZobristHash, time_management::{SearchTimer, TimeManager, TimeArgs}};
+use engine::{
+    board_representation::{Board, START_FEN},
+    chess_move::Move,
+    movegen::MoveGenerator,
+    search::{Ply, Searcher},
+    time_management::{SearchTimer, TimeArgs, TimeManager},
+    zobrist::ZobristHash,
+    zobrist_stack::{self, ZobristStack},
+};
 
 use crate::rng::Rng;
 
@@ -8,6 +16,7 @@ pub struct DataGenerator {
 
     board: Board,
     zobrist_stack: ZobristStack,
+    time_manager: TimeManager,
     time_args: TimeArgs,
 }
 
@@ -24,7 +33,11 @@ impl DataGenerator {
             games_played: 0,
             board: board.clone(),
             zobrist_stack: ZobristStack::new(&board),
-            time_args: TimeArgs {move_time, ..TimeArgs::default()},
+            time_manager: TimeManager::new(0),
+            time_args: TimeArgs {
+                move_time,
+                ..TimeArgs::default()
+            },
         }
     }
 
@@ -54,13 +67,17 @@ impl DataGenerator {
             let mut success = true;
             for _ in 0..(Self::BASE_RAND_PLY + ((self.games_played % 2) as u8)) {
                 if let Some(mv) = self.random_legal_move(&board) {
-                    assert!(board.try_play_move(mv, &mut zobrist_stack, ZobristHash::incremental_update_base(&board)));
+                    assert!(board.try_play_move(
+                        mv,
+                        &mut zobrist_stack,
+                        ZobristHash::incremental_update_base(&board)
+                    ));
                 } else {
                     success = false;
                     break;
                 }
             }
-            
+
             if success {
                 self.board = board;
                 self.zobrist_stack = zobrist_stack;
@@ -74,12 +91,11 @@ impl DataGenerator {
         let mut result = Self::DRAW;
 
         loop {
-            let timer = TimeManager::new(0).construct_search_timer(self.time_args, self.board.color_to_move);
+            let timer = self
+                .time_manager
+                .construct_search_timer(self.time_args, self.board.color_to_move);
             let mut searcher = Searcher::new(timer, self.zobrist_stack.clone(), None);
             let search_results = searcher.go(&self.board, false);
-
-            
-
         }
     }
 
@@ -93,4 +109,3 @@ impl DataGenerator {
         }
     }
 }
-

@@ -2,12 +2,13 @@ use std::time::Instant;
 
 use crate::{
     board_representation::Board,
+    chess_move::Move,
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     movegen::MoveGenerator,
     pv_table::PvTable,
     time_management::SearchTimer,
     zobrist::ZobristHash,
-    zobrist_stack::ZobristStack, chess_move::Move,
+    zobrist_stack::ZobristStack,
 };
 
 pub type Nodes = u64;
@@ -104,7 +105,7 @@ impl Searcher {
             if self.out_of_time {
                 break;
             }
-            
+
             if report_info {
                 self.report_search_info(score, depth, stopwatch);
             }

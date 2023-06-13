@@ -744,7 +744,13 @@ impl Board {
         self.pieces[piece.as_index()] ^= mask;
     }
 
-    fn toggle_promotion(&mut self, mask: Bitboard, promo_piece: Piece, hash_base: &mut ZobristHash, to_sq: Square) {
+    fn toggle_promotion(
+        &mut self,
+        mask: Bitboard,
+        promo_piece: Piece,
+        hash_base: &mut ZobristHash,
+        to_sq: Square,
+    ) {
         self.pieces[Piece::PAWN.as_index()] ^= mask;
         self.pieces[promo_piece.as_index()] ^= mask;
         hash_base.hash_piece(self.color_to_move, Piece::PAWN, to_sq);
@@ -757,7 +763,7 @@ impl Board {
         captured_piece: Piece,
         promo_piece: Piece,
         hash_base: &mut ZobristHash,
-        to_sq: Square
+        to_sq: Square,
     ) {
         self.toggle_promotion(mask, promo_piece, hash_base, to_sq);
         self.toggle(mask, captured_piece, self.color_to_move.flip());
