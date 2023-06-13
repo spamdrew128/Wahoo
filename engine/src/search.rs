@@ -95,6 +95,10 @@ impl Searcher {
     }
 
     const fn stop_searching(&self, depth: Depth) -> bool {
+        if depth == MAX_DEPTH {
+            return true;
+        }
+
         match self.search_limit {
             SearchLimit::Time(_) => self.out_of_time,
             SearchLimit::Depth(depth_limit) => depth > depth_limit,
