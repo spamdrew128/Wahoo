@@ -6,7 +6,7 @@ use std::{
 use engine::{
     board_representation::{Board, Color, START_FEN},
     chess_move::Move,
-    evaluation::MATE_THRESHOLD,
+    evaluation::{MATE_THRESHOLD, EvalScore, evaluate, INF},
     movegen::MoveGenerator,
     search::{Depth, Ply, SearchResults, Searcher},
     time_management::{Milliseconds, TimeArgs, TimeManager},
@@ -27,6 +27,48 @@ pub struct DataGenerator {
     depth_limit: Option<Depth>,
 
     file: BufWriter<File>,
+}
+
+fn simple_qsearch(
+    board: &Board,
+    mut alpha: EvalScore,
+    beta: EvalScore,
+) -> EvalScore {
+    let stand_pat = evaluate(board);
+    if stand_pat > alpha {
+        alpha = stand_pat;
+    }
+
+    let mut generator = MoveGenerator::new();
+
+    let mut best_score = stand_pat;
+    while let Some(mv) = generator.next::<false>(board) {
+        let mut next_board = (*board).clone();
+        let is_legal = next_board.simple_try_play_move(mv);
+        if !is_legal {
+            continue;
+        }
+
+        let score = -simple_qsearch(&next_board, -beta, -alpha);
+
+        if score > best_score {
+            best_score = score;
+
+            if score >= beta {
+                break;
+            }
+
+            if score > alpha {
+                alpha = score;
+            }
+        }
+    }
+
+    best_score
+}
+
+fn pos_is_quiet(board: &Board, score: EvalScore) -> bool {
+    simple_qsearch(board, -INF, INF) == score
 }
 
 impl DataGenerator {
