@@ -51,7 +51,10 @@ impl ZobristStack {
 
 #[cfg(test)]
 mod tests {
-    use crate::{board_representation::Board, zobrist_stack::ZobristStack, zobrist::ZobristHash, chess_move::Move};
+    use crate::{
+        board_representation::Board, chess_move::Move, zobrist::ZobristHash,
+        zobrist_stack::ZobristStack,
+    };
 
     #[test]
     fn twofold_repetition_works() {
@@ -97,7 +100,8 @@ mod tests {
 
     #[test]
     fn incrementally_hashes() {
-        let board = Board::from_fen("rnb1kbnr/4pp2/pp1p3p/7p/P1PqP3/3P1PPN/3N3P/R2QKB1R b KQkq - 0 0");
+        let board =
+            Board::from_fen("rnb1kbnr/4pp2/pp1p3p/7p/P1PqP3/3P1PPN/3N3P/R2QKB1R b KQkq - 0 0");
         let mut zobrist_stack = ZobristStack::new(&board);
         let hash_base = ZobristHash::incremental_update_base(&board);
         let mv = Move::from_string("d4a1", &board);
@@ -105,6 +109,9 @@ mod tests {
         let mut new_board = board;
         new_board.try_play_move(mv, &mut zobrist_stack, hash_base);
 
-        assert_eq!(zobrist_stack.current_zobrist_hash(), ZobristHash::complete(&new_board));
+        assert_eq!(
+            zobrist_stack.current_zobrist_hash(),
+            ZobristHash::complete(&new_board)
+        );
     }
 }
