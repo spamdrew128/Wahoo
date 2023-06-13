@@ -1,4 +1,4 @@
-use engine::{board_representation::{Board, START_FEN}, movegen::MoveGenerator, chess_move::Move, search::Ply, zobrist_stack::ZobristStack, zobrist::ZobristHash};
+use engine::{board_representation::{Board, START_FEN, Color}, movegen::MoveGenerator, chess_move::Move, search::Ply, zobrist_stack::ZobristStack, zobrist::ZobristHash, time_management::{SearchTimer, TimeManager, TimeArgs}};
 
 use crate::rng::Rng;
 
@@ -9,19 +9,21 @@ struct DataGenerator {
 
     board: Board,
     zobrist_stack: ZobristStack,
+    time_args: TimeArgs,
 }
 
 impl DataGenerator {
     const BASE_RAND_PLY: Ply = 8;
 
-    fn new() -> Self {
+    fn new(move_time: u128) -> Self {
         let board = Board::from_fen(START_FEN);
         Self {
             rng: Rng::new(),
             games_played: 0,
             startpos: board.clone(),
             board: board.clone(),
-            zobrist_stack: ZobristStack::new(&board.clone()),
+            zobrist_stack: ZobristStack::new(&board),
+            time_args: TimeArgs {move_time, ..TimeArgs::default()},
         }
     }
 
@@ -43,7 +45,7 @@ impl DataGenerator {
         Some(move_list[index])
     }
 
-    fn play_random_opening(&mut self) {
+    fn set_random_opening(&mut self) {
         loop {
             let mut board = self.startpos.clone();
             let mut success = true;
@@ -57,8 +59,19 @@ impl DataGenerator {
             }
             
             if success {
+                self.board = board;
                 return;
             }
+        }
+    }
+
+    fn generate_data(&mut self, game_count: u32) {
+        for _ in 0..game_count {
+            self.set_random_opening();
+
+            
+
+            self.games_played += 1;
         }
     }
 }

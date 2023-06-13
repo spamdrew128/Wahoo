@@ -19,7 +19,7 @@ pub mod movegen;
 mod perft;
 mod pv_table;
 pub mod search;
-mod time_management;
+pub mod time_management;
 pub mod uci;
 mod util_macros;
 pub mod zobrist;
