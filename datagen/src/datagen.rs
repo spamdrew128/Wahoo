@@ -6,21 +6,16 @@ use std::{
 use engine::{
     board_representation::{Board, Color, START_FEN},
     chess_move::Move,
-    evaluation::{MATE_THRESHOLD, EvalScore, evaluate, INF},
+    evaluation::{evaluate, EvalScore, INF, MATE_THRESHOLD},
     movegen::MoveGenerator,
-    search::{Depth, Ply, SearchResults, Searcher},
-    time_management::{Milliseconds, TimeArgs, TimeManager},
+    search::{Ply, SearchLimit, SearchResults, Searcher},
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
 
 use crate::rng::Rng;
 
-fn simple_qsearch(
-    board: &Board,
-    mut alpha: EvalScore,
-    beta: EvalScore,
-) -> EvalScore {
+fn simple_qsearch(board: &Board, mut alpha: EvalScore, beta: EvalScore) -> EvalScore {
     let stand_pat = evaluate(board);
     if stand_pat > alpha {
         alpha = stand_pat;
@@ -65,9 +60,7 @@ pub struct DataGenerator {
 
     board: Board,
     zobrist_stack: ZobristStack,
-    time_manager: TimeManager,
-    time_args: TimeArgs,
-    depth_limit: Option<Depth>,
+    search_limit: SearchLimit,
 
     file: BufWriter<File>,
 }
@@ -78,28 +71,15 @@ impl DataGenerator {
     const DRAW: i8 = 0;
     const LOSS: i8 = -1;
 
-    pub fn new(move_time: Milliseconds, depth_limit: Option<Depth>, path: &str) -> Self {
+    pub fn new(search_limit: SearchLimit, path: &str) -> Self {
         let board = Board::from_fen(START_FEN);
-        let time_args = if depth_limit.unwrap_or(0) > 0 {
-            TimeArgs {
-                infinite_mode: true,
-                ..TimeArgs::default()
-            }
-        } else {
-            TimeArgs {
-                move_time,
-                ..TimeArgs::default()
-            }
-        };
         Self {
             rng: Rng::new(),
             games_played: 0,
             positions_written: 0,
             board: board.clone(),
             zobrist_stack: ZobristStack::new(&board),
-            time_manager: TimeManager::new(0),
-            time_args,
-            depth_limit,
+            search_limit,
             file: BufWriter::new(File::create(path).unwrap()),
         }
     }
@@ -159,10 +139,7 @@ impl DataGenerator {
         let mut result = Self::DRAW;
 
         loop {
-            let timer = self
-                .time_manager
-                .construct_search_timer(self.time_args, self.board.color_to_move);
-            let mut searcher = Searcher::new(timer, self.zobrist_stack.clone(), self.depth_limit);
+            let mut searcher = Searcher::new(self.search_limit, self.zobrist_stack.clone());
             let SearchResults { best_move, score } = searcher.go(&self.board, false);
 
             if score > MATE_THRESHOLD {

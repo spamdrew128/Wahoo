@@ -6,7 +6,7 @@ use crate::{
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     movegen::MoveGenerator,
     pv_table::PvTable,
-    time_management::SearchTimer,
+    time_management::{Milliseconds, SearchTimer},
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
@@ -31,20 +31,21 @@ impl SearchResults {
     }
 }
 
-// todo! refacto to use this, and only check timer at start of node
-// pub enum SearchLimit {
-//     Time(SearchTimer),
-//     Depth(Depth),
-//     NoLimit,
-// }
+#[derive(Debug, Copy, Clone)]
+pub enum SearchLimit {
+    Time(Milliseconds),
+    Depth(Depth),
+    Nodes(Nodes),
+    None,
+}
 
 #[derive(Debug)]
 pub struct Searcher {
-    timer: SearchTimer,
+    search_limit: SearchLimit,
     zobrist_stack: ZobristStack,
     pv_table: PvTable,
 
-    depth_limit: Option<Depth>,
+    timer: Option<SearchTimer>,
     out_of_time: bool,
     node_count: Nodes,
     seldepth: u8,
@@ -53,16 +54,12 @@ pub struct Searcher {
 impl Searcher {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
-    pub const fn new(
-        timer: SearchTimer,
-        zobrist_stack: ZobristStack,
-        depth_limit: Option<Depth>,
-    ) -> Self {
+    pub const fn new(search_limit: SearchLimit, zobrist_stack: ZobristStack) -> Self {
         Self {
-            timer,
+            search_limit,
             zobrist_stack,
             pv_table: PvTable::new(),
-            depth_limit,
+            timer: None,
             out_of_time: false,
             node_count: 0,
             seldepth: 0,
@@ -97,9 +94,26 @@ impl Searcher {
         );
     }
 
-    pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
-        self.timer = SearchTimer::new(999999999); // just some big number idc
+    const fn stop_searching(&self, depth: Depth) -> bool {
+        match self.search_limit {
+            SearchLimit::Time(_) => self.out_of_time,
+            SearchLimit::Depth(depth_limit) => depth > depth_limit,
+            SearchLimit::Nodes(node_limit) => self.node_count > node_limit,
+            SearchLimit::None => true,
+        }
+    }
 
+    fn is_out_of_time(&self) -> bool {
+        if self.node_count % Self::TIMER_CHECK_FREQ == 0 {
+            if let Some(timer) = self.timer {
+                return timer.is_expired();
+            }
+        }
+
+        false
+    }
+
+    pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
         for d in 1..depth {
             self.negamax(board, d, 0, -INF, INF);
         }
@@ -108,11 +122,15 @@ impl Searcher {
     }
 
     pub fn go(&mut self, board: &Board, report_info: bool) -> SearchResults {
+        if let SearchLimit::Time(limit) = self.search_limit {
+            self.timer = Some(SearchTimer::new(limit));
+        }
+
         let stopwatch = std::time::Instant::now();
         let mut depth: Depth = 1;
 
         let mut search_results = SearchResults::new(board);
-        while depth < self.depth_limit.unwrap_or(MAX_DEPTH) {
+        while !self.stop_searching(depth) {
             self.seldepth = 0;
 
             let score = self.negamax(board, depth, 0, -INF, INF);
@@ -130,7 +148,10 @@ impl Searcher {
             depth += 1;
         }
 
-        assert!(search_results.best_move.to() != search_results.best_move.from(), "INVALID MOVE");
+        assert!(
+            search_results.best_move.to() != search_results.best_move.from(),
+            "INVALID MOVE"
+        );
 
         if report_info {
             println!("bestmove {}", search_results.best_move.as_string());
@@ -161,7 +182,7 @@ impl Searcher {
             return self.qsearch(board, ply, alpha, beta);
         }
 
-        if (self.node_count % Self::TIMER_CHECK_FREQ == 0) && self.timer.is_expired() {
+        if self.is_out_of_time() {
             self.out_of_time = true;
             return 0;
         }
@@ -225,7 +246,7 @@ impl Searcher {
         mut alpha: EvalScore,
         beta: EvalScore,
     ) -> EvalScore {
-        if (self.node_count % Self::TIMER_CHECK_FREQ == 0) && self.timer.is_expired() {
+        if self.is_out_of_time() {
             self.out_of_time = true;
             return 0;
         }

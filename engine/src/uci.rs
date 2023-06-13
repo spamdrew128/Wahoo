@@ -1,7 +1,7 @@
 use crate::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
-    search::{Depth, Searcher},
+    search::{Depth, Nodes, SearchLimit, Searcher},
     time_management::{Milliseconds, TimeArgs, TimeManager},
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
@@ -173,9 +173,10 @@ impl UciHandler {
             }
             UciCommand::Go(arg_vec) => {
                 let mut time_args = TimeArgs::default();
-                let mut args_iterator = arg_vec.iter();
+                let mut search_limit = SearchLimit::None;
+                let mut should_calc_time = true;
 
-                let mut depth_limit: Option<Depth> = None;
+                let mut args_iterator = arg_vec.iter();
                 while let Some(arg) = args_iterator.next() {
                     match arg.as_str() {
                         "wtime" => {
@@ -207,30 +208,46 @@ impl UciHandler {
                                 .unwrap_or(0);
                         }
                         "movetime" => {
-                            time_args.move_time = args_iterator
+                            let time = args_iterator
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
                                 .unwrap_or(0);
-                        }
-                        "infinite" => time_args.infinite_mode = true,
-                        "depth" => {
-                            let limit = args_iterator.next().unwrap().parse::<Depth>().unwrap_or(0);
-                            if limit > 0 {
-                                depth_limit = Some(limit);
-                                time_args.infinite_mode = true;
+
+                            if time > 0 {
+                                search_limit = SearchLimit::Time(time);
+                                should_calc_time = false;
                             }
                         }
+                        "depth" => {
+                            let depth = args_iterator.next().unwrap().parse::<Depth>().unwrap_or(0);
+
+                            if depth > 0 {
+                                search_limit = SearchLimit::Depth(depth);
+                                should_calc_time = false;
+                            }
+                        }
+                        "nodes" => {
+                            let nodes = args_iterator.next().unwrap().parse::<Nodes>().unwrap_or(0);
+
+                            if nodes > 0 {
+                                search_limit = SearchLimit::Nodes(nodes);
+                                should_calc_time = false;
+                            }
+                        }
+                        "infinite" => should_calc_time = false,
                         _ => (),
                     }
                 }
 
-                let search_timer = self
-                    .time_manager
-                    .construct_search_timer(time_args, self.board.color_to_move);
+                if should_calc_time {
+                    search_limit = SearchLimit::Time(
+                        self.time_manager
+                            .calculate_search_time(time_args, self.board.color_to_move),
+                    );
+                }
 
-                let mut searcher =
-                    Searcher::new(search_timer, self.zobrist_stack.clone(), depth_limit);
+                let mut searcher = Searcher::new(search_limit, self.zobrist_stack.clone());
 
                 let board = self.board.clone();
 
