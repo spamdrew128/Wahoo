@@ -252,6 +252,10 @@ impl MoveGenerator {
 
         None
     }
+
+    pub fn no_legal_moves(board: &Board) -> bool {
+        Self::first_legal_move(board).is_none()
+    }
 }
 
 #[cfg(test)]

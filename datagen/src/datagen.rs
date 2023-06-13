@@ -121,12 +121,7 @@ impl DataGenerator {
                 }
             }
 
-            let mut generator = MoveGenerator::new();
-            if generator.next::<true>(&board).is_none() {
-                success = false;
-            }
-
-            if success {
+            if success && !MoveGenerator::no_legal_moves(&board) {
                 self.board = board;
                 self.zobrist_stack = zobrist_stack;
                 return;
@@ -167,6 +162,10 @@ impl DataGenerator {
                 &mut self.zobrist_stack,
                 ZobristHash::incremental_update_base(&self.board),
             );
+
+            if MoveGenerator::no_legal_moves(&self.board) {
+                break;
+            }
         }
 
         for board in positions {
