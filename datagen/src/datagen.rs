@@ -1,11 +1,10 @@
-use engine::{board_representation::{Board, START_FEN, Color}, movegen::MoveGenerator, chess_move::Move, search::Ply, zobrist_stack::ZobristStack, zobrist::ZobristHash, time_management::{SearchTimer, TimeManager, TimeArgs}};
+use engine::{board_representation::{Board, START_FEN}, movegen::MoveGenerator, chess_move::Move, search::Ply, zobrist_stack::{ZobristStack, self}, zobrist::ZobristHash, time_management::{SearchTimer, TimeManager, TimeArgs}};
 
 use crate::rng::Rng;
 
-struct DataGenerator {
+pub struct DataGenerator {
     rng: Rng,
     games_played: u64,
-    startpos: Board,
 
     board: Board,
     zobrist_stack: ZobristStack,
@@ -13,14 +12,13 @@ struct DataGenerator {
 }
 
 impl DataGenerator {
-    const BASE_RAND_PLY: Ply = 8;
+    const BASE_RAND_PLY: Ply = 9;
 
-    fn new(move_time: u128) -> Self {
+    pub fn new(move_time: u128) -> Self {
         let board = Board::from_fen(START_FEN);
         Self {
             rng: Rng::new(),
             games_played: 0,
-            startpos: board.clone(),
             board: board.clone(),
             zobrist_stack: ZobristStack::new(&board),
             time_args: TimeArgs {move_time, ..TimeArgs::default()},
@@ -47,11 +45,13 @@ impl DataGenerator {
 
     fn set_random_opening(&mut self) {
         loop {
-            let mut board = self.startpos.clone();
+            let mut board = Board::from_fen(START_FEN);
+            let mut zobrist_stack = ZobristStack::new(&board);
+
             let mut success = true;
             for _ in 0..(Self::BASE_RAND_PLY + ((self.games_played % 2) as u8)) {
                 if let Some(mv) = self.random_legal_move(&board) {
-                    assert!(board.try_play_move(mv, &mut self.zobrist_stack, ZobristHash::incremental_update_base(&board)));
+                    assert!(board.try_play_move(mv, &mut zobrist_stack, ZobristHash::incremental_update_base(&board)));
                 } else {
                     success = false;
                     break;
@@ -60,16 +60,17 @@ impl DataGenerator {
             
             if success {
                 self.board = board;
+                self.zobrist_stack = zobrist_stack;
                 return;
             }
         }
     }
 
-    fn generate_data(&mut self, game_count: u32) {
+    pub fn generate_data(&mut self, game_count: u32) {
         for _ in 0..game_count {
             self.set_random_opening();
 
-            
+            self.board.print();
 
             self.games_played += 1;
         }

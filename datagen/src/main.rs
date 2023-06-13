@@ -2,5 +2,6 @@ mod rng;
 mod datagen;
 
 fn main() {
-    println!("Hello World");
+    let mut data_generator = datagen::DataGenerator::new(50);
+    data_generator.generate_data(10);
 }
