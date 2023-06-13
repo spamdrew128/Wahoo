@@ -143,5 +143,7 @@ impl DataGenerator {
 
             self.games_played += 1;
         }
+
+        self.file.flush().unwrap();
     }
 }
