@@ -1,7 +1,7 @@
 use crate::{
     board_representation::Board,
     perft::{test_postions, PerftTest},
-    search::{Searcher, SearchLimit},
+    search::{SearchLimit, Searcher},
     zobrist_stack::ZobristStack,
 };
 

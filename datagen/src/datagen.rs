@@ -6,20 +6,16 @@ use std::{
 use engine::{
     board_representation::{Board, Color, START_FEN},
     chess_move::Move,
-    evaluation::{MATE_THRESHOLD, EvalScore, evaluate, INF},
+    evaluation::{evaluate, EvalScore, INF, MATE_THRESHOLD},
     movegen::MoveGenerator,
-    search::{Ply, SearchResults, Searcher, SearchLimit},
+    search::{Ply, SearchLimit, SearchResults, Searcher},
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
 
 use crate::rng::Rng;
 
-fn simple_qsearch(
-    board: &Board,
-    mut alpha: EvalScore,
-    beta: EvalScore,
-) -> EvalScore {
+fn simple_qsearch(board: &Board, mut alpha: EvalScore, beta: EvalScore) -> EvalScore {
     let stand_pat = evaluate(board);
     if stand_pat > alpha {
         alpha = stand_pat;

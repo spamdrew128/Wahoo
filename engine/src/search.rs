@@ -6,7 +6,7 @@ use crate::{
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     movegen::MoveGenerator,
     pv_table::PvTable,
-    time_management::{SearchTimer, Milliseconds},
+    time_management::{Milliseconds, SearchTimer},
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
@@ -54,10 +54,7 @@ pub struct Searcher {
 impl Searcher {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
-    pub const fn new(
-        search_limit: SearchLimit,
-        zobrist_stack: ZobristStack,
-    ) -> Self {
+    pub const fn new(search_limit: SearchLimit, zobrist_stack: ZobristStack) -> Self {
         Self {
             search_limit,
             zobrist_stack,
@@ -151,7 +148,10 @@ impl Searcher {
             depth += 1;
         }
 
-        assert!(search_results.best_move.to() != search_results.best_move.from(), "INVALID MOVE");
+        assert!(
+            search_results.best_move.to() != search_results.best_move.from(),
+            "INVALID MOVE"
+        );
 
         if report_info {
             println!("bestmove {}", search_results.best_move.as_string());

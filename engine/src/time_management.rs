@@ -29,12 +29,8 @@ impl TimeManager {
         }
 
         match color {
-            Color::White => {
-                (args.w_time / 25 + args.w_inc / 2).saturating_sub(self.overhead)
-            }
-            Color::Black => {
-                (args.b_time / 25 + args.b_inc / 2).saturating_sub(self.overhead)
-            }
+            Color::White => (args.w_time / 25 + args.w_inc / 2).saturating_sub(self.overhead),
+            Color::Black => (args.b_time / 25 + args.b_inc / 2).saturating_sub(self.overhead),
         }
     }
 }

@@ -1,7 +1,7 @@
 use crate::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
-    search::{Depth, Searcher, SearchLimit, Nodes},
+    search::{Depth, Nodes, SearchLimit, Searcher},
     time_management::{Milliseconds, TimeArgs, TimeManager},
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
@@ -209,32 +209,27 @@ impl UciHandler {
                         }
                         "movetime" => {
                             let time = args_iterator
-                            .next()
-                            .unwrap()
-                            .parse::<Milliseconds>().unwrap_or(0);
-                            
+                                .next()
+                                .unwrap()
+                                .parse::<Milliseconds>()
+                                .unwrap_or(0);
+
                             if time > 0 {
                                 search_limit = SearchLimit::Time(time);
                                 should_calc_time = false;
                             }
                         }
                         "depth" => {
-                            let depth = args_iterator
-                            .next()
-                            .unwrap()
-                            .parse::<Depth>().unwrap_or(0);
-                            
+                            let depth = args_iterator.next().unwrap().parse::<Depth>().unwrap_or(0);
+
                             if depth > 0 {
                                 search_limit = SearchLimit::Depth(depth);
                                 should_calc_time = false;
                             }
                         }
                         "nodes" => {
-                            let nodes = args_iterator
-                            .next()
-                            .unwrap()
-                            .parse::<Nodes>().unwrap_or(0);
-                            
+                            let nodes = args_iterator.next().unwrap().parse::<Nodes>().unwrap_or(0);
+
                             if nodes > 0 {
                                 search_limit = SearchLimit::Nodes(nodes);
                                 should_calc_time = false;
@@ -246,11 +241,13 @@ impl UciHandler {
                 }
 
                 if should_calc_time {
-                    search_limit = SearchLimit::Time(self.time_manager.calculate_search_time(time_args, self.board.color_to_move));
+                    search_limit = SearchLimit::Time(
+                        self.time_manager
+                            .calculate_search_time(time_args, self.board.color_to_move),
+                    );
                 }
 
-                let mut searcher =
-                    Searcher::new(search_limit, self.zobrist_stack.clone());
+                let mut searcher = Searcher::new(search_limit, self.zobrist_stack.clone());
 
                 let board = self.board.clone();
 
