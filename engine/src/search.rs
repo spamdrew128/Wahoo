@@ -112,7 +112,7 @@ impl Searcher {
         let mut depth: Depth = 1;
 
         let mut search_results = SearchResults::new(board);
-        while depth <= self.depth_limit.unwrap_or(MAX_DEPTH) {
+        while depth < self.depth_limit.unwrap_or(MAX_DEPTH) {
             self.seldepth = 0;
 
             let score = self.negamax(board, depth, 0, -INF, INF);
