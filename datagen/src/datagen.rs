@@ -110,7 +110,10 @@ impl DataGenerator {
                     Color::Black => Self::WIN,
                 };
                 break;
-            } else if self.zobrist_stack.twofold_repetition(self.board.halfmoves) {
+            } else if self.zobrist_stack.twofold_repetition(self.board.halfmoves)
+                || self.board.insufficient_material_draw()
+                || self.board.fifty_move_draw()
+            {
                 break;
             }
 

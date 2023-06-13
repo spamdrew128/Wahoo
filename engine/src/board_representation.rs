@@ -879,6 +879,24 @@ impl Board {
     pub const fn fifty_move_draw(&self) -> bool {
         self.halfmoves >= 100
     }
+
+    pub fn insufficient_material_draw(&self) -> bool {
+        for piece in [Piece::PAWN, Piece::ROOK, Piece::BISHOP, Piece::QUEEN] {
+            if self.pieces[piece.as_index()].is_not_empty() {
+                return false;
+            }
+        }
+
+        for color in Color::LIST {
+            let knights = self.piece_bb(Piece::KNIGHT, color);
+            let bishops = self.piece_bb(Piece::BISHOP, color);
+            if knights.union(bishops).popcount() > 1 {
+                return false;
+            }
+        }
+
+        true
+    }
 }
 
 #[cfg(test)]
