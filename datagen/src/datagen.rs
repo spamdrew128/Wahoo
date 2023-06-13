@@ -6,7 +6,7 @@ use engine::{
     evaluation::MATE_THRESHOLD,
     movegen::MoveGenerator,
     search::{Ply, SearchResults, Searcher},
-    time_management::{TimeArgs, TimeManager},
+    time_management::{TimeArgs, TimeManager, Milliseconds},
     zobrist::ZobristHash,
     zobrist_stack::{ZobristStack},
 };
@@ -31,7 +31,7 @@ impl DataGenerator {
     const DRAW: i8 = 0;
     const LOSS: i8 = -1;
 
-    pub fn new(move_time: u128, path: &str) -> Self {
+    pub fn new(move_time: Milliseconds, path: &str) -> Self {
         let board = Board::from_fen(START_FEN);
         Self {
             rng: Rng::new(),
