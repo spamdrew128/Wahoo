@@ -34,6 +34,15 @@ pub struct SearchResults {
     pub score: EvalScore,
 }
 
+impl SearchResults {
+    fn new(board: &Board) -> Self {
+        Self {
+            best_move: MoveGenerator::first_legal_move(board).unwrap(),
+            score: 0,
+        }
+    }
+}
+
 impl Searcher {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
@@ -95,12 +104,11 @@ impl Searcher {
         let stopwatch = std::time::Instant::now();
         let mut depth: Depth = 1;
 
-        let mut best_move = MoveGenerator::first_legal_move(board).unwrap();
-        let mut score = 0;
+        let mut search_results = SearchResults::new(board);
         while depth <= self.depth_limit.unwrap_or(MAX_DEPTH) {
             self.seldepth = 0;
 
-            score = self.negamax(board, depth, 0, -INF, INF);
+            let score = self.negamax(board, depth, 0, -INF, INF);
 
             if self.out_of_time {
                 break;
@@ -109,18 +117,19 @@ impl Searcher {
             if report_info {
                 self.report_search_info(score, depth, stopwatch);
             }
-            best_move = self.pv_table.best_move();
+            search_results.best_move = self.pv_table.best_move();
+            search_results.score = score;
 
             depth += 1;
         }
 
-        assert!(best_move.to() != best_move.from(), "INVALID MOVE");
+        assert!(search_results.best_move.to() != search_results.best_move.from(), "INVALID MOVE");
 
         if report_info {
-            println!("bestmove {}", best_move.as_string());
+            println!("bestmove {}", search_results.best_move.as_string());
         }
 
-        SearchResults { best_move, score }
+        search_results
     }
 
     fn negamax(

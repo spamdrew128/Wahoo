@@ -97,6 +97,11 @@ impl DataGenerator {
                 }
             }
 
+            let mut generator = MoveGenerator::new();
+            if generator.next::<true>(&board).is_none() {
+                success = false;
+            }
+
             if success {
                 self.board = board;
                 self.zobrist_stack = zobrist_stack;
@@ -144,7 +149,7 @@ impl DataGenerator {
         }
 
         for board in positions {
-            write!(&mut self.file, "{} [{}]", board.to_fen(), result).unwrap();
+            write!(&mut self.file, "{} [{}]\n", board.to_fen(), result).unwrap();
         }
     }
 
@@ -155,6 +160,7 @@ impl DataGenerator {
             self.record_game();
 
             self.games_played += 1;
+            println!("{} games played", self.games_played);
         }
 
         self.file.flush().unwrap();
