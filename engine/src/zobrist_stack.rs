@@ -51,6 +51,8 @@ impl ZobristStack {
 
 #[cfg(test)]
 mod tests {
+    use crate::{board_representation::Board, zobrist_stack::ZobristStack, zobrist::ZobristHash, chess_move::Move};
+
     #[test]
     fn twofold_repetition_works() {
         use super::*;
