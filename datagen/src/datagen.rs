@@ -1,8 +1,9 @@
 use engine::{
-    board_representation::{Board, START_FEN},
+    board_representation::{Board, Color, START_FEN},
     chess_move::Move,
+    evaluation::MATE_THRESHOLD,
     movegen::MoveGenerator,
-    search::{Ply, Searcher},
+    search::{Ply, SearchResults, Searcher},
     time_management::{SearchTimer, TimeArgs, TimeManager},
     zobrist::ZobristHash,
     zobrist_stack::{self, ZobristStack},
@@ -95,7 +96,30 @@ impl DataGenerator {
                 .time_manager
                 .construct_search_timer(self.time_args, self.board.color_to_move);
             let mut searcher = Searcher::new(timer, self.zobrist_stack.clone(), None);
-            let search_results = searcher.go(&self.board, false);
+            let SearchResults { best_move, score } = searcher.go(&self.board, false);
+
+            if score > MATE_THRESHOLD {
+                let result = match self.board.color_to_move {
+                    Color::White => Self::WIN,
+                    Color::Black => Self::LOSS,
+                };
+                break;
+            } else if score < -MATE_THRESHOLD {
+                let result = match self.board.color_to_move {
+                    Color::White => Self::LOSS,
+                    Color::Black => Self::WIN,
+                };
+                break;
+            } else if self.zobrist_stack.twofold_repetition(self.board.halfmoves) {
+                break;
+            }
+
+            positions.push(self.board.clone());
+            self.board.try_play_move(
+                best_move,
+                &mut self.zobrist_stack,
+                ZobristHash::incremental_update_base(&self.board),
+            );
         }
     }
 
