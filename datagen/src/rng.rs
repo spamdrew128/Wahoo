@@ -40,8 +40,6 @@ pub struct Rng {
 
 impl Rng {
     pub fn new() -> Self {
-        let s = Pcg32State::random_seed();
-        println!("{} {}", s.state, s.inc);
         Self {
             state: Pcg32State::random_seed(),
         }
