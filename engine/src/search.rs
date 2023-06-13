@@ -136,7 +136,7 @@ impl Searcher {
             return 0;
         }
 
-        self.seldepth = ply;
+        self.seldepth = self.seldepth.max(ply);
 
         let hash_base = ZobristHash::incremental_update_base(board);
 
@@ -198,7 +198,7 @@ impl Searcher {
             return 0;
         }
 
-        self.seldepth = ply;
+        self.seldepth = self.seldepth.max(ply);
 
         let stand_pat = evaluate(board);
         if stand_pat >= beta {
