@@ -1,6 +1,8 @@
 // *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
 // Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
 #[derive(Debug)]
 struct Pcg32State {
     state: u64,
@@ -8,6 +10,16 @@ struct Pcg32State {
 }
 
 impl Pcg32State {
+    fn random_seed() -> Self {
+        let state = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
+        let inc = state ^ 0xE5CB_1AFE_6353_7DBF;
+
+        Self {
+            state: state as u64,
+            inc: inc as u64,
+        }
+    }
+
     fn next(&mut self) -> u32 {
         let oldstate: u64 = self.state;
         // Advance internal state
@@ -27,14 +39,11 @@ pub struct Rng {
 }
 
 impl Rng {
-    const DEFAULT_SEED: Pcg32State = Pcg32State {
-        state: 0x853c49e6748fea9b,
-        inc: 0xda3e39cb94b95bdb,
-    };
-
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
+        let s = Pcg32State::random_seed();
+        println!("{} {}", s.state, s.inc);
         Self {
-            state: Self::DEFAULT_SEED,
+            state: Pcg32State::random_seed(),
         }
     }
 
