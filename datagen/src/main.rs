@@ -1,3 +1,9 @@
+use engine::search::SearchLimit;
+
+mod datagen;
+mod rng;
+
 fn main() {
-    println!("Hello World");
+    let mut data_generator = datagen::DataGenerator::new(SearchLimit::Nodes(5000), "data.txt");
+    data_generator.generate_data(10);
 }

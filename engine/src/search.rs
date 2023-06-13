@@ -2,10 +2,11 @@ use std::time::Instant;
 
 use crate::{
     board_representation::Board,
+    chess_move::Move,
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     movegen::MoveGenerator,
     pv_table::PvTable,
-    time_management::SearchTimer,
+    time_management::{Milliseconds, SearchTimer},
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
@@ -16,13 +17,35 @@ pub type Ply = u8;
 const MAX_DEPTH: Depth = i8::MAX;
 pub const MAX_PLY: Ply = MAX_DEPTH as u8;
 
+pub struct SearchResults {
+    pub best_move: Move,
+    pub score: EvalScore,
+}
+
+impl SearchResults {
+    fn new(board: &Board) -> Self {
+        Self {
+            best_move: MoveGenerator::first_legal_move(board).unwrap(),
+            score: 0,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum SearchLimit {
+    Time(Milliseconds),
+    Depth(Depth),
+    Nodes(Nodes),
+    None,
+}
+
 #[derive(Debug)]
 pub struct Searcher {
-    timer: SearchTimer,
+    search_limit: SearchLimit,
     zobrist_stack: ZobristStack,
     pv_table: PvTable,
 
-    depth_limit: Option<Depth>,
+    timer: Option<SearchTimer>,
     out_of_time: bool,
     node_count: Nodes,
     seldepth: u8,
@@ -31,16 +54,12 @@ pub struct Searcher {
 impl Searcher {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
-    pub const fn new(
-        timer: SearchTimer,
-        zobrist_stack: ZobristStack,
-        depth_limit: Option<Depth>,
-    ) -> Self {
+    pub const fn new(search_limit: SearchLimit, zobrist_stack: ZobristStack) -> Self {
         Self {
-            timer,
+            search_limit,
             zobrist_stack,
             pv_table: PvTable::new(),
-            depth_limit,
+            timer: None,
             out_of_time: false,
             node_count: 0,
             seldepth: 0,
@@ -75,9 +94,30 @@ impl Searcher {
         );
     }
 
-    pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
-        self.timer = SearchTimer::new(999999999); // just some big number idc
+    const fn stop_searching(&self, depth: Depth) -> bool {
+        if depth == MAX_DEPTH {
+            return true;
+        }
 
+        match self.search_limit {
+            SearchLimit::Time(_) => self.out_of_time,
+            SearchLimit::Depth(depth_limit) => depth > depth_limit,
+            SearchLimit::Nodes(node_limit) => self.node_count > node_limit,
+            SearchLimit::None => true,
+        }
+    }
+
+    fn is_out_of_time(&self) -> bool {
+        if self.node_count % Self::TIMER_CHECK_FREQ == 0 {
+            if let Some(timer) = self.timer {
+                return timer.is_expired();
+            }
+        }
+
+        false
+    }
+
+    pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
         for d in 1..depth {
             self.negamax(board, d, 0, -INF, INF);
         }
@@ -85,12 +125,16 @@ impl Searcher {
         self.node_count
     }
 
-    pub fn go(&mut self, board: &Board) {
+    pub fn go(&mut self, board: &Board, report_info: bool) -> SearchResults {
+        if let SearchLimit::Time(limit) = self.search_limit {
+            self.timer = Some(SearchTimer::new(limit));
+        }
+
         let stopwatch = std::time::Instant::now();
         let mut depth: Depth = 1;
 
-        let mut best_move = MoveGenerator::first_legal_move(board).unwrap();
-        while depth <= self.depth_limit.unwrap_or(MAX_DEPTH) {
+        let mut search_results = SearchResults::new(board);
+        while !self.stop_searching(depth) {
             self.seldepth = 0;
 
             let score = self.negamax(board, depth, 0, -INF, INF);
@@ -99,14 +143,25 @@ impl Searcher {
                 break;
             }
 
-            self.report_search_info(score, depth, stopwatch);
-            best_move = self.pv_table.best_move();
+            if report_info {
+                self.report_search_info(score, depth, stopwatch);
+            }
+            search_results.best_move = self.pv_table.best_move();
+            search_results.score = score;
 
             depth += 1;
         }
 
-        assert!(best_move.to() != best_move.from(), "INVALID MOVE");
-        println!("bestmove {}", best_move.as_string());
+        assert!(
+            search_results.best_move.to() != search_results.best_move.from(),
+            "INVALID MOVE"
+        );
+
+        if report_info {
+            println!("bestmove {}", search_results.best_move.as_string());
+        }
+
+        search_results
     }
 
     fn negamax(
@@ -131,12 +186,12 @@ impl Searcher {
             return self.qsearch(board, ply, alpha, beta);
         }
 
-        if (self.node_count % Self::TIMER_CHECK_FREQ == 0) && self.timer.is_expired() {
+        if self.is_out_of_time() {
             self.out_of_time = true;
             return 0;
         }
 
-        self.seldepth = ply;
+        self.seldepth = self.seldepth.max(ply);
 
         let hash_base = ZobristHash::incremental_update_base(board);
 
@@ -150,15 +205,17 @@ impl Searcher {
             if !is_legal {
                 continue;
             }
-            if self.out_of_time {
-                return 0;
-            }
+
             self.node_count += 1;
             moves_played += 1;
 
             let score = -self.negamax(&next_board, depth - 1, ply + 1, -beta, -alpha);
 
             self.zobrist_stack.revert_state();
+
+            if self.out_of_time {
+                return 0;
+            }
 
             if score > best_score {
                 best_score = score;
@@ -193,12 +250,12 @@ impl Searcher {
         mut alpha: EvalScore,
         beta: EvalScore,
     ) -> EvalScore {
-        if (self.node_count % Self::TIMER_CHECK_FREQ == 0) && self.timer.is_expired() {
+        if self.is_out_of_time() {
             self.out_of_time = true;
             return 0;
         }
 
-        self.seldepth = ply;
+        self.seldepth = self.seldepth.max(ply);
 
         let stand_pat = evaluate(board);
         if stand_pat >= beta {
@@ -220,14 +277,16 @@ impl Searcher {
             if !is_legal {
                 continue;
             }
-            if self.out_of_time {
-                return 0;
-            }
+
             self.node_count += 1;
 
             let score = -self.qsearch(&next_board, ply + 1, -beta, -alpha);
 
             self.zobrist_stack.revert_state();
+
+            if self.out_of_time {
+                return 0;
+            }
 
             if score > best_score {
                 best_score = score;

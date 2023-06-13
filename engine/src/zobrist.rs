@@ -72,6 +72,10 @@ impl ZobristHash {
 
         Self(hash)
     }
+
+    pub const fn as_index(self) -> usize {
+        self.0 as usize
+    }
 }
 
 #[cfg(test)]
