@@ -1,8 +1,8 @@
 use engine::{
     board_representation::{Board, Color, Piece, Square, NUM_PIECES, NUM_SQUARES},
-    evaluation::{Phase, phase},
+    evaluation::{phase, Phase},
 };
-use std::fs::read_to_string;
+use std::{fs::read_to_string, result};
 
 const MG: usize = 0;
 const EG: usize = 1;
@@ -42,7 +42,7 @@ impl Feature {
 }
 
 struct Entry {
-    feature_vec: Vec<Feature>,
+    linear_feature_vec: Vec<Feature>,
     phase: Phase,
     result: i8,
 }
@@ -50,7 +50,7 @@ struct Entry {
 impl Entry {
     fn from_board(board: &Board, result: i8) -> Self {
         let mut entry = Self {
-            feature_vec: vec![],
+            linear_feature_vec: vec![],
             phase: phase(board),
             result,
         };
@@ -67,7 +67,7 @@ impl Entry {
                     - b_sq.as_bitboard().intersection(b_piece_bb).popcount();
                 if value != 0 {
                     entry
-                        .feature_vec
+                        .linear_feature_vec
                         .push(Feature::new(value as i8, Pst::index(piece, sq)));
                 }
             }
@@ -76,20 +76,33 @@ impl Entry {
     }
 }
 
-struct Tuner {
+pub struct Tuner {
     entries: Vec<Entry>,
     gradient: Gradient,
 }
 
 impl Tuner {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             entries: vec![],
             gradient: Gradient::new(),
         }
     }
 
-    fn load_from_file(&mut self, file_name: &str) {
-        for line in read_to_string(file_name).unwrap().lines() {}
+    pub fn load_from_file(&mut self, file_name: &str) {
+        for line in read_to_string(file_name).unwrap().lines() {
+            let mut parts = line.split('[');
+            let fen = parts.next().unwrap();
+            let result = parts
+                .next()
+                .unwrap()
+                .split(']')
+                .next()
+                .unwrap()
+                .parse::<i8>()
+                .unwrap();
+
+            println!("{} {}", fen, result);
+        }
     }
 }
