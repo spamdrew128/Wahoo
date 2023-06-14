@@ -133,6 +133,10 @@ impl Square {
         self.0 as usize
     }
 
+    pub const fn flip(self) -> Self {
+        Self(self.0 ^ 0b111000)
+    }
+
     const fn rank(self) -> u8 {
         self.0 / 8
     }
