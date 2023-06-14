@@ -48,13 +48,7 @@ struct Entry {
 }
 
 impl Entry {
-    fn new(board: &Board, game_result: i8) -> Self {
-        let mut entry = Self {
-            linear_feature_vec: vec![],
-            phase: phase(board),
-            game_result,
-        };
-
+    fn add_pst_features(&mut self, board: &Board) {
         for piece in Piece::LIST {
             let w_piece_bb = board.piece_bb(piece, Color::White);
             let b_piece_bb = board.piece_bb(piece, Color::Black);
@@ -66,12 +60,22 @@ impl Entry {
                 let value = w_sq.as_bitboard().intersection(w_piece_bb).popcount()
                     - b_sq.as_bitboard().intersection(b_piece_bb).popcount();
                 if value != 0 {
-                    entry
-                        .linear_feature_vec
+                    self.linear_feature_vec
                         .push(Feature::new(value as i8, Pst::index(piece, sq)));
                 }
             }
         }
+    }
+
+    fn new(board: &Board, game_result: i8) -> Self {
+        let mut entry = Self {
+            linear_feature_vec: vec![],
+            phase: phase(board),
+            game_result,
+        };
+
+        entry.add_pst_features(board);
+
         entry
     }
 }
@@ -79,6 +83,7 @@ impl Entry {
 pub struct Tuner {
     entries: Vec<Entry>,
     gradient: Gradient,
+    weights: [f64; Pst::LEN],
 }
 
 impl Tuner {
@@ -86,6 +91,7 @@ impl Tuner {
         Self {
             entries: vec![],
             gradient: Gradient::new(),
+            weights: [0.0; Pst::LEN],
         }
     }
 
