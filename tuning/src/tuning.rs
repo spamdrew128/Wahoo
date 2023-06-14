@@ -44,15 +44,15 @@ impl Feature {
 struct Entry {
     linear_feature_vec: Vec<Feature>,
     phase: Phase,
-    result: i8,
+    game_result: i8,
 }
 
 impl Entry {
-    fn new(board: &Board, result: i8) -> Self {
+    fn new(board: &Board, game_result: i8) -> Self {
         let mut entry = Self {
             linear_feature_vec: vec![],
             phase: phase(board),
-            result,
+            game_result,
         };
 
         for piece in Piece::LIST {
@@ -91,19 +91,11 @@ impl Tuner {
 
     pub fn load_from_file(&mut self, file_name: &str) {
         for line in read_to_string(file_name).unwrap().lines() {
-            let mut parts = line.split('[');
-            let fen = parts.next().unwrap();
-            let result = parts
-                .next()
-                .unwrap()
-                .split(']')
-                .next()
-                .unwrap()
-                .parse::<i8>()
-                .unwrap();
+            let (fen, r) = line.split_once('[').unwrap();
+            let game_result = r.split_once(']').unwrap().0.parse::<i8>().unwrap();
 
             let board = Board::from_fen(fen);
-            self.entries.push(Entry::new(&board, result));
+            self.entries.push(Entry::new(&board, game_result));
         }
     }
 }
