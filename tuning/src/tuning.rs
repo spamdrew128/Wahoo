@@ -48,7 +48,7 @@ struct Entry {
 }
 
 impl Entry {
-    fn from_board(board: &Board, result: i8) -> Self {
+    fn new(board: &Board, result: i8) -> Self {
         let mut entry = Self {
             linear_feature_vec: vec![],
             phase: phase(board),
@@ -102,7 +102,8 @@ impl Tuner {
                 .parse::<i8>()
                 .unwrap();
 
-            println!("{} {}", fen, result);
+            let board = Board::from_fen(fen);
+            self.entries.push(Entry::new(&board, result));
         }
     }
 }
