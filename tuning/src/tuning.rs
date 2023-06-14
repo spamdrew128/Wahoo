@@ -1,12 +1,13 @@
 use engine::{
     board_representation::{Board, Color, Piece, Square, NUM_PIECES, NUM_SQUARES},
-    evaluation::{phase, Phase},
+    evaluation::{phase, Phase, PHASE_MAX},
 };
-use std::{fs::read_to_string, result};
+use std::fs::read_to_string;
 
 const MG: usize = 0;
 const EG: usize = 1;
 const NUM_PHASES: usize = 2;
+const PHASES: [usize; NUM_PHASES] = [MG, EG];
 
 struct Pst;
 impl Pst {
@@ -28,6 +29,10 @@ impl Gradient {
             data: [[0.0; Pst::LEN]; NUM_PHASES],
         }
     }
+
+    const fn len(&self) -> usize {
+        self.data.len()
+    }
 }
 
 struct Weights {
@@ -39,6 +44,14 @@ impl Weights {
         Self {
             data: [[0.0; Pst::LEN]; NUM_PHASES],
         }
+    }
+    
+    const fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    const fn read(&self, phase: usize, index: usize) -> f64 {
+        self.data[phase][index]
     }
 }
 
@@ -54,7 +67,7 @@ impl Feature {
 }
 
 struct Entry {
-    linear_feature_vec: Vec<Feature>,
+    feature_vec: Vec<Feature>,
     phase: Phase,
     game_result: i8,
 }
@@ -72,7 +85,7 @@ impl Entry {
                 let value = w_sq.as_bitboard().intersection(w_piece_bb).popcount()
                     - b_sq.as_bitboard().intersection(b_piece_bb).popcount();
                 if value != 0 {
-                    self.linear_feature_vec
+                    self.feature_vec
                         .push(Feature::new(value as i8, Pst::index(piece, sq)));
                 }
             }
@@ -81,7 +94,7 @@ impl Entry {
 
     fn new(board: &Board, game_result: i8) -> Self {
         let mut entry = Self {
-            linear_feature_vec: vec![],
+            feature_vec: vec![],
             phase: phase(board),
             game_result,
         };
@@ -89,6 +102,21 @@ impl Entry {
         entry.add_pst_features(board);
 
         entry
+    }
+
+    fn evaluation(&self, weights: &Weights) -> f64 {
+        let mut scores = [0.0, 0.0];
+
+        for phase in PHASES {
+            for feature in &self.feature_vec {
+                scores[phase] += f64::from(feature.value) * weights.read(phase, feature.index);
+            }
+        }
+
+        let mg_phase = f64::from(self.phase);
+        let eg_phase = f64::from(PHASE_MAX - self.phase);
+
+        (scores[MG] * mg_phase + scores[EG] * eg_phase) / f64::from(PHASE_MAX)
     }
 }
 
