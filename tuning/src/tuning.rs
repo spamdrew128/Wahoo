@@ -19,13 +19,25 @@ impl Pst {
 }
 
 struct Gradient {
-    linear: [[f64; Pst::LEN]; NUM_PHASES],
+    data: [[f64; Pst::LEN]; NUM_PHASES], // add sections for "linear" and "non-linear" later
 }
 
 impl Gradient {
     const fn new() -> Self {
         Self {
-            linear: [[0.0; Pst::LEN]; NUM_PHASES],
+            data: [[0.0; Pst::LEN]; NUM_PHASES],
+        }
+    }
+}
+
+struct Weights {
+    data: [[f64; Pst::LEN]; NUM_PHASES], // add sections for "linear" and "non-linear" later
+}
+
+impl Weights {
+    const fn new() -> Self {
+        Self {
+            data: [[0.0; Pst::LEN]; NUM_PHASES],
         }
     }
 }
@@ -83,7 +95,7 @@ impl Entry {
 pub struct Tuner {
     entries: Vec<Entry>,
     gradient: Gradient,
-    weights: [f64; Pst::LEN],
+    weights: Weights,
 }
 
 impl Tuner {
@@ -91,7 +103,7 @@ impl Tuner {
         Self {
             entries: vec![],
             gradient: Gradient::new(),
-            weights: [0.0; Pst::LEN],
+            weights: Weights::new(),
         }
     }
 
