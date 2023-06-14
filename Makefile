@@ -1,5 +1,6 @@
 EXE = wahoo
 TUNER_EXE := tuner
+GENERATOR_EXE := data_generator
 
 ifeq ($(OS),Windows_NT)
 	NAME := $(EXE).exe
@@ -8,6 +9,7 @@ ifeq ($(OS),Windows_NT)
 	V3NAME := $(EXE)-x86_64-win-v3.exe
 	V4NAME := $(EXE)-x86_64-win-v4.exe
 	TUNER_NAME := $(TUNER_EXE).exe
+	GENERATOR_NAME := $(GENERATOR_EXE).exe
 
 	RM_COMMAND := del
 else
@@ -17,6 +19,7 @@ else
 	V3NAME := $(EXE)-x86_64-linux-v3
 	V4NAME := $(EXE)-x86_64-linux-v4
 	TUNER_NAME := $(TUNER_EXE)
+	GENERATOR_NAME := $(GENERATOR_EXE)
 
 	RM_COMMAND := rm
 endif
@@ -27,6 +30,9 @@ rule:
 tuner:
 	cargo rustc --release -p tuning -- -C target-cpu=native --emit link=$(TUNER_NAME)
 
+generator:
+	cargo rustc --release -p datagen -- -C target-cpu=native --emit link=$(GENERATOR_NAME)
+
 release:
 	cargo rustc --release -p uci_loop -- -C target-cpu=x86-64 --emit link=$(V1NAME)
 	cargo rustc --release -p uci_loop -- -C target-cpu=x86-64-v2 --emit link=$(V2NAME)
@@ -35,5 +41,5 @@ release:
 
 clean:
 	cargo clean
-	$(RM_COMMAND) $(NAME) $(V1NAME) $(V2NAME) $(V3NAME) $(V4NAME) $(TUNER_NAME)
+	$(RM_COMMAND) $(NAME) $(V1NAME) $(V2NAME) $(V3NAME) $(V4NAME) $(TUNER_NAME) $(GENERATOR_NAME)
 	
