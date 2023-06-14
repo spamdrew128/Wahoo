@@ -1,5 +1,17 @@
+use engine::board_representation::{NUM_SQUARES, NUM_PIECES};
+
+const MG: usize = 0;
+const EG: usize = 1;
+const NUM_PHASES: usize = 2;
+
+struct Pst;
+impl Pst {
+    const START: usize = 0;
+    const LEN: usize = (NUM_PIECES as usize) * (NUM_SQUARES as usize);
+}
+
 struct Gradient {
-    linear: [i8; 1]
+    linear: [[f64; Pst::LEN]; NUM_PHASES]
 }
 
 struct Feature {
