@@ -19,42 +19,6 @@ impl Pst {
     }
 }
 
-struct Gradient {
-    data: [[f64; Pst::LEN]; NUM_PHASES], // add sections for "linear" and "non-linear" later
-}
-
-impl Gradient {
-    const fn new() -> Self {
-        Self {
-            data: [[0.0; Pst::LEN]; NUM_PHASES],
-        }
-    }
-
-    const fn len(&self) -> usize {
-        self.data.len()
-    }
-}
-
-struct Weights {
-    data: [[f64; Pst::LEN]; NUM_PHASES], // add sections for "linear" and "non-linear" later
-}
-
-impl Weights {
-    const fn new() -> Self {
-        Self {
-            data: [[0.0; Pst::LEN]; NUM_PHASES],
-        }
-    }
-    
-    const fn len(&self) -> usize {
-        self.data.len()
-    }
-
-    const fn read(&self, phase: usize, index: usize) -> f64 {
-        self.data[phase][index]
-    }
-}
-
 struct Feature {
     value: i8,
     index: usize,
@@ -104,12 +68,12 @@ impl Entry {
         entry
     }
 
-    fn evaluation(&self, weights: &Weights) -> f64 {
+    fn evaluation(&self, weights: &[[f64; Pst::LEN]; NUM_PHASES]) -> f64 {
         let mut scores = [0.0, 0.0];
 
         for phase in PHASES {
             for feature in &self.feature_vec {
-                scores[phase] += f64::from(feature.value) * weights.read(phase, feature.index);
+                scores[phase] += f64::from(feature.value) * weights[phase][feature.index];
             }
         }
 
@@ -122,16 +86,16 @@ impl Entry {
 
 pub struct Tuner {
     entries: Vec<Entry>,
-    gradient: Gradient,
-    weights: Weights,
+    gradient: [[f64; Pst::LEN]; NUM_PHASES],
+    weights: [[f64; Pst::LEN]; NUM_PHASES],
 }
 
 impl Tuner {
     pub fn new() -> Self {
         Self {
             entries: vec![],
-            gradient: Gradient::new(),
-            weights: Weights::new(),
+            gradient: [[0.0; Pst::LEN]; NUM_PHASES],
+            weights: [[0.0; Pst::LEN]; NUM_PHASES],
         }
     }
 
