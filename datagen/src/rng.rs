@@ -11,7 +11,10 @@ struct Pcg32State {
 
 impl Pcg32State {
     fn random_seed() -> Self {
-        let state = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
+        let state = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis();
         let inc = state ^ 0xE5CB_1AFE_6353_7DBF;
 
         Self {
