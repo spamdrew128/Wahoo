@@ -1,6 +1,6 @@
 use engine::{
     board_representation::{Board, Color, Piece, Square, NUM_PIECES, NUM_SQUARES},
-    evaluation::{phase, Phase, PHASE_MAX},
+    evaluation::{phase, EvalScore, Phase, PHASE_MAX},
 };
 use std::{
     fs::{read_to_string, File},
@@ -105,7 +105,7 @@ pub struct Tuner {
 
 impl Tuner {
     const K: f64 = 0.006634;
-    const CONVERGENCE_DELTA: f64 = 1e-8;
+    const CONVERGENCE_DELTA: f64 = 1e-10;
     const CONVERGENCE_CHECK_FREQ: u32 = 25;
     const MAX_EPOCHS: u32 = 10000;
 
@@ -172,7 +172,7 @@ impl Tuner {
         const BETA2: f64 = 0.999;
         const EPSILON: f64 = 1e-8;
 
-        for i in 0..self.gradient.len() {
+        for i in 0..self.gradient[0].len() {
             for phase in PHASES {
                 // we left off k eariler, so we add it back here
                 let grad_component: f64 = -Self::K * self.gradient[phase][i] / (self.entries.len() as f64);
@@ -196,8 +196,6 @@ impl Tuner {
     }
 
     pub fn train(&mut self) {
-        let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
-
         let mut prev_mse = self.mse();
         for epoch in 0..Self::MAX_EPOCHS {
             self.reset_gradient();
@@ -211,7 +209,7 @@ impl Tuner {
                 println!("MSE: {mse}");
                 println!("MSE change since previous: {delta_mse}\n");
 
-                self.create_output_file(&mut output);
+                self.create_output_file();
 
                 if delta_mse < Self::CONVERGENCE_DELTA {
                     return;
@@ -221,7 +219,9 @@ impl Tuner {
         }
     }
 
-    fn create_output_file(&self, output: &mut BufWriter<File>) {
+    fn create_output_file(&self) {
+        let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
+
         writeln!(
             output,
             "const PSTS: [[[EvalScore; NUM_PHASES] NUM_SQUARES]; NUM_PIECES] = ["
@@ -239,8 +239,8 @@ impl Tuner {
                 write!(
                     output,
                     "[{}, {}], ",
-                    self.weights[MG][Pst::index(piece, sq)],
-                    self.weights[EG][Pst::index(piece, sq)]
+                    self.weights[MG][Pst::index(piece, sq)] as EvalScore,
+                    self.weights[EG][Pst::index(piece, sq)] as EvalScore,
                 )
                 .unwrap();
             }
