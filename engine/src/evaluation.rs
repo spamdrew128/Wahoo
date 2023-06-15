@@ -57,7 +57,11 @@ fn pst_eval(board: &Board) -> ScoreTuple {
         let mut b_pieces = board.piece_bb(piece, Color::Black);
 
         bitloop!(|sq|, w_pieces, {
-            score = score.add(ScoreTuple(0, 0));
+            score = score.add(PST[piece.as_index()][sq.flip().as_index()]);
+        });
+
+        bitloop!(|sq|, b_pieces, {
+            score = score.subtract(PST[piece.as_index()][sq.as_index()]);
         });
     }
     score
@@ -67,5 +71,7 @@ pub fn evaluate(board: &Board) -> EvalScore {
     let mut score = ScoreTuple::new(0, 0);
     score = score.add(pst_eval(board));
 
-    score.mg()
+    let mg_phase = i16::from(phase(board));
+    let eg_phase = i16::from(PHASE_MAX) - mg_phase;
+    (score.mg() * mg_phase + score.eg() * eg_phase) / i16::from(PHASE_MAX)
 }
