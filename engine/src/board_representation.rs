@@ -80,6 +80,20 @@ impl Piece {
         Some(ch)
     }
 
+    pub fn as_string(self) -> Option<String> {
+        let piece_str = match self {
+            Self::KNIGHT => "Knight",
+            Self::BISHOP => "Bishop",
+            Self::ROOK => "Rook",
+            Self::QUEEN => "Queen",
+            Self::PAWN => "Pawn",
+            Self::KING => "King",
+            _ => return None,
+        };
+
+        Some(piece_str.to_owned())
+    }
+
     pub const fn from_char(char: char) -> Option<Self> {
         match char {
             'n' | 'N' => Some(Self::KNIGHT),
@@ -131,6 +145,10 @@ impl Square {
 
     pub const fn as_index(self) -> usize {
         self.0 as usize
+    }
+
+    pub const fn flip(self) -> Self {
+        Self(self.0 ^ 0b111000)
     }
 
     const fn rank(self) -> u8 {

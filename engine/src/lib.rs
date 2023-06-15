@@ -7,12 +7,14 @@
 #![allow(clippy::return_self_not_must_use)]
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::missing_panics_doc)]
+#![allow(clippy::similar_names)]
 #![allow(dead_code)] // remove later
 
 mod attacks;
 pub mod bench;
 pub mod board_representation;
 pub mod chess_move;
+mod eval_constants;
 pub mod evaluation;
 mod magic;
 pub mod movegen;
