@@ -88,6 +88,7 @@ pub struct Tuner {
     entries: Vec<Entry>,
     gradient: [[f64; Pst::LEN]; NUM_PHASES],
     weights: [[f64; Pst::LEN]; NUM_PHASES],
+    k: f64,
 }
 
 impl Tuner {
@@ -96,6 +97,7 @@ impl Tuner {
             entries: vec![],
             gradient: [[0.0; Pst::LEN]; NUM_PHASES],
             weights: [[0.0; Pst::LEN]; NUM_PHASES],
+            k: 0.006634,
         }
     }
 
@@ -107,5 +109,13 @@ impl Tuner {
             let board = Board::from_fen(fen);
             self.entries.push(Entry::new(&board, game_result));
         }
+    }
+
+    fn sigmoid(&self, e: f64) -> f64 {
+        1.0 / (1.0 + (f64::exp(-self.k * e)))
+    }
+
+    fn update_gradient(&mut self) {
+
     }
 }
