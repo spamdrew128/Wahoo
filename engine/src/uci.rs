@@ -208,16 +208,11 @@ impl UciHandler {
                                 .unwrap_or(0);
                         }
                         "movetime" => {
-                            let time = args_iterator
+                            time_args.move_time = args_iterator
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
                                 .unwrap_or(0);
-
-                            if time > 0 {
-                                search_limit = SearchLimit::Time(time);
-                                should_calc_time = false;
-                            }
                         }
                         "depth" => {
                             let depth = args_iterator.next().unwrap().parse::<Depth>().unwrap_or(0);
