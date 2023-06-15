@@ -35,7 +35,7 @@ impl Feature {
 struct Entry {
     feature_vec: Vec<Feature>,
     phase: Phase,
-    game_result: i8,
+    game_result: f64,
 }
 
 impl Entry {
@@ -58,7 +58,7 @@ impl Entry {
         }
     }
 
-    fn new(board: &Board, game_result: i8) -> Self {
+    fn new(board: &Board, game_result: f64) -> Self {
         let mut entry = Self {
             feature_vec: vec![],
             phase: phase(board),
@@ -118,7 +118,7 @@ impl Tuner {
     pub fn load_from_file(&mut self, file_name: &str) {
         for line in read_to_string(file_name).unwrap().lines() {
             let (fen, r) = line.split_once('[').unwrap();
-            let game_result = r.split_once(']').unwrap().0.parse::<i8>().unwrap();
+            let game_result = r.split_once(']').unwrap().0.parse::<f64>().unwrap();
 
             let board = Board::from_fen(fen);
             self.entries.push(Entry::new(&board, game_result));
@@ -139,7 +139,7 @@ impl Tuner {
     }
 
     fn update_entry_gradient_component(entry: &Entry, gradient: &mut TunerVec, weights: &TunerVec) {
-        let r = f64::from(entry.game_result);
+        let r = entry.game_result;
         let eval = entry.evaluation(weights);
         let sigmoid = Self::sigmoid(eval);
         let sigmoid_prime = Self::sigmoid_prime(sigmoid);
@@ -184,7 +184,7 @@ impl Tuner {
         let mut total_error = 0.0;
         for entry in &self.entries {
             let eval = entry.evaluation(&self.weights);
-            let error = f64::from(entry.game_result) - Self::sigmoid(eval);
+            let error = entry.game_result - Self::sigmoid(eval);
             total_error += error * error;
         }
     
