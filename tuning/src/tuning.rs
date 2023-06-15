@@ -2,7 +2,7 @@ use engine::{
     board_representation::{Board, Color, Piece, Square, NUM_PIECES, NUM_SQUARES},
     evaluation::{phase, Phase, PHASE_MAX},
 };
-use std::fs::read_to_string;
+use std::{fs::{read_to_string, File}, io::BufWriter};
 
 const MG: usize = 0;
 const EG: usize = 1;
@@ -192,6 +192,8 @@ impl Tuner {
     }
 
     pub fn train(&mut self) {
+        let output = BufWriter::new(File::create("eval_constants.rs").unwrap());
+
         let mut prev_mse = self.mse();
         for epoch in 0..Self::MAX_EPOCHS {
             self.reset_gradient();
@@ -213,5 +215,9 @@ impl Tuner {
                 prev_mse = mse;
             }
         }
+    }
+
+    fn create_output_file(output: &mut BufWriter<File>) {
+        
     }
 }
