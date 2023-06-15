@@ -168,8 +168,7 @@ impl Tuner {
                 self.momentum[phase][i] = BETA1 * self.momentum[phase][i] + (1.0 - BETA1) * grad_component;
                 self.velocity[phase][i] = BETA2 * self.velocity[phase][i] + (1.0 - BETA2) * (grad_component * grad_component);
 
-                self.weights[phase][i] -=
-                    self.momentum[phase][i] / (EPSILON + self.velocity[phase][i].sqrt());
+                self.weights[phase][i] -= self.momentum[phase][i] / (EPSILON + self.velocity[phase][i].sqrt());
             }
         }
     }
