@@ -48,11 +48,11 @@ impl Entry {
                 let w_sq = sq.flip();
                 let b_sq = sq;
 
-                let value = w_sq.as_bitboard().intersection(w_piece_bb).popcount()
-                    - b_sq.as_bitboard().intersection(b_piece_bb).popcount();
+                let value = (w_sq.as_bitboard().intersection(w_piece_bb).popcount() as i8)
+                    - (b_sq.as_bitboard().intersection(b_piece_bb).popcount() as i8);
                 if value != 0 {
                     self.feature_vec
-                        .push(Feature::new(value as i8, Pst::index(piece, sq)));
+                        .push(Feature::new(value, Pst::index(piece, sq)));
                 }
             }
         }
