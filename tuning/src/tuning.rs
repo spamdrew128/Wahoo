@@ -196,7 +196,7 @@ impl Tuner {
     }
 
     pub fn train(&mut self) {
-        let output = BufWriter::new(File::create("eval_constants.rs").unwrap());
+        let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
 
         let mut prev_mse = self.mse();
         for epoch in 0..Self::MAX_EPOCHS {
@@ -211,7 +211,7 @@ impl Tuner {
                 println!("MSE: {mse}");
                 println!("MSE change since previous: {delta_mse}\n");
 
-                // print to file
+                self.create_output_file(&mut output);
 
                 if delta_mse < Self::CONVERGENCE_DELTA {
                     return;
@@ -222,13 +222,15 @@ impl Tuner {
     }
 
     fn create_output_file(&self, output: &mut BufWriter<File>) {
-        write!(
+        writeln!(
             output,
             "const PSTS: [[[EvalScore; NUM_PHASES] NUM_SQUARES]; NUM_PIECES] = ["
         )
         .unwrap();
 
         for piece in Piece::LIST {
+            writeln!(output, "// {} PST", piece.as_string().unwrap()).unwrap();
+            writeln!(output, "[").unwrap();
             for i in 0..NUM_SQUARES {
                 let sq = Square::new(i);
                 if i % 8 == 0 {
@@ -242,6 +244,9 @@ impl Tuner {
                 )
                 .unwrap();
             }
+            writeln!(output, "],").unwrap();
         }
+
+        writeln!(output, "];").unwrap();
     }
 }
