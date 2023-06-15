@@ -88,6 +88,8 @@ pub struct Tuner {
     entries: Vec<Entry>,
     gradient: [[f64; Pst::LEN]; NUM_PHASES],
     weights: [[f64; Pst::LEN]; NUM_PHASES],
+    momentum: [[f64; Pst::LEN]; NUM_PHASES],
+    velocity: [[f64; Pst::LEN]; NUM_PHASES],
     k: f64,
 }
 
@@ -97,6 +99,8 @@ impl Tuner {
             entries: vec![],
             gradient: [[0.0; Pst::LEN]; NUM_PHASES],
             weights: [[0.0; Pst::LEN]; NUM_PHASES],
+            momentum: [[0.0; Pst::LEN]; NUM_PHASES],
+            velocity: [[0.0; Pst::LEN]; NUM_PHASES],
             k: 0.006634,
         }
     }
@@ -115,7 +119,24 @@ impl Tuner {
         1.0 / (1.0 + (f64::exp(-self.k * e)))
     }
 
-    fn update_gradient(&mut self) {
+    fn sigmoid_prime(&self, sigmoid: f64) -> f64 {
+        // K is omitted for now but will be added later
+        sigmoid * (1.0 - sigmoid)
+    }
 
+    fn update_weights(&mut self) {
+        const BETA1: f64 = 0.9;
+        const BETA2: f64 = 0.999;
+        const EPSILON: f64 = 1e-8;
+    
+        for i in 0..self.gradient.len() {
+            for phase in PHASES {
+                let grad_component: f64 = -self.k * self.gradient[phase][i] / (self.entries.len() as f64); // we left off k eariler, so we add it back here
+                self.momentum[phase][i] = BETA1 * self.momentum[phase][i] + (1.0 - BETA1) * grad_component;
+                self.velocity[phase][i] = BETA2 * self.velocity[phase][i] + (1.0 - BETA2) * (grad_component * grad_component);
+    
+                self.weights[phase][i] -= self.momentum[phase][i] / (EPSILON + self.velocity[phase][i].sqrt());
+            }
+        }
     }
 }
