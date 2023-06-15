@@ -223,9 +223,9 @@ impl Tuner {
             output,
             "{}\n{}\n{}\n{}\n{}\n",
             "macro_rules! s {",
-            "   ($mg:expr, $eg:expr) => {",
-            "   ScoreTuple::new($mg, $eg)",
-            "   };",
+            "  ($mg:expr, $eg:expr) => {",
+            "    ScoreTuple::new($mg, $eg)",
+            "  };",
             "}",
         )
         .unwrap();

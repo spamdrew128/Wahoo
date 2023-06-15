@@ -2,9 +2,9 @@
 use crate::{evaluation::ScoreTuple, board_representation::{NUM_SQUARES, NUM_PIECES}};
 
 macro_rules! s {
-   ($mg:expr, $eg:expr) => {
-   ScoreTuple::new($mg, $eg)
-   };
+  ($mg:expr, $eg:expr) => {
+    ScoreTuple::new($mg, $eg)
+  };
 }
 
 pub const PST: [[ScoreTuple; NUM_SQUARES as usize]; NUM_PIECES as usize] = [
