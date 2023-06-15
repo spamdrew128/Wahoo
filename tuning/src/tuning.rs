@@ -230,13 +230,13 @@ impl Tuner {
 
         for piece in Piece::LIST {
             writeln!(output, "// {} PST", piece.as_string().unwrap()).unwrap();
-            writeln!(output, "[").unwrap();
+            write!(output, "[").unwrap();
             for i in 0..NUM_SQUARES {
                 let sq = Square::new(i);
                 if i % 8 == 0 {
                     write!(output, "\n  ").unwrap();
                 }
-                writeln!(
+                write!(
                     output,
                     "[{}, {}], ",
                     self.weights[MG][Pst::index(piece, sq)],
@@ -244,7 +244,7 @@ impl Tuner {
                 )
                 .unwrap();
             }
-            writeln!(output, "],").unwrap();
+            writeln!(output, "\n],").unwrap();
         }
 
         writeln!(output, "];").unwrap();
