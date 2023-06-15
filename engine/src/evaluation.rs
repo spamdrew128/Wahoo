@@ -6,6 +6,7 @@ use crate::{
 
 pub type Phase = u8;
 pub const PHASE_MAX: Phase = 24;
+pub const NUM_PHASES: usize = 2;
 
 pub type EvalScore = i16;
 pub const INF: EvalScore = i16::MAX - 10;

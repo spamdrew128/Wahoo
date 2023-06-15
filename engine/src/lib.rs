@@ -13,6 +13,7 @@ mod attacks;
 pub mod bench;
 pub mod board_representation;
 pub mod chess_move;
+mod eval_constants;
 pub mod evaluation;
 mod magic;
 pub mod movegen;

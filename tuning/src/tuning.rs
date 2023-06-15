@@ -1,6 +1,6 @@
 use engine::{
     board_representation::{Board, Color, Piece, Square, NUM_PIECES, NUM_SQUARES},
-    evaluation::{phase, EvalScore, Phase, PHASE_MAX},
+    evaluation::{phase, EvalScore, Phase, NUM_PHASES, PHASE_MAX},
 };
 use std::{
     fs::{read_to_string, File},
@@ -10,7 +10,6 @@ use std::{
 
 const MG: usize = 0;
 const EG: usize = 1;
-const NUM_PHASES: usize = 2;
 const PHASES: [usize; NUM_PHASES] = [MG, EG];
 
 type TunerVec = [[f64; Pst::LEN]; NUM_PHASES];
@@ -219,12 +218,15 @@ impl Tuner {
         }
     }
 
-    fn create_output_file(&self) {
-        let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
+    fn write_header(&self, output: &mut BufWriter<File>) {
+        writeln!(output, "#![cfg_attr(rustfmt, rustfmt_skip)]").unwrap();
+        writeln!(output, "use crate::{{evaluation::{{NUM_PHASES, EvalScore}}, board_representation::{{NUM_SQUARES, NUM_PIECES}}}};\n").unwrap();
+    }
 
+    fn write_psts(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
-            "const PSTS: [[[EvalScore; NUM_PHASES] NUM_SQUARES]; NUM_PIECES] = ["
+            "const PSTS: [[[EvalScore; NUM_PHASES]; NUM_SQUARES as usize]; NUM_PIECES as usize] = ["
         )
         .unwrap();
 
@@ -248,5 +250,11 @@ impl Tuner {
         }
 
         writeln!(output, "];").unwrap();
+    }
+
+    fn create_output_file(&self) {
+        let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
+        self.write_header(&mut output);
+        self.write_psts(&mut output);
     }
 }
