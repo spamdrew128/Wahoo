@@ -19,7 +19,7 @@ pub fn phase(board: &Board) -> Phase {
         + board.pieces[Piece::BISHOP.as_index()].popcount()
         + board.pieces[Piece::ROOK.as_index()].popcount() * 2
         + board.pieces[Piece::QUEEN.as_index()].popcount() * 4) as u8;
-    phase.max(PHASE_MAX)
+    phase.min(PHASE_MAX)
 }
 
 pub fn evaluate(board: &Board) -> EvalScore {
