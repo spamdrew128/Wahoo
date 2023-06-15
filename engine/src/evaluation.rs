@@ -67,11 +67,17 @@ fn pst_eval(board: &Board) -> ScoreTuple {
     score
 }
 
+
 pub fn evaluate(board: &Board) -> EvalScore {
-    let mut score = ScoreTuple::new(0, 0);
-    score = score.add(pst_eval(board));
+    let mut score_tuple = ScoreTuple::new(0, 0);
+    score_tuple = score_tuple.add(pst_eval(board));
 
     let mg_phase = i16::from(phase(board));
     let eg_phase = i16::from(PHASE_MAX) - mg_phase;
-    (score.mg() * mg_phase + score.eg() * eg_phase) / i16::from(PHASE_MAX)
+    let score = (score_tuple.mg() * mg_phase + score_tuple.eg() * eg_phase) / i16::from(PHASE_MAX);
+
+    match board.color_to_move {
+        Color::White => score,
+        Color::Black => -score,
+    }
 }
