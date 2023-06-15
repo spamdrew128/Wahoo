@@ -73,8 +73,7 @@ pub fn evaluate(board: &Board) -> EvalScore {
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
-    let score = ((score_tuple.mg() as i32) * mg_phase
-        + (score_tuple.eg() as i32) * eg_phase as i32)
+    let score = (i32::from(score_tuple.mg()) * mg_phase + i32::from(score_tuple.eg()) * eg_phase)
         / i32::from(PHASE_MAX);
 
     match board.color_to_move {
