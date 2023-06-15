@@ -9,6 +9,8 @@ const EG: usize = 1;
 const NUM_PHASES: usize = 2;
 const PHASES: [usize; NUM_PHASES] = [MG, EG];
 
+type TunerVec = [[f64; Pst::LEN]; NUM_PHASES];
+
 struct Pst;
 impl Pst {
     const START: usize = 0;
@@ -68,7 +70,7 @@ impl Entry {
         entry
     }
 
-    fn evaluation(&self, weights: &[[f64; Pst::LEN]; NUM_PHASES]) -> f64 {
+    fn evaluation(&self, weights: &TunerVec) -> f64 {
         let mut scores = [0.0, 0.0];
 
         for phase in PHASES {
@@ -91,14 +93,15 @@ impl Entry {
 
 pub struct Tuner {
     entries: Vec<Entry>,
-    gradient: [[f64; Pst::LEN]; NUM_PHASES],
-    weights: [[f64; Pst::LEN]; NUM_PHASES],
-    momentum: [[f64; Pst::LEN]; NUM_PHASES],
-    velocity: [[f64; Pst::LEN]; NUM_PHASES],
-    k: f64,
+    gradient: TunerVec,
+    weights: TunerVec,
+    momentum: TunerVec,
+    velocity: TunerVec,
 }
 
 impl Tuner {
+    const K: f64 = 0.006634;
+
     pub fn new() -> Self {
         Self {
             entries: vec![],
@@ -106,7 +109,6 @@ impl Tuner {
             weights: [[0.0; Pst::LEN]; NUM_PHASES],
             momentum: [[0.0; Pst::LEN]; NUM_PHASES],
             velocity: [[0.0; Pst::LEN]; NUM_PHASES],
-            k: 0.006634,
         }
     }
 
@@ -120,20 +122,20 @@ impl Tuner {
         }
     }
 
-    fn sigmoid(&self, e: f64) -> f64 {
-        1.0 / (1.0 + (f64::exp(-self.k * e)))
+    fn sigmoid(e: f64) -> f64 {
+        1.0 / (1.0 + (f64::exp(-Self::K * e)))
     }
 
-    fn sigmoid_prime(&self, sigmoid: f64) -> f64 {
+    fn sigmoid_prime(sigmoid: f64) -> f64 {
         // K is omitted for now but will be added later
         sigmoid * (1.0 - sigmoid)
     }
 
-    fn update_entry_gradient_component(&mut self, entry: &Entry) {
+    fn update_entry_gradient_component(entry: &Entry, gradient: &mut TunerVec, weights: &TunerVec) {
         let r = f64::from(entry.game_result);
-        let eval = entry.evaluation(&self.weights);
-        let sigmoid = self.sigmoid(eval);
-        let sigmoid_prime = self.sigmoid_prime(sigmoid);
+        let eval = entry.evaluation(weights);
+        let sigmoid = Self::sigmoid(eval);
+        let sigmoid_prime = Self::sigmoid_prime(sigmoid);
 
         let coeffs: [f64; NUM_PHASES] = [
             ((r - sigmoid) * sigmoid_prime * entry.mg_phase()) / f64::from(PHASE_MAX),
@@ -142,14 +144,14 @@ impl Tuner {
 
         for phase in PHASES {
             for feature in &entry.feature_vec {
-                self.gradient[phase][feature.index] += coeffs[phase] * f64::from(feature.value);
+                gradient[phase][feature.index] += coeffs[phase] * f64::from(feature.value);
             }
         }
     }
 
     fn update_gradient(&mut self) {
         for entry in &self.entries {
-            self.update_entry_gradient_component(entry);
+            Self::update_entry_gradient_component(entry, &mut self.gradient, &self.weights);
         }
     }
 
@@ -162,7 +164,7 @@ impl Tuner {
         for i in 0..self.gradient.len() {
             for phase in PHASES {
                 // we left off k eariler, so we add it back here
-                let grad_component: f64 = -self.k * self.gradient[phase][i] / (self.entries.len() as f64);
+                let grad_component: f64 = -Self::K * self.gradient[phase][i] / (self.entries.len() as f64);
                 self.momentum[phase][i] = BETA1 * self.momentum[phase][i] + (1.0 - BETA1) * grad_component;
                 self.velocity[phase][i] = BETA2 * self.velocity[phase][i] + (1.0 - BETA2) * (grad_component * grad_component);
 
