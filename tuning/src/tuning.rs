@@ -101,6 +101,7 @@ pub struct Tuner {
 
 impl Tuner {
     const K: f64 = 0.006634;
+    const CONVERGENCE_DELTA: f64 = 1e-8;
 
     pub fn new() -> Self {
         Self {
@@ -171,5 +172,20 @@ impl Tuner {
                 self.weights[phase][i] -= self.momentum[phase][i] / (EPSILON + self.velocity[phase][i].sqrt());
             }
         }
+    }
+
+    fn mse(&self) -> f64 {
+        let mut total_error = 0.0;
+        for entry in &self.entries {
+            let eval = entry.evaluation(&self.weights);
+            let error = f64::from(entry.game_result) - Self::sigmoid(eval);
+            total_error += error * error;
+        }
+    
+        total_error / (self.entries.len() as f64)
+    }
+
+    pub fn train(&mut self) {
+        
     }
 }

@@ -6,4 +6,5 @@ fn main() {
 
     let mut tuner = tuning::Tuner::new();
     tuner.load_from_file(file_name);
+    tuner.train();
 }
