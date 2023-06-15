@@ -77,10 +77,15 @@ impl Entry {
             }
         }
 
-        let mg_phase = f64::from(self.phase);
-        let eg_phase = f64::from(PHASE_MAX - self.phase);
+        (scores[MG] * self.mg_phase() + scores[EG] * self.eg_phase()) / f64::from(PHASE_MAX)
+    }
 
-        (scores[MG] * mg_phase + scores[EG] * eg_phase) / f64::from(PHASE_MAX)
+    fn mg_phase(&self) -> f64 {
+        f64::from(self.phase)
+    }
+
+    fn eg_phase(&self) -> f64 {
+        f64::from(PHASE_MAX - self.phase)
     }
 }
 
@@ -124,18 +129,42 @@ impl Tuner {
         sigmoid * (1.0 - sigmoid)
     }
 
+    fn update_entry_gradient_component(&mut self, entry: Entry) {
+        let r = f64::from(entry.game_result);
+        let eval = entry.evaluation(&self.weights);
+        let sigmoid = self.sigmoid(eval);
+        let sigmoid_prime = self.sigmoid_prime(sigmoid);
+
+        let coeffs: [f64; NUM_PHASES] = [
+            ((r - sigmoid) * sigmoid_prime * entry.mg_phase()) / f64::from(PHASE_MAX),
+            ((r - sigmoid) * sigmoid_prime * entry.eg_phase()) / f64::from(PHASE_MAX),
+        ];
+
+        for phase in PHASES {
+            for feature in &entry.feature_vec {
+                self.gradient[phase][feature.index] += coeffs[phase] * f64::from(feature.value);
+            }
+        }
+    }
+
+    fn update_gradient(&mut self) {}
+
     fn update_weights(&mut self) {
         const BETA1: f64 = 0.9;
         const BETA2: f64 = 0.999;
         const EPSILON: f64 = 1e-8;
-    
+
         for i in 0..self.gradient.len() {
             for phase in PHASES {
-                let grad_component: f64 = -self.k * self.gradient[phase][i] / (self.entries.len() as f64); // we left off k eariler, so we add it back here
-                self.momentum[phase][i] = BETA1 * self.momentum[phase][i] + (1.0 - BETA1) * grad_component;
-                self.velocity[phase][i] = BETA2 * self.velocity[phase][i] + (1.0 - BETA2) * (grad_component * grad_component);
-    
-                self.weights[phase][i] -= self.momentum[phase][i] / (EPSILON + self.velocity[phase][i].sqrt());
+                let grad_component: f64 =
+                    -self.k * self.gradient[phase][i] / (self.entries.len() as f64); // we left off k eariler, so we add it back here
+                self.momentum[phase][i] =
+                    BETA1 * self.momentum[phase][i] + (1.0 - BETA1) * grad_component;
+                self.velocity[phase][i] = BETA2 * self.velocity[phase][i]
+                    + (1.0 - BETA2) * (grad_component * grad_component);
+
+                self.weights[phase][i] -=
+                    self.momentum[phase][i] / (EPSILON + self.velocity[phase][i].sqrt());
             }
         }
     }
