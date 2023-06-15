@@ -107,7 +107,7 @@ impl Tuner {
     const K: f64 = 0.006634;
     const CONVERGENCE_DELTA: f64 = 1e-8;
     const CONVERGENCE_CHECK_FREQ: u32 = 25;
-    const MAX_EPOCHS: u32 = 25;
+    const MAX_EPOCHS: u32 = 10000;
 
     pub fn new() -> Self {
         Self {
