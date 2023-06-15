@@ -17,7 +17,7 @@ impl Pst {
     const LEN: usize = (NUM_PIECES as usize) * (NUM_SQUARES as usize);
 
     fn index(piece: Piece, sq: Square) -> usize {
-        usize::from(NUM_SQUARES) * piece.as_index() + sq.as_index()
+        Self::START + usize::from(NUM_SQUARES) * piece.as_index() + sq.as_index()
     }
 }
 
@@ -102,6 +102,8 @@ pub struct Tuner {
 impl Tuner {
     const K: f64 = 0.006634;
     const CONVERGENCE_DELTA: f64 = 1e-8;
+    const CONVERGENCE_CHECK_FREQ: u32 = 25;
+    const MAX_EPOCHS: u32 = 25;
 
     pub fn new() -> Self {
         Self {
@@ -121,6 +123,10 @@ impl Tuner {
             let board = Board::from_fen(fen);
             self.entries.push(Entry::new(&board, game_result));
         }
+    }
+
+    pub fn reset_gradient(&mut self) {
+        self.gradient = [[0.0; Pst::LEN]; NUM_PHASES];
     }
 
     fn sigmoid(e: f64) -> f64 {
@@ -186,6 +192,26 @@ impl Tuner {
     }
 
     pub fn train(&mut self) {
-        
+        let mut prev_mse = self.mse();
+        for epoch in 0..Self::MAX_EPOCHS {
+            self.reset_gradient();
+            self.update_gradient();
+            self.update_weights();
+
+            if epoch % Self::CONVERGENCE_CHECK_FREQ == 0 {
+                let mse = self.mse();
+                let delta_mse = prev_mse - mse;
+                println!("Epoch: {epoch}");
+                println!("MSE: {mse}");
+                println!("MSE change since previous: {delta_mse}\n");
+
+                // print to file
+
+                if delta_mse < Self::CONVERGENCE_DELTA {
+                    return;
+                }
+                prev_mse = mse;
+            }
+        }
     }
 }
