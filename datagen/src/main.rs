@@ -11,5 +11,5 @@ fn main() {
     };
 
     let mut data_generator = datagen::DataGenerator::new(SearchLimit::Depth(6), file_name);
-    data_generator.generate_data(10000);
+    data_generator.generate_data(5000);
 }
