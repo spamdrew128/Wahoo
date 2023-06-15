@@ -217,7 +217,9 @@ impl Tuner {
         }
     }
 
-    fn create_output_file(output: &mut BufWriter<File>) {
-        
+    fn create_output_file(&self, output: &mut BufWriter<File>) {
+        for i in Pst::START..Pst::LEN {
+            
+        }
     }
 }
