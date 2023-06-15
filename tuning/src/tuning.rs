@@ -1,16 +1,12 @@
 use engine::{
     board_representation::{Board, Color, Piece, Square, NUM_PIECES, NUM_SQUARES},
-    evaluation::{phase, EvalScore, Phase, NUM_PHASES, PHASE_MAX},
+    evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
 };
 use std::{
     fs::{read_to_string, File},
     io::BufWriter,
     io::Write,
 };
-
-const MG: usize = 0;
-const EG: usize = 1;
-const PHASES: [usize; NUM_PHASES] = [MG, EG];
 
 type TunerVec = [[f64; Pst::LEN]; NUM_PHASES];
 
@@ -218,15 +214,27 @@ impl Tuner {
         }
     }
 
+    #[allow(clippy::write_literal)]
     fn write_header(&self, output: &mut BufWriter<File>) {
         writeln!(output, "#![cfg_attr(rustfmt, rustfmt_skip)]").unwrap();
-        writeln!(output, "use crate::{{evaluation::{{NUM_PHASES, EvalScore}}, board_representation::{{NUM_SQUARES, NUM_PIECES}}}};\n").unwrap();
+        writeln!(output, "use crate::{{evaluation::ScoreTuple, board_representation::{{NUM_SQUARES, NUM_PIECES}}}};\n").unwrap();
+
+        writeln!(
+            output,
+            "{}\n{}\n{}\n{}\n{}\n",
+            "macro_rules! s {",
+            "   ($mg:expr, $eg:expr) => {",
+            "   ScoreTuple::new($mg, $eg)",
+            "   };",
+            "}",
+        )
+        .unwrap();
     }
 
     fn write_psts(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
-            "const PSTS: [[[EvalScore; NUM_PHASES]; NUM_SQUARES as usize]; NUM_PIECES as usize] = ["
+            "pub const PST: [[ScoreTuple; NUM_SQUARES as usize]; NUM_PIECES as usize] = ["
         )
         .unwrap();
 
@@ -240,7 +248,7 @@ impl Tuner {
                 }
                 write!(
                     output,
-                    "[{}, {}], ",
+                    "s!({}, {}), ",
                     self.weights[MG][Pst::index(piece, sq)] as EvalScore,
                     self.weights[EG][Pst::index(piece, sq)] as EvalScore,
                 )
