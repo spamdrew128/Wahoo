@@ -14,7 +14,7 @@ pub fn bench() {
     for pos in positions {
         let board = Board::from_fen(pos.fen);
         let mut searcher = Searcher::new(SearchLimit::None, ZobristStack::new(&board));
-        nodes += searcher.bench(&board, 9);
+        nodes += searcher.bench(&board, 8);
     }
 
     let nps = (u128::from(nodes) * 1_000_000) / stopwatch.elapsed().as_micros();

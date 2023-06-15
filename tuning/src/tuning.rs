@@ -112,7 +112,7 @@ impl Tuner {
             for i in 0..NUM_SQUARES {
                 let index = Pst::index(piece, Square::new(i));
                 result[MG][index] = scores[piece.as_index()] as f64;
-                result[EG][index] = scores[piece.as_index()] as f64; 
+                result[EG][index] = scores[piece.as_index()] as f64;
             }
         }
         result
