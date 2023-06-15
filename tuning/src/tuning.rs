@@ -2,7 +2,11 @@ use engine::{
     board_representation::{Board, Color, Piece, Square, NUM_PIECES, NUM_SQUARES},
     evaluation::{phase, Phase, PHASE_MAX},
 };
-use std::{fs::{read_to_string, File}, io::BufWriter};
+use std::{
+    fs::{read_to_string, File},
+    io::BufWriter,
+    io::Write,
+};
 
 const MG: usize = 0;
 const EG: usize = 1;
@@ -187,7 +191,7 @@ impl Tuner {
             let error = entry.game_result - Self::sigmoid(eval);
             total_error += error * error;
         }
-    
+
         total_error / (self.entries.len() as f64)
     }
 
@@ -218,8 +222,26 @@ impl Tuner {
     }
 
     fn create_output_file(&self, output: &mut BufWriter<File>) {
-        for i in Pst::START..Pst::LEN {
-            
+        write!(
+            output,
+            "const PSTS: [[[EvalScore; NUM_PHASES] NUM_SQUARES]; NUM_PIECES] = ["
+        )
+        .unwrap();
+
+        for piece in Piece::LIST {
+            for i in 0..NUM_SQUARES {
+                let sq = Square::new(i);
+                if i % 8 == 0 {
+                    write!(output, "\n  ").unwrap();
+                }
+                writeln!(
+                    output,
+                    "[{}, {}], ",
+                    self.weights[MG][Pst::index(piece, sq)],
+                    self.weights[EG][Pst::index(piece, sq)]
+                )
+                .unwrap();
+            }
         }
     }
 }

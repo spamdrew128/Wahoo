@@ -68,8 +68,8 @@ pub struct DataGenerator {
 impl DataGenerator {
     const BASE_RAND_PLY: Ply = 9;
     const WIN: &str = "1.0";
-    const DRAW: &str  = "0.5";
-    const LOSS: &str  = "0.0";
+    const DRAW: &str = "0.5";
+    const LOSS: &str = "0.0";
 
     pub fn new(search_limit: SearchLimit, path: &str) -> Self {
         let board = Board::from_fen(START_FEN);
