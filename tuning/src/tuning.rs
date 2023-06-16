@@ -104,7 +104,11 @@ impl Tuner {
     const CONVERGENCE_CHECK_FREQ: u32 = 50;
     const MAX_EPOCHS: u32 = 20000;
 
-    fn new_weights() -> TunerVec {
+    fn new_weights(from_zero: bool) -> TunerVec {
+        if from_zero {
+            return [[0.0; Pst::LEN]; NUM_PHASES];
+        }
+
         let scores: [EvalScore; NUM_PIECES as usize] = [300, 320, 500, 900, 100, 0];
         let mut result = [[0.0; Pst::LEN]; NUM_PHASES];
 
@@ -118,11 +122,11 @@ impl Tuner {
         result
     }
 
-    pub fn new() -> Self {
+    pub fn new(from_zero: bool) -> Self {
         Self {
             entries: vec![],
             gradient: [[0.0; Pst::LEN]; NUM_PHASES],
-            weights: Self::new_weights(),
+            weights: Self::new_weights(from_zero),
             momentum: [[0.0; Pst::LEN]; NUM_PHASES],
             velocity: [[0.0; Pst::LEN]; NUM_PHASES],
         }
