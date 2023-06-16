@@ -60,13 +60,22 @@ impl UciHandler {
         }
     }
 
+    fn end_of_transmission(buffer: &str) -> bool {
+        buffer.chars().next().unwrap_or_default() == 0x04 as char
+    }
+
     pub fn execute_instructions(&mut self) -> ProgramStatus {
         let mut buffer = String::new();
         std::io::stdin()
             .read_line(&mut buffer)
             .expect("UCI Input Failure");
 
+        if Self::end_of_transmission(buffer.as_str()) {
+            return ProgramStatus::Quit;
+        }
+
         let message = buffer.split_whitespace().collect::<Vec<&str>>();
+
         if let Some(&cmd) = message.first() {
             match cmd {
                 "uci" => self.process_command(UciCommand::Uci),
