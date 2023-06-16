@@ -10,6 +10,6 @@ fn main() {
         None => "data.txt",
     };
 
-    let mut data_generator = datagen::DataGenerator::new(SearchLimit::Depth(6), file_name);
+    let mut data_generator = datagen::DataGenerator::new(SearchLimit::Time(40), file_name);
     data_generator.generate_data(5000);
 }

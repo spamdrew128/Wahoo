@@ -66,11 +66,11 @@ impl UciHandler {
 
     pub fn execute_instructions(&mut self) -> ProgramStatus {
         let mut buffer = String::new();
-        std::io::stdin()
+        let bytes_read = std::io::stdin()
             .read_line(&mut buffer)
             .expect("UCI Input Failure");
 
-        if Self::end_of_transmission(buffer.as_str()) {
+        if bytes_read == 0 || Self::end_of_transmission(buffer.as_str()) {
             return ProgramStatus::Quit;
         }
 
