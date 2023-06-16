@@ -292,6 +292,10 @@ impl Bitboard {
         self.data > 0
     }
 
+    pub const fn is_empty(self) -> bool {
+        self.data == 0
+    }
+
     pub const fn overlaps(self, rhs: Self) -> bool {
         self.intersection(rhs).is_not_empty()
     }
@@ -898,22 +902,23 @@ impl Board {
         self.halfmoves >= 100
     }
 
-    pub fn insufficient_material_draw(&self) -> bool {
-        for piece in [Piece::PAWN, Piece::ROOK, Piece::BISHOP, Piece::QUEEN] {
-            if self.pieces[piece.as_index()].is_not_empty() {
-                return false;
-            }
-        }
+    const fn at_most_one_minor_piece(&self, color: Color) -> bool {
+        let knights = self.piece_bb(Piece::KNIGHT, color);
+        let bishops = self.piece_bb(Piece::BISHOP, color);
+        knights.union(bishops).popcount() <= 1
+    }
 
-        for color in Color::LIST {
-            let knights = self.piece_bb(Piece::KNIGHT, color);
-            let bishops = self.piece_bb(Piece::BISHOP, color);
-            if knights.union(bishops).popcount() > 1 {
-                return false;
-            }
-        }
+    const fn only_minor_pieces_on_board(&self) -> bool {
+        self.pieces[Piece::PAWN.as_index()]
+            .union(self.pieces[Piece::ROOK.as_index()])
+            .union(self.pieces[Piece::QUEEN.as_index()])
+            .is_empty()
+    }
 
-        true
+    pub const fn insufficient_material_draw(&self) -> bool {
+        self.only_minor_pieces_on_board()
+            && self.at_most_one_minor_piece(Color::White)
+            && self.at_most_one_minor_piece(Color::Black)
     }
 }
 
@@ -1037,5 +1042,11 @@ mod tests {
         assert_eq!(Square::from_string("a1").unwrap(), Square::A1);
         assert_eq!(Square::from_string("a6").unwrap(), Square::A6);
         assert_eq!(Square::from_string("h8").unwrap(), Square::H8);
+    }
+
+    #[test]
+    fn material_draw_dection() {
+        let board = Board::from_fen("8/8/4k3/8/8/3K4/R7/8 w - - 0 1");
+        assert!(!board.insufficient_material_draw());
     }
 }
