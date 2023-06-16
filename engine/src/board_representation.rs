@@ -899,10 +899,13 @@ impl Board {
     }
 
     pub fn insufficient_material_draw(&self) -> bool {
-        for piece in [Piece::PAWN, Piece::ROOK, Piece::BISHOP, Piece::QUEEN] {
-            if self.pieces[piece.as_index()].is_not_empty() {
-                return false;
-            }
+        if (self.pieces[Piece::PAWN.as_index()]
+            | self.pieces[Piece::ROOK.as_index()]
+            | self.pieces[Piece::BISHOP.as_index()]
+            | self.pieces[Piece::QUEEN.as_index()])
+        .is_not_empty()
+        {
+            return false;
         }
 
         for color in Color::LIST {
