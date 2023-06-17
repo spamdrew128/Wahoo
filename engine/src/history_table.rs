@@ -23,8 +23,10 @@ impl History {
     }
 
     fn age_scores(&mut self) {
-        for score in self.scores.iter_mut().flatten().flatten() {
-            *score /= 2;
-        }
+        self.scores
+            .iter_mut()
+            .flatten()
+            .flatten()
+            .for_each(|x| *x /= 2);
     }
 }
