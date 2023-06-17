@@ -61,7 +61,10 @@ impl UciHandler {
     }
 
     fn end_of_transmission(buffer: &str) -> bool {
-        buffer.chars().next().map_or(false, |c| c == char::from(0x04))
+        buffer
+            .chars()
+            .next()
+            .map_or(false, |c| c == char::from(0x04))
     }
 
     pub fn execute_instructions(&mut self) -> ProgramStatus {
