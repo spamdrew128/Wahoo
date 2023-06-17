@@ -132,7 +132,7 @@ impl UciHandler {
     fn process_command(&mut self, command: UciCommand) {
         match command {
             UciCommand::Uci => {
-                println!("id name Wahoo v0.0.0");
+                println!("id name Wahoo v1.0.0");
                 println!("id author Andrew Hockman");
 
                 send_uci_option!(
