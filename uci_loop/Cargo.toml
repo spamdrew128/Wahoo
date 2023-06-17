@@ -1,0 +1,7 @@
+[package]
+name = "uci_loop"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+engine = { path = "../engine" }

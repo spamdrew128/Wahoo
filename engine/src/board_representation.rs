@@ -1,5 +1,7 @@
 use crate::chess_move::Move;
 use crate::tuple_constants_enum;
+use crate::zobrist::ZobristHash;
+use crate::zobrist_stack::ZobristStack;
 use crate::{attacks, chess_move::Flag};
 use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
@@ -19,13 +21,14 @@ pub enum Color {
 }
 
 impl Color {
+    pub const LIST: [Self; NUM_COLORS as usize] = [Self::White, Self::Black];
+
     pub const fn flip(self) -> Self {
         match self {
             Self::White => Self::Black,
             Self::Black => Self::White,
         }
     }
-
     pub const fn as_index(self) -> usize {
         self as usize
     }
@@ -75,6 +78,20 @@ impl Piece {
         }
 
         Some(ch)
+    }
+
+    pub fn as_string(self) -> Option<String> {
+        let piece_str = match self {
+            Self::KNIGHT => "Knight",
+            Self::BISHOP => "Bishop",
+            Self::ROOK => "Rook",
+            Self::QUEEN => "Queen",
+            Self::PAWN => "Pawn",
+            Self::KING => "King",
+            _ => return None,
+        };
+
+        Some(piece_str.to_owned())
     }
 
     pub const fn from_char(char: char) -> Option<Self> {
@@ -130,9 +147,21 @@ impl Square {
         self.0 as usize
     }
 
+    pub const fn flip(self) -> Self {
+        Self(self.0 ^ 0b111000)
+    }
+
+    const fn rank(self) -> u8 {
+        self.0 / 8
+    }
+
+    pub const fn file(self) -> u8 {
+        self.0 % 8
+    }
+
     pub fn as_string(self) -> String {
-        let col: Col = self.0 % 8;
-        let row: Row = self.0 / 8;
+        let col: Col = self.file();
+        let row: Row = self.rank();
 
         let col_char = (col + 97) as char;
         let row_char = (row + 49) as char;
@@ -261,6 +290,10 @@ impl Bitboard {
 
     pub const fn is_not_empty(self) -> bool {
         self.data > 0
+    }
+
+    pub const fn is_empty(self) -> bool {
+        self.data == 0
     }
 
     pub const fn overlaps(self, rhs: Self) -> bool {
@@ -416,7 +449,7 @@ impl BitXorAssign for Bitboard {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-struct CastleRights(u8);
+pub struct CastleRights(u8);
 
 impl CastleRights {
     const W_KINGSIDE_MASK: u8 = 0b0001;
@@ -469,7 +502,7 @@ impl CastleRights {
         }
     }
 
-    const fn can_ks_castle(self, board: &Board) -> bool {
+    pub const fn can_ks_castle(self, board: &Board) -> bool {
         let color = board.color_to_move;
         let thru_sq = Self::KS_THRU_SQUARE[color.as_index()];
         let occ_mask = Self::KS_OCC_MASK[color.as_index()];
@@ -479,7 +512,7 @@ impl CastleRights {
                 || board.king_sq().is_attacked(board))
     }
 
-    const fn can_qs_castle(self, board: &Board) -> bool {
+    pub const fn can_qs_castle(self, board: &Board) -> bool {
         let color = board.color_to_move;
         let thru_sq_1 = Self::QS_THRU_SQUARES[color.as_index()][0];
         let thru_sq_2 = Self::QS_THRU_SQUARES[color.as_index()][1];
@@ -489,6 +522,10 @@ impl CastleRights {
                 || thru_sq_1.is_attacked(board)
                 || thru_sq_2.is_attacked(board)
                 || board.king_sq().is_attacked(board))
+    }
+
+    pub const fn as_index(self) -> usize {
+        self.0 as usize
     }
 
     fn update(&mut self, mv: Move) {
@@ -502,7 +539,8 @@ pub struct Board {
     pub pieces: [Bitboard; NUM_PIECES as usize],
     pub color_to_move: Color,
     pub ep_sq: Option<Square>,
-    castle_rights: CastleRights,
+    pub castle_rights: CastleRights,
+    pub halfmoves: u16,
 }
 
 const fn fen_index_as_bitboard(i: u8) -> Bitboard {
@@ -723,22 +761,22 @@ impl Board {
         Piece::NONE
     }
 
-    pub const fn ks_castle_availible(&self) -> bool {
-        self.castle_rights.can_ks_castle(self)
-    }
-
-    pub const fn qs_castle_availible(&self) -> bool {
-        self.castle_rights.can_qs_castle(self)
-    }
-
     fn toggle(&mut self, mask: Bitboard, piece: Piece, color: Color) {
         self.all[color.as_index()] ^= mask;
         self.pieces[piece.as_index()] ^= mask;
     }
 
-    fn toggle_promotion(&mut self, mask: Bitboard, promo_piece: Piece) {
+    fn toggle_promotion(
+        &mut self,
+        mask: Bitboard,
+        promo_piece: Piece,
+        hash_base: &mut ZobristHash,
+        to_sq: Square,
+    ) {
         self.pieces[Piece::PAWN.as_index()] ^= mask;
         self.pieces[promo_piece.as_index()] ^= mask;
+        hash_base.hash_piece(self.color_to_move, Piece::PAWN, to_sq);
+        hash_base.hash_piece(self.color_to_move, promo_piece, to_sq);
     }
 
     fn toggle_capture_promotion(
@@ -746,16 +784,23 @@ impl Board {
         mask: Bitboard,
         captured_piece: Piece,
         promo_piece: Piece,
+        hash_base: &mut ZobristHash,
+        to_sq: Square,
     ) {
-        self.toggle_promotion(mask, promo_piece);
+        self.toggle_promotion(mask, promo_piece, hash_base, to_sq);
         self.toggle(mask, captured_piece, self.color_to_move.flip());
     }
 
-    const fn ep_sq_after_double_push(&self, to_sq: Square) -> Option<Square> {
+    fn ep_sq_after_double_push(
+        &self,
+        to_sq: Square,
+        hash_base: &mut ZobristHash,
+    ) -> Option<Square> {
         let ep_sq = to_sq.retreat(1, self.color_to_move);
         let opp_pawns = self.piece_bb(Piece::PAWN, self.color_to_move.flip());
 
         if attacks::pawn(ep_sq, self.color_to_move).overlaps(opp_pawns) {
+            hash_base.hash_ep(ep_sq);
             Some(ep_sq)
         } else {
             None
@@ -764,7 +809,7 @@ impl Board {
 
     #[rustfmt::skip]
     #[doc="returns success: bool"]
-    pub fn try_play_move(&mut self, mv: Move) -> bool {
+    pub fn try_play_move(&mut self, mv: Move, zobrist_stack: &mut ZobristStack, mut hash_base: ZobristHash) -> bool {
         let color = self.color_to_move;
         let opp_color = color.flip();
 
@@ -775,13 +820,25 @@ impl Board {
         let piece = self.piece_on_sq(from_sq);
         debug_assert!(piece != Piece::NONE);
 
+        if piece == Piece::PAWN {
+            self.halfmoves = 0;
+        }
+
         let captured_piece = if mv.is_capture() {
+            self.halfmoves = 0;
             self.piece_on_sq(mv.to())
         } else {
+            self.halfmoves += 1;
             Piece::NONE
         };
 
+        if captured_piece != Piece::NONE {
+            hash_base.hash_piece(opp_color, captured_piece, to_sq);
+        }
+
         self.toggle(from_bb | to_bb, piece, color);
+        hash_base.hash_piece(color, piece, from_sq);
+        hash_base.hash_piece(color, piece, to_sq);
 
         self.ep_sq = None;
 
@@ -789,20 +846,33 @@ impl Board {
         match flag {
             Flag::NONE => (),
             Flag::CAPTURE => self.toggle(to_bb, captured_piece, opp_color),
-            Flag::DOUBLE_PUSH => self.ep_sq = self.ep_sq_after_double_push(to_sq),
-            Flag::KS_CASTLE => self.toggle(from_bb.shift_east(1) | from_bb.shift_east(3), Piece::ROOK, color),
-            Flag::QS_CASTLE => self.toggle(from_bb.shift_west(1) | from_bb.shift_west(4), Piece::ROOK, color),
-            Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN),
-            Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::QUEEN),
-            Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT),
-            Flag::KNIGHT_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::KNIGHT),
-            Flag::BISHOP_PROMO => self.toggle_promotion(to_bb, Piece::BISHOP),
-            Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::BISHOP),
-            Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK),
-            Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::ROOK),
+            Flag::DOUBLE_PUSH => self.ep_sq = self.ep_sq_after_double_push(to_sq, &mut hash_base),
+            Flag::KS_CASTLE => {
+                let rook_to = from_sq.right(1);
+                let rook_from = from_sq.right(3);
+                self.toggle(rook_to.as_bitboard() | rook_from.as_bitboard(), Piece::ROOK, color);
+                hash_base.hash_piece(color, Piece::ROOK, rook_to);
+                hash_base.hash_piece(color, Piece::ROOK, rook_from);
+            }
+            Flag::QS_CASTLE => {
+                let rook_to = from_sq.left(1);
+                let rook_from = from_sq.left(4);
+                self.toggle(rook_to.as_bitboard() | rook_from.as_bitboard(), Piece::ROOK, color);
+                hash_base.hash_piece(color, Piece::ROOK, rook_to);
+                hash_base.hash_piece(color, Piece::ROOK, rook_from);
+            }
+            Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN, &mut hash_base, to_sq),
+            Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::QUEEN, &mut hash_base, to_sq),
+            Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT, &mut hash_base, to_sq),
+            Flag::KNIGHT_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::KNIGHT, &mut hash_base, to_sq),
+            Flag::BISHOP_PROMO => self.toggle_promotion(to_bb, Piece::BISHOP, &mut hash_base, to_sq),
+            Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::BISHOP, &mut hash_base, to_sq),
+            Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK, &mut hash_base, to_sq),
+            Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::ROOK, &mut hash_base, to_sq),
             Flag::EP => {
-                let ep_bb = to_sq.retreat(1, color).as_bitboard();
-                self.toggle(ep_bb, Piece::PAWN, opp_color);
+                let ep_sq = to_sq.retreat(1, color);
+                self.toggle(ep_sq.as_bitboard(), Piece::PAWN, opp_color);
+                hash_base.hash_piece(opp_color, Piece::PAWN, ep_sq);
             }
             _ => panic!("Invalid Move!"),
         }
@@ -812,9 +882,43 @@ impl Board {
         }
 
         self.castle_rights.update(mv);
+        hash_base.hash_castling(self.castle_rights);
+
         self.color_to_move = self.color_to_move.flip();
 
+        debug_assert_eq!(zobrist_stack.current_zobrist_hash().combine(hash_base), ZobristHash::complete(self));
+        zobrist_stack.add_hash(hash_base);
+
         true
+    }
+
+    pub fn simple_try_play_move(&mut self, mv: Move) -> bool {
+        let mut dummy_stack = ZobristStack::new(self);
+        let dummy_base = ZobristHash::incremental_update_base(self);
+        self.try_play_move(mv, &mut dummy_stack, dummy_base)
+    }
+
+    pub const fn fifty_move_draw(&self) -> bool {
+        self.halfmoves >= 100
+    }
+
+    const fn at_most_one_minor_piece(&self, color: Color) -> bool {
+        let knights = self.piece_bb(Piece::KNIGHT, color);
+        let bishops = self.piece_bb(Piece::BISHOP, color);
+        knights.union(bishops).popcount() <= 1
+    }
+
+    const fn only_minor_pieces_on_board(&self) -> bool {
+        self.pieces[Piece::PAWN.as_index()]
+            .union(self.pieces[Piece::ROOK.as_index()])
+            .union(self.pieces[Piece::QUEEN.as_index()])
+            .is_empty()
+    }
+
+    pub const fn insufficient_material_draw(&self) -> bool {
+        self.only_minor_pieces_on_board()
+            && self.at_most_one_minor_piece(Color::White)
+            && self.at_most_one_minor_piece(Color::Black)
     }
 }
 
@@ -910,6 +1014,7 @@ mod tests {
             color_to_move: Color::White,
             castle_rights: CastleRights::new(0b1111),
             ep_sq: None,
+            halfmoves: 0,
         };
 
         assert_eq!(actual, expected);
@@ -937,5 +1042,11 @@ mod tests {
         assert_eq!(Square::from_string("a1").unwrap(), Square::A1);
         assert_eq!(Square::from_string("a6").unwrap(), Square::A6);
         assert_eq!(Square::from_string("h8").unwrap(), Square::H8);
+    }
+
+    #[test]
+    fn material_draw_dection() {
+        let board = Board::from_fen("8/8/4k3/8/8/3K4/R7/8 w - - 0 1");
+        assert!(!board.insufficient_material_draw());
     }
 }
