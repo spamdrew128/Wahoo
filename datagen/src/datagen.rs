@@ -25,7 +25,7 @@ fn simple_qsearch(board: &Board, mut alpha: EvalScore, beta: EvalScore) -> EvalS
     let mut generator = MoveGenerator::new();
 
     let mut best_score = stand_pat;
-    while let Some(mv) = generator.next::<false>(board) {
+    while let Some(mv) = generator.simple_next::<false>(board) {
         let mut next_board = (*board).clone();
         let is_legal = next_board.simple_try_play_move(mv);
         if !is_legal {
@@ -88,7 +88,7 @@ impl DataGenerator {
     fn random_legal_move(&mut self, board: &Board) -> Option<Move> {
         let mut generator = MoveGenerator::new();
         let mut move_list: Vec<Move> = vec![];
-        while let Some(mv) = generator.next::<true>(board) {
+        while let Some(mv) = generator.simple_next::<true>(board) {
             let mut board_clone = board.clone();
             if board_clone.simple_try_play_move(mv) {
                 move_list.push(mv);

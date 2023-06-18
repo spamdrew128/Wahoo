@@ -19,7 +19,7 @@ impl History {
         }
     }
 
-    fn score(&self, board: &Board, mv: Move) -> i16 {
+    pub fn score(&self, board: &Board, mv: Move) -> i16 {
         let piece = board.piece_on_sq(mv.from()).as_index();
         let to = mv.to().as_index();
         let color = board.color_to_move.as_index();

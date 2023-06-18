@@ -3,6 +3,7 @@ use crate::bitloop;
 use crate::board_representation::{Bitboard, Board, Piece, Square, NUM_PIECES};
 use crate::chess_move::MAX_MOVECOUNT;
 use crate::chess_move::{Flag, Move};
+use crate::history_table::History;
 use crate::tuple_constants_enum;
 
 macro_rules! into_moves {
@@ -219,7 +220,13 @@ impl MoveGenerator {
         }
     }
 
-    pub fn next<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
+    fn score_quiets(&mut self, board: &Board, history: &History) {
+        for elem in self.movelist.iter_mut().take(self.len) {
+            elem.score = history.score(board, elem.mv);
+        }
+    }
+
+    pub fn next<const INCLUDE_QUIETS: bool>(&mut self, board: &Board, history: &History) -> Option<Move> {
         while self.stage_complete() {
             self.advance_stage();
 
@@ -231,6 +238,7 @@ impl MoveGenerator {
                 MoveStage::QUIET => {
                     if INCLUDE_QUIETS {
                         self.generate_quiets(board);
+                        self.score_quiets(board, history);
                     }
                 }
                 _ => return None,
@@ -240,9 +248,13 @@ impl MoveGenerator {
         Some(self.pick_move())
     }
 
+    pub fn simple_next<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
+        self.next::<INCLUDE_QUIETS>(board, &History::new())
+    }
+
     pub fn first_legal_move(board: &Board) -> Option<Move> {
         let mut generator = Self::new();
-        while let Some(mv) = generator.next::<true>(board) {
+        while let Some(mv) = generator.simple_next::<true>(board) {
             let mut new_board = (*board).clone();
             if new_board.simple_try_play_move(mv) {
                 return Some(mv);
@@ -273,7 +285,7 @@ mod tests {
         let mut ep_count = 0;
 
         let mut generator = MoveGenerator::new();
-        while let Some(mv) = generator.next::<true>(&board) {
+        while let Some(mv) = generator.simple_next::<true>(&board) {
             if generator.stage == MoveStage::CAPTURE {
                 let piece = board.piece_on_sq(mv.from());
                 counts[piece.as_index()] += 1;
@@ -310,7 +322,7 @@ mod tests {
         let mut castle_count = 0;
 
         let mut generator = MoveGenerator::new();
-        while let Some(mv) = generator.next::<true>(&board) {
+        while let Some(mv) = generator.simple_next::<true>(&board) {
             if generator.stage == MoveStage::QUIET {
                 let piece = board.piece_on_sq(mv.from());
                 counts[piece.as_index()] += 1;
