@@ -7,6 +7,7 @@ use engine::{
     board_representation::{Board, Color, START_FEN},
     chess_move::Move,
     evaluation::{evaluate, EvalScore, INF, MATE_THRESHOLD},
+    history_table::History,
     movegen::MoveGenerator,
     search::{Ply, SearchLimit, SearchResults, Searcher},
     zobrist::ZobristHash,
@@ -133,9 +134,11 @@ impl DataGenerator {
         let mut positions: Vec<Board> = vec![];
         let mut result = Self::DRAW;
 
+        let mut history = History::new();
         loop {
-            let mut searcher = Searcher::new(self.search_limit, self.zobrist_stack.clone());
+            let mut searcher = Searcher::new(self.search_limit, &self.zobrist_stack, &history);
             let SearchResults { best_move, score } = searcher.go(&self.board, false);
+            searcher.search_complete_actions(&mut history);
 
             if score > MATE_THRESHOLD {
                 result = match self.board.color_to_move {

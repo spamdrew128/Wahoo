@@ -1,6 +1,7 @@
 use crate::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
+    history_table::History,
     search::{Depth, Nodes, SearchLimit, Searcher},
     time_management::{Milliseconds, TimeArgs, TimeManager},
     zobrist::ZobristHash,
@@ -27,6 +28,7 @@ enum UciCommand {
 pub struct UciHandler {
     board: Board,
     zobrist_stack: ZobristStack,
+    history: History,
     time_manager: TimeManager,
 }
 
@@ -56,6 +58,7 @@ impl UciHandler {
         Self {
             board,
             zobrist_stack,
+            history: History::new(),
             time_manager: TimeManager::new(Self::OVERHEAD_DEFAULT),
         }
     }
@@ -254,12 +257,11 @@ impl UciHandler {
                     );
                 }
 
-                let mut searcher = Searcher::new(search_limit, self.zobrist_stack.clone());
-                let board = self.board.clone();
-
+                let mut searcher = Searcher::new(search_limit, &self.zobrist_stack, &self.history);
                 thread::scope(|s| {
                     s.spawn(|| {
-                        searcher.go(&board, true);
+                        searcher.go(&self.board, true);
+                        searcher.search_complete_actions(&mut self.history);
                     });
                 });
             }

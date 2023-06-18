@@ -4,6 +4,7 @@ use crate::{
     board_representation::Board,
     chess_move::Move,
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
+    history_table::History,
     movegen::MoveGenerator,
     pv_table::PvTable,
     time_management::{Milliseconds, SearchTimer},
@@ -44,6 +45,7 @@ pub struct Searcher {
     search_limit: SearchLimit,
     zobrist_stack: ZobristStack,
     pv_table: PvTable,
+    history: History,
 
     timer: Option<SearchTimer>,
     out_of_time: bool,
@@ -54,16 +56,22 @@ pub struct Searcher {
 impl Searcher {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
-    pub const fn new(search_limit: SearchLimit, zobrist_stack: ZobristStack) -> Self {
+    pub fn new(search_limit: SearchLimit, zobrist_stack: &ZobristStack, history: &History) -> Self {
         Self {
             search_limit,
-            zobrist_stack,
+            zobrist_stack: zobrist_stack.clone(),
+            history: history.clone(),
             pv_table: PvTable::new(),
             timer: None,
             out_of_time: false,
             node_count: 0,
             seldepth: 0,
         }
+    }
+
+    pub fn search_complete_actions(&self, uci_history: &mut History) {
+        *uci_history = self.history.clone();
+        uci_history.age_scores();
     }
 
     fn report_search_info(&self, score: EvalScore, depth: Depth, stopwatch: Instant) {

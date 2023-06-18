@@ -1,5 +1,6 @@
 use crate::{
     board_representation::Board,
+    history_table::History,
     perft::{test_postions, PerftTest},
     search::{SearchLimit, Searcher},
     zobrist_stack::ZobristStack,
@@ -13,7 +14,11 @@ pub fn bench() {
 
     for pos in positions {
         let board = Board::from_fen(pos.fen);
-        let mut searcher = Searcher::new(SearchLimit::None, ZobristStack::new(&board));
+        let mut searcher = Searcher::new(
+            SearchLimit::None,
+            &ZobristStack::new(&board),
+            &History::new(),
+        );
         nodes += searcher.bench(&board, 8);
     }
 

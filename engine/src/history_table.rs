@@ -4,7 +4,8 @@ use crate::{
     search::Depth,
 };
 
-struct History {
+#[derive(Debug, Clone)]
+pub struct History {
     scores: [[[i16; NUM_SQUARES as usize]; NUM_PIECES as usize]; NUM_COLORS as usize],
 }
 
@@ -12,7 +13,7 @@ impl History {
     const BONUS_MAX: i16 = 1200;
     const SCORE_MAX: i16 = i16::MAX;
 
-    const fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             scores: [[[0; NUM_SQUARES as usize]; NUM_PIECES as usize]; NUM_COLORS as usize],
         }
@@ -47,7 +48,7 @@ impl History {
         }
     }
 
-    fn age_scores(&mut self) {
+    pub fn age_scores(&mut self) {
         self.scores
             .iter_mut()
             .flatten()
