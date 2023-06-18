@@ -59,8 +59,8 @@ impl MoveStage {
 }
 
 #[derive(Debug, Copy, Clone)]
-struct MoveElement {
-    mv: Move,
+pub struct MoveElement {
+    pub mv: Move,
     score: i16,
 }
 
@@ -119,7 +119,6 @@ impl MoveGenerator {
 
         let mv = self.movelist[best_index].mv;
         self.movelist.swap(self.index, best_index);
-        // self.movelist[best_index] = self.movelist[self.index]; todo! replace line above with this later (1 less operation)
         self.index += 1;
         mv
     }
@@ -255,6 +254,16 @@ impl MoveGenerator {
 
     pub fn no_legal_moves(board: &Board) -> bool {
         Self::first_legal_move(board).is_none()
+    }
+
+    pub fn quiets_played(&self) -> Option<&[MoveElement]> {
+        match self.stage {
+            MoveStage::QUIET => {
+                debug_assert!(self.index > 0);
+                Some(&self.movelist[0..self.index])
+            }
+            _ => None,
+        }
     }
 }
 

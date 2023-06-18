@@ -1,6 +1,8 @@
 use crate::{
     board_representation::{Board, NUM_COLORS, NUM_PIECES, NUM_SQUARES},
-    chess_move::Move, search::Depth,
+    chess_move::Move,
+    movegen::MoveElement,
+    search::Depth,
 };
 
 struct History {
@@ -27,21 +29,22 @@ impl History {
 
     fn update_history_score(&mut self, board: &Board, mv: Move, bonus: i16) {
         let scaled_bonus = bonus - self.score(board, mv) * bonus.abs() / Self::SCORE_MAX;
-        
+
         let piece = board.piece_on_sq(mv.from()).as_index();
         let to = mv.to().as_index();
         let color = board.color_to_move.as_index();
-    
+
         self.scores[color][piece][to] += scaled_bonus;
     }
-    
-    fn update(&mut self, board: &Board, quiets: &[Move], depth: Depth) {
+
+    fn update(&mut self, board: &Board, quiets: &[MoveElement], depth: Depth) {
         let d = i16::from(depth);
         let bonus = (16 * d * d).min(Self::BONUS_MAX);
-    
-        self.update_history_score(board, quiets[quiets.len() - 1], bonus); // only the cutoff move gets a positive bonus
-        for &mv in quiets.iter().take(quiets.len() - 1) {
-            self.update_history_score(board, mv, -bonus);
+
+        let cutoff_move = quiets[quiets.len() - 1].mv;
+        self.update_history_score(board, cutoff_move, bonus); // only the cutoff move gets a positive bonus
+        for elem in quiets.iter().take(quiets.len() - 1) {
+            self.update_history_score(board, elem.mv, -bonus);
         }
     }
 
