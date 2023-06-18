@@ -1,8 +1,10 @@
 use std::time::Instant;
 
+use arrayvec::ArrayVec;
+
 use crate::{
     board_representation::Board,
-    chess_move::Move,
+    chess_move::{Move, MAX_MOVECOUNT},
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     history_table::History,
     movegen::MoveGenerator,
@@ -207,6 +209,7 @@ impl Searcher {
 
         let mut best_score = -INF;
         let mut moves_played = 0;
+        let mut quiets: ArrayVec<Move, MAX_MOVECOUNT> = ArrayVec::new();
         while let Some(mv) = generator.next::<true>(board) {
             let mut next_board = (*board).clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
@@ -225,10 +228,18 @@ impl Searcher {
                 return 0;
             }
 
+            let is_quiet = generator.is_quiet_stage();
+            if is_quiet {
+                quiets.push(mv);
+            }
+
             if score > best_score {
                 best_score = score;
 
                 if score >= beta {
+                    if is_quiet {
+                        self.history.update(board, quiets.as_slice(), depth);
+                    }
                     break;
                 }
 

@@ -3,6 +3,8 @@ use crate::{
     board_representation::{Board, Piece, Square},
 };
 
+pub const MAX_MOVECOUNT: usize = u8::MAX as usize;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Flag(u16);
 

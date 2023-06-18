@@ -1,6 +1,7 @@
 use crate::attacks;
 use crate::bitloop;
 use crate::board_representation::{Bitboard, Board, Piece, Square, NUM_PIECES};
+use crate::chess_move::MAX_MOVECOUNT;
 use crate::chess_move::{Flag, Move};
 use crate::tuple_constants_enum;
 
@@ -73,10 +74,9 @@ impl MoveElement {
     }
 }
 
-const MOVE_LIST_SIZE: usize = u8::MAX as usize;
 pub struct MoveGenerator {
     stage: MoveStage,
-    movelist: [MoveElement; MOVE_LIST_SIZE],
+    movelist: [MoveElement; MAX_MOVECOUNT],
     len: usize,
     index: usize,
 }
@@ -85,7 +85,7 @@ impl MoveGenerator {
     pub const fn new() -> Self {
         Self {
             stage: MoveStage::START,
-            movelist: [MoveElement::new(); MOVE_LIST_SIZE],
+            movelist: [MoveElement::new(); MAX_MOVECOUNT],
             len: 0,
             index: 0,
         }
@@ -254,6 +254,10 @@ impl MoveGenerator {
 
     pub fn no_legal_moves(board: &Board) -> bool {
         Self::first_legal_move(board).is_none()
+    }
+
+    pub fn is_quiet_stage(&self) -> bool{
+        self.stage == MoveStage::QUIET
     }
 }
 

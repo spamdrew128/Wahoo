@@ -37,7 +37,7 @@ impl History {
         self.scores[color][piece][to] += scaled_bonus;
     }
 
-    fn update(&mut self, board: &Board, quiets: &[Move], depth: Depth) {
+    pub fn update(&mut self, board: &Board, quiets: &[Move], depth: Depth) {
         let d = i16::from(depth);
         let bonus = (16 * d * d).min(Self::BONUS_MAX);
 
