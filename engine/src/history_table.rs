@@ -1,7 +1,6 @@
 use crate::{
     board_representation::{Board, NUM_COLORS, NUM_PIECES, NUM_SQUARES},
     chess_move::Move,
-    movegen::MoveElement,
     search::Depth,
 };
 
@@ -37,14 +36,14 @@ impl History {
         self.scores[color][piece][to] += scaled_bonus;
     }
 
-    fn update(&mut self, board: &Board, quiets: &[MoveElement], depth: Depth) {
+    fn update(&mut self, board: &Board, quiets: &[Move], depth: Depth) {
         let d = i16::from(depth);
         let bonus = (16 * d * d).min(Self::BONUS_MAX);
 
-        let cutoff_move = quiets[quiets.len() - 1].mv;
+        let cutoff_move = quiets[quiets.len() - 1];
         self.update_history_score(board, cutoff_move, bonus); // only the cutoff move gets a positive bonus
-        for elem in quiets.iter().take(quiets.len() - 1) {
-            self.update_history_score(board, elem.mv, -bonus);
+        for &mv in quiets.iter().take(quiets.len() - 1) {
+            self.update_history_score(board, mv, -bonus);
         }
     }
 
