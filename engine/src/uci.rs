@@ -255,11 +255,12 @@ impl UciHandler {
                 }
 
                 let mut searcher = Searcher::new(search_limit, self.zobrist_stack.clone());
-
                 let board = self.board.clone();
 
-                thread::spawn(move || {
-                    searcher.go(&board, true);
+                thread::scope(|s| {
+                    s.spawn(|| {
+                        searcher.go(&board, true);
+                    });
                 });
             }
             UciCommand::SetOptionOverhead(overhead) => {
