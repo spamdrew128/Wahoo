@@ -6,7 +6,7 @@ use crate::{
 };
 
 struct History {
-    scores: [[[i16; NUM_COLORS as usize]; NUM_PIECES as usize]; NUM_SQUARES as usize],
+    scores: [[[i16; NUM_SQUARES as usize]; NUM_PIECES as usize]; NUM_COLORS as usize],
 }
 
 impl History {
@@ -15,7 +15,7 @@ impl History {
 
     const fn new() -> Self {
         Self {
-            scores: [[[0; NUM_COLORS as usize]; NUM_PIECES as usize]; NUM_SQUARES as usize],
+            scores: [[[0; NUM_SQUARES as usize]; NUM_PIECES as usize]; NUM_COLORS as usize],
         }
     }
 
