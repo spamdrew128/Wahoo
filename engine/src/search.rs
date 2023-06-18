@@ -1,9 +1,12 @@
 use std::time::Instant;
 
+use arrayvec::ArrayVec;
+
 use crate::{
     board_representation::Board,
-    chess_move::Move,
+    chess_move::{Move, MAX_MOVECOUNT},
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
+    history_table::History,
     movegen::MoveGenerator,
     pv_table::PvTable,
     time_management::{Milliseconds, SearchTimer},
@@ -44,6 +47,7 @@ pub struct Searcher {
     search_limit: SearchLimit,
     zobrist_stack: ZobristStack,
     pv_table: PvTable,
+    history: History,
 
     timer: Option<SearchTimer>,
     out_of_time: bool,
@@ -54,16 +58,22 @@ pub struct Searcher {
 impl Searcher {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
-    pub const fn new(search_limit: SearchLimit, zobrist_stack: ZobristStack) -> Self {
+    pub fn new(search_limit: SearchLimit, zobrist_stack: &ZobristStack, history: &History) -> Self {
         Self {
             search_limit,
-            zobrist_stack,
+            zobrist_stack: zobrist_stack.clone(),
+            history: history.clone(),
             pv_table: PvTable::new(),
             timer: None,
             out_of_time: false,
             node_count: 0,
             seldepth: 0,
         }
+    }
+
+    pub fn search_complete_actions(&self, uci_history: &mut History) {
+        *uci_history = self.history.clone();
+        uci_history.age_scores();
     }
 
     fn report_search_info(&self, score: EvalScore, depth: Depth, stopwatch: Instant) {
@@ -199,7 +209,8 @@ impl Searcher {
 
         let mut best_score = -INF;
         let mut moves_played = 0;
-        while let Some(mv) = generator.next::<true>(board) {
+        let mut quiets: ArrayVec<Move, MAX_MOVECOUNT> = ArrayVec::new();
+        while let Some(mv) = generator.next::<true>(board, &self.history) {
             let mut next_board = (*board).clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
             if !is_legal {
@@ -217,10 +228,18 @@ impl Searcher {
                 return 0;
             }
 
+            let is_quiet = generator.is_quiet_stage();
+            if is_quiet {
+                quiets.push(mv);
+            }
+
             if score > best_score {
                 best_score = score;
 
                 if score >= beta {
+                    if is_quiet {
+                        self.history.update(board, quiets.as_slice(), depth);
+                    }
                     break;
                 }
 
@@ -271,7 +290,7 @@ impl Searcher {
         let mut generator = MoveGenerator::new();
 
         let mut best_score = stand_pat;
-        while let Some(mv) = generator.next::<false>(board) {
+        while let Some(mv) = generator.next::<false>(board, &self.history) {
             let mut next_board = (*board).clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
             if !is_legal {

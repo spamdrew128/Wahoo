@@ -7,6 +7,7 @@ use engine::{
     board_representation::{Board, Color, START_FEN},
     chess_move::Move,
     evaluation::{evaluate, EvalScore, INF, MATE_THRESHOLD},
+    history_table::History,
     movegen::MoveGenerator,
     search::{Ply, SearchLimit, SearchResults, Searcher},
     zobrist::ZobristHash,
@@ -24,7 +25,7 @@ fn simple_qsearch(board: &Board, mut alpha: EvalScore, beta: EvalScore) -> EvalS
     let mut generator = MoveGenerator::new();
 
     let mut best_score = stand_pat;
-    while let Some(mv) = generator.next::<false>(board) {
+    while let Some(mv) = generator.simple_next::<false>(board) {
         let mut next_board = (*board).clone();
         let is_legal = next_board.simple_try_play_move(mv);
         if !is_legal {
@@ -87,7 +88,7 @@ impl DataGenerator {
     fn random_legal_move(&mut self, board: &Board) -> Option<Move> {
         let mut generator = MoveGenerator::new();
         let mut move_list: Vec<Move> = vec![];
-        while let Some(mv) = generator.next::<true>(board) {
+        while let Some(mv) = generator.simple_next::<true>(board) {
             let mut board_clone = board.clone();
             if board_clone.simple_try_play_move(mv) {
                 move_list.push(mv);
@@ -133,9 +134,11 @@ impl DataGenerator {
         let mut positions: Vec<Board> = vec![];
         let mut result = Self::DRAW;
 
+        let mut history = History::new();
         loop {
-            let mut searcher = Searcher::new(self.search_limit, self.zobrist_stack.clone());
+            let mut searcher = Searcher::new(self.search_limit, &self.zobrist_stack, &history);
             let SearchResults { best_move, score } = searcher.go(&self.board, false);
+            searcher.search_complete_actions(&mut history);
 
             if score > MATE_THRESHOLD {
                 result = match self.board.color_to_move {

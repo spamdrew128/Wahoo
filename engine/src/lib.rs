@@ -16,6 +16,7 @@ pub mod board_representation;
 pub mod chess_move;
 mod eval_constants;
 pub mod evaluation;
+pub mod history_table;
 mod magic;
 pub mod movegen;
 mod perft;

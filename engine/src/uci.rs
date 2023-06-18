@@ -1,6 +1,7 @@
 use crate::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
+    history_table::History,
     search::{Depth, Nodes, SearchLimit, Searcher},
     time_management::{Milliseconds, TimeArgs, TimeManager},
     zobrist::ZobristHash,
@@ -27,6 +28,7 @@ enum UciCommand {
 pub struct UciHandler {
     board: Board,
     zobrist_stack: ZobristStack,
+    history: History,
     time_manager: TimeManager,
 }
 
@@ -56,12 +58,16 @@ impl UciHandler {
         Self {
             board,
             zobrist_stack,
+            history: History::new(),
             time_manager: TimeManager::new(Self::OVERHEAD_DEFAULT),
         }
     }
 
     fn end_of_transmission(buffer: &str) -> bool {
-        buffer.chars().next().map_or(false, |c| c == char::from(0x04))
+        buffer
+            .chars()
+            .next()
+            .map_or(false, |c| c == char::from(0x04))
     }
 
     pub fn execute_instructions(&mut self) -> ProgramStatus {
@@ -163,7 +169,7 @@ impl UciHandler {
                 println!("uciok");
             }
             UciCommand::IsReady => println!("readyok"),
-            UciCommand::UciNewGame => (),
+            UciCommand::UciNewGame => self.history = History::new(),
             UciCommand::Position(fen, move_vec) => {
                 let mut new_board = Board::from_fen(fen.as_str());
                 let mut new_zobrist_stack = ZobristStack::new(&new_board);
@@ -251,12 +257,12 @@ impl UciHandler {
                     );
                 }
 
-                let mut searcher = Searcher::new(search_limit, self.zobrist_stack.clone());
-
-                let board = self.board.clone();
-
-                thread::spawn(move || {
-                    searcher.go(&board, true);
+                let mut searcher = Searcher::new(search_limit, &self.zobrist_stack, &self.history);
+                thread::scope(|s| {
+                    s.spawn(|| {
+                        searcher.go(&self.board, true);
+                        searcher.search_complete_actions(&mut self.history);
+                    });
                 });
             }
             UciCommand::SetOptionOverhead(overhead) => {
