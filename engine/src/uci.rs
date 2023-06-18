@@ -169,7 +169,7 @@ impl UciHandler {
                 println!("uciok");
             }
             UciCommand::IsReady => println!("readyok"),
-            UciCommand::UciNewGame => (),
+            UciCommand::UciNewGame => self.history = History::new(),
             UciCommand::Position(fen, move_vec) => {
                 let mut new_board = Board::from_fen(fen.as_str());
                 let mut new_zobrist_stack = ZobristStack::new(&new_board);
