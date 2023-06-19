@@ -1,6 +1,6 @@
 use crate::{
     attacks,
-    board_representation::{Board, Piece, Square, Bitboard},
+    board_representation::{Bitboard, Board, Piece, Square},
 };
 
 pub const MAX_MOVECOUNT: usize = u8::MAX as usize;
@@ -239,7 +239,11 @@ impl Move {
 
 #[cfg(test)]
 mod tests {
-    use crate::{perft::{PerftTest, test_postions}, board_representation::Board, movegen::MoveGenerator};
+    use crate::{
+        board_representation::Board,
+        movegen::MoveGenerator,
+        perft::{test_postions, PerftTest},
+    };
 
     use super::{Flag, Move, Square};
 
@@ -256,18 +260,18 @@ mod tests {
         let outer: Vec<PerftTest> = test_postions();
         let inner: Vec<PerftTest> = test_postions();
 
-        for pos1 in outer {
-            for pos2 in inner {
-                let board_1 = Board::from_fen(pos1.fen);
-                let mut b1_generator = MoveGenerator::new();
-                let mut actual_pseudos = vec![];
-                while let Some(mv) = b1_generator.simple_next(&board_1) {
-                    actual_pseudos.push(mv);
-                }
+        for pos1 in &outer {
+            let board_1 = Board::from_fen(pos1.fen);
+            let mut b1_generator = MoveGenerator::new();
+            let mut actual_pseudos = vec![];
+            while let Some(mv) = b1_generator.simple_next::<true>(&board_1) {
+                actual_pseudos.push(mv);
+            }
 
+            for pos2 in &inner {
                 let mut b2_generator = MoveGenerator::new();
                 let board2 = Board::from_fen(pos2.fen);
-                while let Some(mv) = b2_generator.simple_next(&board2) {
+                while let Some(mv) = b2_generator.simple_next::<true>(&board2) {
                     let expected = actual_pseudos.contains(&mv);
                     let actual = mv.is_pseudolegal(&board2);
                     assert_eq!(actual, expected);
