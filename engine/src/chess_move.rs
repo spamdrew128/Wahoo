@@ -272,7 +272,7 @@ mod tests {
                 let board_2 = Board::from_fen(pos2.fen);
                 while let Some(mv) = b2_generator.simple_next::<true>(&board_2) {
                     let expected = actual_pseudos.contains(&mv);
-                    let actual = mv.is_pseudolegal(&board_2);
+                    let actual = mv.is_pseudolegal(&board_1);
 
                     assert_eq!(
                         expected,
