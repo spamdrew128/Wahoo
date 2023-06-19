@@ -176,7 +176,7 @@ fn perft(board: &Board, depth: u16, count: &mut u64) {
     while let Some(mv) = generator.simple_next::<true>(board) {
         if !mv.is_pseudolegal(board) {
             board.print();
-            panic!("Move was {}", mv.as_string());
+            panic!("Fen: {}\nMove: {}", board.to_fen(), mv.as_string());
         }
 
         let mut new_board = (*board).clone();
