@@ -275,8 +275,8 @@ mod tests {
                     let actual = mv.is_pseudolegal(&board_2);
 
                     assert_eq!(
-                        actual,
                         expected,
+                        actual,
                         "\nFen_1: {}\nFen_2: {}\nMove: {}",
                         board_1.to_fen(),
                         board_2.to_fen(),
