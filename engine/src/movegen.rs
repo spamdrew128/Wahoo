@@ -162,7 +162,9 @@ impl MoveGenerator {
             self.add_move(Move::new(to, from, Flag::BISHOP_CAPTURE_PROMO), repeat);
         });
 
-        into_moves!(|from|, normal_pawns, |to|, attacks::pawn(from, color).intersection(them), self.add_move(Move::new(to, from, Flag::CAPTURE), repeat));
+        into_moves!(|from|, normal_pawns, |to|, attacks::pawn(from, color).intersection(them), {
+            self.add_move(Move::new(to, from, Flag::CAPTURE), repeat);
+        });
 
         if let Some(to) = board.ep_sq {
             let mut attackers = attacks::pawn(to, color.flip()).intersection(pawns);
