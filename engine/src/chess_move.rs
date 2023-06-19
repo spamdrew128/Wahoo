@@ -208,38 +208,35 @@ impl Move {
                         }
                     }
                 };
-                return to_bb.overlaps(moves_bb);
+
+                to_bb.overlaps(moves_bb)
             }
             Flag::DOUBLE_PUSH => {
                 let single_push = attacks::pawn_single_push(from_bb, empty, color);
                 let double_push = attacks::pawn_double_push(single_push, empty, color);
-                return to_bb.overlaps(double_push);
+                to_bb.overlaps(double_push)
             }
             Flag::KS_CASTLE => {
-                return board.castle_rights.can_ks_castle(board);
+                board.castle_rights.can_ks_castle(board)
             }
             Flag::QS_CASTLE => {
-                return board.castle_rights.can_qs_castle(board);
+                board.castle_rights.can_qs_castle(board)
             }
-            // Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN, &mut hash_base, to_sq),
-            // Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::QUEEN, &mut hash_base, to_sq),
-            // Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT, &mut hash_base, to_sq),
-            // Flag::KNIGHT_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::KNIGHT, &mut hash_base, to_sq),
-            // Flag::BISHOP_PROMO => self.toggle_promotion(to_bb, Piece::BISHOP, &mut hash_base, to_sq),
-            // Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::BISHOP, &mut hash_base, to_sq),
-            // Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK, &mut hash_base, to_sq),
-            // Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::ROOK, &mut hash_base, to_sq),
             Flag::EP => {
                 if let Some(ep_sq) = board.ep_sq {
-                    return (piece == Piece::PAWN)
+                    (piece == Piece::PAWN)
                         && (ep_sq == to)
-                        && attacks::pawn(from, color).overlaps(ep_sq.as_bitboard());
+                        && attacks::pawn(from, color).overlaps(ep_sq.as_bitboard())
+                } else {
+                    false
                 }
-                return false;
             }
-            _ => panic!("Invalid Move!"),
+            _ => { // assume promotion
+                let pawn = from_bb.intersection(board.promotable_pawns());
+                let single_push = attacks::pawn_single_push(pawn, empty, color);
+                to_bb.overlaps(single_push)
+            }
         }
-        true
     }
 }
 
