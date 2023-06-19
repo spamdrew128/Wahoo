@@ -239,6 +239,8 @@ impl Move {
 
 #[cfg(test)]
 mod tests {
+    use crate::{perft::{PerftTest, test_postions}, board_representation::Board, movegen::MoveGenerator};
+
     use super::{Flag, Move, Square};
 
     #[test]
@@ -247,5 +249,30 @@ mod tests {
         assert_eq!(m.to(), Square::B1);
         assert_eq!(m.from(), Square::H8);
         assert!(m.flag() == Flag::NONE);
+    }
+
+    #[test]
+    fn is_pseudolegal_false_positives() {
+        let outer: Vec<PerftTest> = test_postions();
+        let inner: Vec<PerftTest> = test_postions();
+
+        for pos1 in outer {
+            for pos2 in inner {
+                let board_1 = Board::from_fen(pos1.fen);
+                let mut b1_generator = MoveGenerator::new();
+                let mut actual_pseudos = vec![];
+                while let Some(mv) = b1_generator.simple_next(&board_1) {
+                    actual_pseudos.push(mv);
+                }
+
+                let mut b2_generator = MoveGenerator::new();
+                let board2 = Board::from_fen(pos2.fen);
+                while let Some(mv) = b2_generator.simple_next(&board2) {
+                    let expected = actual_pseudos.contains(&mv);
+                    let actual = mv.is_pseudolegal(&board2);
+                    assert_eq!(actual, expected);
+                }
+            }
+        }
     }
 }
