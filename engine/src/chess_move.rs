@@ -215,20 +215,12 @@ impl Move {
                 let double_push = attacks::pawn_double_push(single_push, empty, color);
                 return to_bb.overlaps(double_push);
             }
-            // Flag::KS_CASTLE => {
-            //     let rook_to = from_sq.right(1);
-            //     let rook_from = from_sq.right(3);
-            //     self.toggle(rook_to.as_bitboard() | rook_from.as_bitboard(), Piece::ROOK, color);
-            //     hash_base.hash_piece(color, Piece::ROOK, rook_to);
-            //     hash_base.hash_piece(color, Piece::ROOK, rook_from);
-            // }
-            // Flag::QS_CASTLE => {
-            //     let rook_to = from_sq.left(1);
-            //     let rook_from = from_sq.left(4);
-            //     self.toggle(rook_to.as_bitboard() | rook_from.as_bitboard(), Piece::ROOK, color);
-            //     hash_base.hash_piece(color, Piece::ROOK, rook_to);
-            //     hash_base.hash_piece(color, Piece::ROOK, rook_from);
-            // }
+            Flag::KS_CASTLE => {
+                return board.castle_rights.can_ks_castle(board);
+            }
+            Flag::QS_CASTLE => {
+                return board.castle_rights.can_qs_castle(board);
+            }
             // Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN, &mut hash_base, to_sq),
             // Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::QUEEN, &mut hash_base, to_sq),
             // Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT, &mut hash_base, to_sq),
@@ -237,11 +229,14 @@ impl Move {
             // Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::BISHOP, &mut hash_base, to_sq),
             // Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK, &mut hash_base, to_sq),
             // Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::ROOK, &mut hash_base, to_sq),
-            // Flag::EP => {
-            //     let ep_sq = to_sq.retreat(1, color);
-            //     self.toggle(ep_sq.as_bitboard(), Piece::PAWN, opp_color);
-            //     hash_base.hash_piece(opp_color, Piece::PAWN, ep_sq);
-            // }
+            Flag::EP => {
+                if let Some(ep_sq) = board.ep_sq {
+                    return (piece == Piece::PAWN)
+                        && (ep_sq == to)
+                        && attacks::pawn(from, color).overlaps(ep_sq.as_bitboard());
+                }
+                return false;
+            }
             _ => panic!("Invalid Move!"),
         }
         true
