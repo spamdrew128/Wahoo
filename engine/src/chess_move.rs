@@ -42,6 +42,10 @@ impl Move {
         Self { data: 0 }
     }
 
+    pub const fn is_null(self) -> bool {
+        self.data == 0
+    }
+
     pub const fn new(to: Square, from: Square, flag: Flag) -> Self {
         Self {
             data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET) | flag.0,
@@ -163,6 +167,11 @@ impl Move {
     }
 
     pub fn is_pseudolegal(self, board: &Board) -> bool {
+        // we can't play null moves!
+        if self.is_null() {
+            return false;
+        }
+
         let to = self.to();
         let to_bb = to.as_bitboard();
         let from = self.from();
