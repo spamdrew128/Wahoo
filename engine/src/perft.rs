@@ -256,6 +256,7 @@ mod tests {
     use super::run_test_suite;
 
     #[test]
+    #[ignore="takes too long"]
     fn position_suite() {
         run_test_suite();
     }
