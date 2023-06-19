@@ -11,7 +11,7 @@ use crate::{
     pv_table::PvTable,
     time_management::{Milliseconds, SearchTimer},
     zobrist::ZobristHash,
-    zobrist_stack::ZobristStack,
+    zobrist_stack::ZobristStack, killers::Killers,
 };
 
 pub type Nodes = u64;
@@ -48,6 +48,7 @@ pub struct Searcher {
     zobrist_stack: ZobristStack,
     pv_table: PvTable,
     history: History,
+    killers: Killers,
 
     timer: Option<SearchTimer>,
     out_of_time: bool,
@@ -63,6 +64,7 @@ impl Searcher {
             search_limit,
             zobrist_stack: zobrist_stack.clone(),
             history: history.clone(),
+            killers: Killers::new(),
             pv_table: PvTable::new(),
             timer: None,
             out_of_time: false,
@@ -210,7 +212,7 @@ impl Searcher {
         let mut best_score = -INF;
         let mut moves_played = 0;
         let mut quiets: ArrayVec<Move, MAX_MOVECOUNT> = ArrayVec::new();
-        while let Some(mv) = generator.next::<true>(board, &self.history, Move::nullmove()) {
+        while let Some(mv) = generator.next::<true>(board, &self.history, self.killers.killer(ply)) {
             let mut next_board = (*board).clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
             if !is_legal {
@@ -238,6 +240,7 @@ impl Searcher {
 
                 if score >= beta {
                     if is_quiet {
+                        self.killers.update(mv, ply);
                         self.history.update(board, quiets.as_slice(), depth);
                     }
                     break;

@@ -3,7 +3,8 @@ use crate::{
     search::{Ply, MAX_PLY},
 };
 
-struct Killers {
+#[derive(Debug)]
+pub struct Killers {
     moves: [Move; MAX_PLY as usize],
 }
 
@@ -14,7 +15,7 @@ impl Killers {
         }
     }
 
-    pub fn update(&mut self, ply: Ply, mv: Move) {
+    pub fn update(&mut self, mv: Move, ply: Ply) {
         self.moves[ply as usize] = mv;
     }
 
