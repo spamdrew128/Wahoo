@@ -234,6 +234,8 @@ impl Searcher {
 
             let is_quiet = generator.is_quiet_stage();
             if is_quiet {
+                // I am well aware that this does not include killer moves, but for 
+                // some reason it loses Elo when I includ them. Screw engine development.
                 quiets.push(mv);
             }
 
