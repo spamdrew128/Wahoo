@@ -204,7 +204,7 @@ impl Move {
                             let pawn = from_bb.without(board.promotable_pawns());
                             attacks::pawn_single_push(pawn, empty, color)
                         } else {
-                            attacks::pawn(from, color)
+                            attacks::pawn_setwise(pawn, color)
                         }
                     }
                 };
@@ -226,8 +226,12 @@ impl Move {
             _ => {
                 // assume promotion
                 let pawn = from_bb.intersection(board.promotable_pawns());
-                let single_push = attacks::pawn_single_push(pawn, empty, color);
-                to_bb.overlaps(single_push)
+                let move_bb = if self.is_capture() {
+                    attacks::pawn_setwise(pawn, color)
+                } else {
+                    attacks::pawn_single_push(pawn, empty, color)
+                };
+                to_bb.overlaps(move_bb)
             }
         }
     }
