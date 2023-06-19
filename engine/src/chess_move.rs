@@ -257,10 +257,9 @@ mod tests {
 
     #[test]
     fn is_pseudolegal_false_positives() {
-        let outer: Vec<PerftTest> = test_postions();
-        let inner: Vec<PerftTest> = test_postions();
+        let positions: Vec<PerftTest> = test_postions();
 
-        for pos1 in &outer {
+        for pos1 in &positions {
             let board_1 = Board::from_fen(pos1.fen);
             let mut b1_generator = MoveGenerator::new();
             let mut actual_pseudos = vec![];
@@ -268,7 +267,7 @@ mod tests {
                 actual_pseudos.push(mv);
             }
 
-            for pos2 in &inner {
+            for pos2 in &positions {
                 let mut b2_generator = MoveGenerator::new();
                 let board2 = Board::from_fen(pos2.fen);
                 while let Some(mv) = b2_generator.simple_next::<true>(&board2) {
