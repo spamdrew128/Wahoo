@@ -269,11 +269,19 @@ mod tests {
 
             for pos2 in &positions {
                 let mut b2_generator = MoveGenerator::new();
-                let board2 = Board::from_fen(pos2.fen);
-                while let Some(mv) = b2_generator.simple_next::<true>(&board2) {
+                let board_2 = Board::from_fen(pos2.fen);
+                while let Some(mv) = b2_generator.simple_next::<true>(&board_2) {
                     let expected = actual_pseudos.contains(&mv);
-                    let actual = mv.is_pseudolegal(&board2);
-                    assert_eq!(actual, expected);
+                    let actual = mv.is_pseudolegal(&board_2);
+
+                    assert_eq!(
+                        actual,
+                        expected,
+                        "Fen_1: {}\nFen_2: {}\nMove: {}",
+                        board_1.to_fen(),
+                        board_2.to_fen(),
+                        mv.as_string()
+                    );
                 }
             }
         }
