@@ -280,7 +280,7 @@ impl MoveGenerator {
     }
 
     pub fn is_quiet_stage(&self) -> bool {
-        self.stage == MoveStage::QUIET
+        self.stage >= MoveStage::KILLER
     }
 }
 
