@@ -226,7 +226,11 @@ impl MoveGenerator {
         }
     }
 
-    pub fn next<const INCLUDE_QUIETS: bool>(&mut self, board: &Board, history: &History) -> Option<Move> {
+    pub fn next<const INCLUDE_QUIETS: bool>(
+        &mut self,
+        board: &Board,
+        history: &History,
+    ) -> Option<Move> {
         while self.stage_complete() {
             self.advance_stage();
 
@@ -268,7 +272,7 @@ impl MoveGenerator {
         Self::first_legal_move(board).is_none()
     }
 
-    pub fn is_quiet_stage(&self) -> bool{
+    pub fn is_quiet_stage(&self) -> bool {
         self.stage == MoveStage::QUIET
     }
 }

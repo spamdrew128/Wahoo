@@ -161,6 +161,33 @@ impl Move {
             Self::new(to, from, Flag::CAPTURE)
         }
     }
+
+    fn is_pseudolegal(self, board: &Board) -> bool {
+        let to = self.to();
+        let to_bb = to.as_bitboard();
+        let from = self.from();
+        let from_bb = from.as_bitboard();
+        let us = board.us();
+        let them = board.them();
+        let color = board.color_to_move;
+
+        // make sure to move a piece that is our color, and non-empty
+        if !from_bb.overlaps(us) {
+            return false;
+        }
+
+        // we actually need to capture an enemy piece if the move is a capture
+        if self.is_capture() && !to_bb.overlaps(them) {
+            return false;
+        }
+
+        // if quiet, we need to land on an unoccupied square
+        if !self.is_capture() && to_bb.overlaps(us | them) {
+            return false;
+        }
+
+        true
+    }
 }
 
 #[cfg(test)]
