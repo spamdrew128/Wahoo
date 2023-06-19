@@ -7,11 +7,12 @@ use crate::{
     chess_move::{Move, MAX_MOVECOUNT},
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     history_table::History,
+    killers::Killers,
     movegen::MoveGenerator,
     pv_table::PvTable,
     time_management::{Milliseconds, SearchTimer},
     zobrist::ZobristHash,
-    zobrist_stack::ZobristStack, killers::Killers,
+    zobrist_stack::ZobristStack,
 };
 
 pub type Nodes = u64;
@@ -212,7 +213,8 @@ impl Searcher {
         let mut best_score = -INF;
         let mut moves_played = 0;
         let mut quiets: ArrayVec<Move, MAX_MOVECOUNT> = ArrayVec::new();
-        while let Some(mv) = generator.next::<true>(board, &self.history, self.killers.killer(ply)) {
+        while let Some(mv) = generator.next::<true>(board, &self.history, self.killers.killer(ply))
+        {
             let mut next_board = (*board).clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
             if !is_legal {
