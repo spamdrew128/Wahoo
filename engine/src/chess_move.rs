@@ -277,7 +277,7 @@ mod tests {
                     assert_eq!(
                         actual,
                         expected,
-                        "Fen_1: {}\nFen_2: {}\nMove: {}",
+                        "\nFen_1: {}\nFen_2: {}\nMove: {}",
                         board_1.to_fen(),
                         board_2.to_fen(),
                         mv.as_string()
