@@ -162,7 +162,7 @@ impl Move {
         }
     }
 
-    fn is_pseudolegal(self, board: &Board) -> bool {
+    pub fn is_pseudolegal(self, board: &Board) -> bool {
         let to = self.to();
         let to_bb = to.as_bitboard();
         let from = self.from();
