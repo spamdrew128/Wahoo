@@ -132,19 +132,29 @@ impl MoveGenerator {
         let occupied = board.occupied();
 
         let mut knights = board.piece_bb(Piece::KNIGHT, color);
-        into_moves!(|from|, knights, |to|, attacks::knight(from).intersection(filter), self.add_move(Move::new(to, from, flag), repeat));
+        into_moves!(|from|, knights, |to|, attacks::knight(from).intersection(filter), {
+            self.add_move(Move::new(to, from, flag), repeat);
+        });
 
         let mut bishops = board.piece_bb(Piece::BISHOP, color);
-        into_moves!(|from|, bishops, |to|, attacks::bishop(from, occupied).intersection(filter), self.add_move(Move::new(to, from, flag), repeat));
+        into_moves!(|from|, bishops, |to|, attacks::bishop(from, occupied).intersection(filter), {
+            self.add_move(Move::new(to, from, flag), repeat);
+        });
 
         let mut rooks = board.piece_bb(Piece::ROOK, color);
-        into_moves!(|from|, rooks, |to|, attacks::rook(from, occupied).intersection(filter), self.add_move(Move::new(to, from, flag), repeat));
+        into_moves!(|from|, rooks, |to|, attacks::rook(from, occupied).intersection(filter),{
+            self.add_move(Move::new(to, from, flag), repeat);
+        });
 
         let mut queens = board.piece_bb(Piece::QUEEN, color);
-        into_moves!(|from|, queens, |to|, attacks::queen(from, occupied).intersection(filter), self.add_move(Move::new(to, from, flag), repeat));
+        into_moves!(|from|, queens, |to|, attacks::queen(from, occupied).intersection(filter), {
+            self.add_move(Move::new(to, from, flag), repeat);
+        });
 
         let mut king = board.piece_bb(Piece::KING, color);
-        into_moves!(|from|, king, |to|, attacks::king(from).intersection(filter), self.add_move(Move::new(to, from, flag), repeat));
+        into_moves!(|from|, king, |to|, attacks::king(from).intersection(filter), {
+            self.add_move(Move::new(to, from, flag), repeat);
+        });
     }
 
     fn generate_captures(&mut self, board: &Board, repeat: Move) {
