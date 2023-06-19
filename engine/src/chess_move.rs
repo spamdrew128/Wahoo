@@ -189,51 +189,59 @@ impl Move {
         let flag = self.flag();
         let piece = board.piece_on_sq(from);
         let color = board.color_to_move;
+        let empty = board.empty();
         match flag {
-            Flag::NONE => {
+            Flag::NONE | Flag::CAPTURE => {
                 let moves_bb = match piece {
-                    Piece::PAWN => {
-                        let pawns = board.piece_bb(Piece::PAWN, color).without(board.promotable_pawns());
-                        attacks::pawn_single_push(pawns, board.empty(), color)
-                    },
                     Piece::KNIGHT => attacks::knight(from),
                     Piece::KING => attacks::king(from),
                     Piece::BISHOP => attacks::bishop(from, occupied),
                     Piece::ROOK => attacks::rook(from, occupied),
                     Piece::QUEEN => attacks::queen(from, occupied),
-                    _ => (),
+                    _ => {
+                        // assume pawn
+                        if flag == Flag::NONE {
+                            let pawn = from_bb.without(board.promotable_pawns());
+                            attacks::pawn_single_push(pawn, empty, color)
+                        } else {
+                            attacks::pawn(from, color)
+                        }
+                    }
                 };
                 return to_bb.overlaps(moves_bb);
-            },
-            Flag::CAPTURE => self.toggle(to_bb, captured_piece, opp_color),
-            Flag::DOUBLE_PUSH => self.ep_sq = self.ep_sq_after_double_push(to_sq, &mut hash_base),
-            Flag::KS_CASTLE => {
-                let rook_to = from_sq.right(1);
-                let rook_from = from_sq.right(3);
-                self.toggle(rook_to.as_bitboard() | rook_from.as_bitboard(), Piece::ROOK, color);
-                hash_base.hash_piece(color, Piece::ROOK, rook_to);
-                hash_base.hash_piece(color, Piece::ROOK, rook_from);
             }
-            Flag::QS_CASTLE => {
-                let rook_to = from_sq.left(1);
-                let rook_from = from_sq.left(4);
-                self.toggle(rook_to.as_bitboard() | rook_from.as_bitboard(), Piece::ROOK, color);
-                hash_base.hash_piece(color, Piece::ROOK, rook_to);
-                hash_base.hash_piece(color, Piece::ROOK, rook_from);
+            Flag::DOUBLE_PUSH => {
+                let single_push = attacks::pawn_single_push(from_bb, empty, color);
+                let double_push = attacks::pawn_double_push(single_push, empty, color);
+                return to_bb.overlaps(double_push);
             }
-            Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN, &mut hash_base, to_sq),
-            Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::QUEEN, &mut hash_base, to_sq),
-            Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT, &mut hash_base, to_sq),
-            Flag::KNIGHT_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::KNIGHT, &mut hash_base, to_sq),
-            Flag::BISHOP_PROMO => self.toggle_promotion(to_bb, Piece::BISHOP, &mut hash_base, to_sq),
-            Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::BISHOP, &mut hash_base, to_sq),
-            Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK, &mut hash_base, to_sq),
-            Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::ROOK, &mut hash_base, to_sq),
-            Flag::EP => {
-                let ep_sq = to_sq.retreat(1, color);
-                self.toggle(ep_sq.as_bitboard(), Piece::PAWN, opp_color);
-                hash_base.hash_piece(opp_color, Piece::PAWN, ep_sq);
-            }
+            // Flag::KS_CASTLE => {
+            //     let rook_to = from_sq.right(1);
+            //     let rook_from = from_sq.right(3);
+            //     self.toggle(rook_to.as_bitboard() | rook_from.as_bitboard(), Piece::ROOK, color);
+            //     hash_base.hash_piece(color, Piece::ROOK, rook_to);
+            //     hash_base.hash_piece(color, Piece::ROOK, rook_from);
+            // }
+            // Flag::QS_CASTLE => {
+            //     let rook_to = from_sq.left(1);
+            //     let rook_from = from_sq.left(4);
+            //     self.toggle(rook_to.as_bitboard() | rook_from.as_bitboard(), Piece::ROOK, color);
+            //     hash_base.hash_piece(color, Piece::ROOK, rook_to);
+            //     hash_base.hash_piece(color, Piece::ROOK, rook_from);
+            // }
+            // Flag::QUEEN_PROMO => self.toggle_promotion(to_bb, Piece::QUEEN, &mut hash_base, to_sq),
+            // Flag::QUEEN_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::QUEEN, &mut hash_base, to_sq),
+            // Flag::KNIGHT_PROMO => self.toggle_promotion(to_bb, Piece::KNIGHT, &mut hash_base, to_sq),
+            // Flag::KNIGHT_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::KNIGHT, &mut hash_base, to_sq),
+            // Flag::BISHOP_PROMO => self.toggle_promotion(to_bb, Piece::BISHOP, &mut hash_base, to_sq),
+            // Flag::BISHOP_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::BISHOP, &mut hash_base, to_sq),
+            // Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK, &mut hash_base, to_sq),
+            // Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::ROOK, &mut hash_base, to_sq),
+            // Flag::EP => {
+            //     let ep_sq = to_sq.retreat(1, color);
+            //     self.toggle(ep_sq.as_bitboard(), Piece::PAWN, opp_color);
+            //     hash_base.hash_piece(opp_color, Piece::PAWN, ep_sq);
+            // }
             _ => panic!("Invalid Move!"),
         }
         true
