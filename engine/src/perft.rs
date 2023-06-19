@@ -171,7 +171,7 @@ fn perft(board: &Board, depth: u16, count: &mut u64) {
         return;
     }
 
-    let mut generator = MoveGenerator::new();
+    let mut generator = MoveGenerator::new_empty();
 
     while let Some(mv) = generator.simple_next::<true>(board) {
         if !mv.is_pseudolegal(board) {
@@ -188,7 +188,7 @@ fn perft(board: &Board, depth: u16, count: &mut u64) {
 
 pub fn split_perft(fen: &str, depth: u16) {
     let board = Board::from_fen(fen);
-    let mut generator = MoveGenerator::new();
+    let mut generator = MoveGenerator::new_empty();
 
     while let Some(mv) = generator.simple_next::<true>(&board) {
         let mut new_board = board.clone();

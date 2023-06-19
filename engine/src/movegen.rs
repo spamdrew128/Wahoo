@@ -81,16 +81,22 @@ pub struct MoveGenerator {
     movelist: [MoveElement; MAX_MOVECOUNT],
     len: usize,
     index: usize,
+    killer: Move,
 }
 
 impl MoveGenerator {
-    pub const fn new() -> Self {
+    pub const fn new(killer: Move) -> Self {
         Self {
             stage: MoveStage::START,
             movelist: [MoveElement::new(); MAX_MOVECOUNT],
             len: 0,
             index: 0,
+            killer,
         }
+    }
+
+    pub const fn new_empty() -> Self {
+        Self::new(Move::nullmove())
     }
 
     const fn stage_complete(&self) -> bool {
@@ -103,11 +109,13 @@ impl MoveGenerator {
         self.index = 0;
     }
 
-    fn add_move(&mut self, mv: Move, repeat: Move) {
-        if mv != repeat {
-            self.movelist[self.len].mv = mv;
-            self.len += 1;
+    fn add_move(&mut self, mv: Move) {
+        if self.stage == MoveStage::QUIET && mv == self.killer {
+            return;
         }
+
+        self.movelist[self.len].mv = mv;
+        self.len += 1;
     }
 
     fn pick_move(&mut self) -> Move {
@@ -127,27 +135,27 @@ impl MoveGenerator {
         mv
     }
 
-    fn generic_movegen(&mut self, board: &Board, filter: Bitboard, flag: Flag, repeat: Move) {
+    fn generic_movegen(&mut self, board: &Board, filter: Bitboard, flag: Flag) {
         let color = board.color_to_move;
         let occupied = board.occupied();
 
         let mut knights = board.piece_bb(Piece::KNIGHT, color);
-        into_moves!(|from|, knights, |to|, attacks::knight(from).intersection(filter), self.add_move(Move::new(to, from, flag), repeat));
+        into_moves!(|from|, knights, |to|, attacks::knight(from).intersection(filter), self.add_move(Move::new(to, from, flag)));
 
         let mut bishops = board.piece_bb(Piece::BISHOP, color);
-        into_moves!(|from|, bishops, |to|, attacks::bishop(from, occupied).intersection(filter), self.add_move(Move::new(to, from, flag), repeat));
+        into_moves!(|from|, bishops, |to|, attacks::bishop(from, occupied).intersection(filter), self.add_move(Move::new(to, from, flag)));
 
         let mut rooks = board.piece_bb(Piece::ROOK, color);
-        into_moves!(|from|, rooks, |to|, attacks::rook(from, occupied).intersection(filter), self.add_move(Move::new(to, from, flag), repeat));
+        into_moves!(|from|, rooks, |to|, attacks::rook(from, occupied).intersection(filter), self.add_move(Move::new(to, from, flag)));
 
         let mut queens = board.piece_bb(Piece::QUEEN, color);
-        into_moves!(|from|, queens, |to|, attacks::queen(from, occupied).intersection(filter), self.add_move(Move::new(to, from, flag), repeat));
+        into_moves!(|from|, queens, |to|, attacks::queen(from, occupied).intersection(filter), self.add_move(Move::new(to, from, flag)));
 
         let mut king = board.piece_bb(Piece::KING, color);
-        into_moves!(|from|, king, |to|, attacks::king(from).intersection(filter), self.add_move(Move::new(to, from, flag), repeat));
+        into_moves!(|from|, king, |to|, attacks::king(from).intersection(filter), self.add_move(Move::new(to, from, flag)));
     }
 
-    fn generate_captures(&mut self, board: &Board, repeat: Move) {
+    fn generate_captures(&mut self, board: &Board) {
         let color = board.color_to_move;
         let them = board.them();
 
@@ -156,27 +164,27 @@ impl MoveGenerator {
         let mut normal_pawns = pawns.without(promoting_pawns);
 
         into_moves!(|from|, promoting_pawns, |to|, attacks::pawn(from, color).intersection(them), {
-            self.add_move(Move::new(to, from, Flag::QUEEN_CAPTURE_PROMO), repeat);
-            self.add_move(Move::new(to, from, Flag::KNIGHT_CAPTURE_PROMO), repeat);
-            self.add_move(Move::new(to, from, Flag::ROOK_CAPTURE_PROMO), repeat);
-            self.add_move(Move::new(to, from, Flag::BISHOP_CAPTURE_PROMO), repeat);
+            self.add_move(Move::new(to, from, Flag::QUEEN_CAPTURE_PROMO));
+            self.add_move(Move::new(to, from, Flag::KNIGHT_CAPTURE_PROMO));
+            self.add_move(Move::new(to, from, Flag::ROOK_CAPTURE_PROMO));
+            self.add_move(Move::new(to, from, Flag::BISHOP_CAPTURE_PROMO));
         });
 
         into_moves!(|from|, normal_pawns, |to|, attacks::pawn(from, color).intersection(them), {
-            self.add_move(Move::new(to, from, Flag::CAPTURE), repeat);
+            self.add_move(Move::new(to, from, Flag::CAPTURE));
         });
 
         if let Some(to) = board.ep_sq {
             let mut attackers = attacks::pawn(to, color.flip()).intersection(pawns);
             bitloop!(|from|, attackers, {
-                self.add_move(Move::new(to, from, Flag::EP), repeat);
+                self.add_move(Move::new(to, from, Flag::EP));
             });
         }
 
-        self.generic_movegen(board, them, Flag::CAPTURE, repeat);
+        self.generic_movegen(board, them, Flag::CAPTURE);
     }
 
-    fn generate_quiets(&mut self, board: &Board, repeat: Move) {
+    fn generate_quiets(&mut self, board: &Board) {
         let color = board.color_to_move;
         let empty = board.empty();
 
@@ -190,31 +198,31 @@ impl MoveGenerator {
 
         bitloop!(|to|, promotions, {
             let from = to.retreat(1, color);
-            self.add_move(Move::new(to, from, Flag::QUEEN_PROMO), repeat);
-            self.add_move(Move::new(to, from, Flag::KNIGHT_PROMO), repeat);
-            self.add_move(Move::new(to, from, Flag::ROOK_PROMO), repeat);
-            self.add_move(Move::new(to, from, Flag::BISHOP_PROMO), repeat);
+            self.add_move(Move::new(to, from, Flag::QUEEN_PROMO));
+            self.add_move(Move::new(to, from, Flag::KNIGHT_PROMO));
+            self.add_move(Move::new(to, from, Flag::ROOK_PROMO));
+            self.add_move(Move::new(to, from, Flag::BISHOP_PROMO));
         });
 
         bitloop!(|to|, single_pushs, {
             let from = to.retreat(1, color);
-            self.add_move(Move::new(to, from, Flag::NONE), repeat);
+            self.add_move(Move::new(to, from, Flag::NONE));
         });
 
         bitloop!(|to|, double_pushs, {
             let from = to.retreat(2, color);
-            self.add_move(Move::new(to, from, Flag::DOUBLE_PUSH), repeat);
+            self.add_move(Move::new(to, from, Flag::DOUBLE_PUSH));
         });
 
         if board.castle_rights.can_ks_castle(board) {
-            self.add_move(Move::new_ks_castle(board.king_sq()), repeat);
+            self.add_move(Move::new_ks_castle(board.king_sq()));
         }
 
         if board.castle_rights.can_qs_castle(board) {
-            self.add_move(Move::new_qs_castle(board.king_sq()), repeat);
+            self.add_move(Move::new_qs_castle(board.king_sq()));
         }
 
-        self.generic_movegen(board, empty, Flag::NONE, repeat);
+        self.generic_movegen(board, empty, Flag::NONE);
     }
 
     fn score_captures(&mut self, board: &Board) {
@@ -235,24 +243,23 @@ impl MoveGenerator {
         &mut self,
         board: &Board,
         history: &History,
-        killer: Move,
     ) -> Option<Move> {
         while self.stage_complete() {
             self.advance_stage();
 
             match self.stage {
                 MoveStage::CAPTURE => {
-                    self.generate_captures(board, Move::nullmove());
+                    self.generate_captures(board);
                     self.score_captures(board);
                 }
                 MoveStage::KILLER => {
-                    if INCLUDE_QUIETS && killer.is_pseudolegal(board) {
-                        self.add_move(killer, Move::nullmove());
+                    if INCLUDE_QUIETS && self.killer.is_pseudolegal(board) {
+                        self.add_move(self.killer);
                     }
                 }
                 MoveStage::QUIET => {
                     if INCLUDE_QUIETS {
-                        self.generate_quiets(board, killer);
+                        self.generate_quiets(board);
                         self.score_quiets(board, history);
                     }
                 }
@@ -264,11 +271,11 @@ impl MoveGenerator {
     }
 
     pub fn simple_next<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
-        self.next::<INCLUDE_QUIETS>(board, &History::new(), Move::nullmove())
+        self.next::<INCLUDE_QUIETS>(board, &History::new())
     }
 
     pub fn first_legal_move(board: &Board) -> Option<Move> {
-        let mut generator = Self::new();
+        let mut generator = Self::new_empty();
         while let Some(mv) = generator.simple_next::<true>(board) {
             let mut new_board = (*board).clone();
             if new_board.simple_try_play_move(mv) {
@@ -299,7 +306,7 @@ mod tests {
         let mut promo_count = 0;
         let mut ep_count = 0;
 
-        let mut generator = MoveGenerator::new();
+        let mut generator = MoveGenerator::new_empty();
         while let Some(mv) = generator.simple_next::<true>(&board) {
             if generator.stage == MoveStage::CAPTURE {
                 let piece = board.piece_on_sq(mv.from());
@@ -336,7 +343,7 @@ mod tests {
         let mut promo_count = 0;
         let mut castle_count = 0;
 
-        let mut generator = MoveGenerator::new();
+        let mut generator = MoveGenerator::new_empty();
         while let Some(mv) = generator.simple_next::<true>(&board) {
             if generator.stage == MoveStage::QUIET {
                 let piece = board.piece_on_sq(mv.from());

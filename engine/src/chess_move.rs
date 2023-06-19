@@ -270,14 +270,14 @@ mod tests {
 
         for pos1 in &positions {
             let board_1 = Board::from_fen(pos1.fen);
-            let mut b1_generator = MoveGenerator::new();
+            let mut b1_generator = MoveGenerator::new_empty();
             let mut actual_pseudos = vec![];
             while let Some(mv) = b1_generator.simple_next::<true>(&board_1) {
                 actual_pseudos.push(mv);
             }
 
             for pos2 in &positions {
-                let mut b2_generator = MoveGenerator::new();
+                let mut b2_generator = MoveGenerator::new_empty();
                 let board_2 = Board::from_fen(pos2.fen);
                 while let Some(mv) = b2_generator.simple_next::<true>(&board_2) {
                     let expected = actual_pseudos.contains(&mv);
