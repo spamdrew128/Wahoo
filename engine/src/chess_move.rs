@@ -277,13 +277,21 @@ mod tests {
                     assert_eq!(
                         expected,
                         actual,
-                        "\nFen_1: {}\nFen_2: {}\nMove: {}",
+                        "\nFen_1: {}\nFen_2: {}\nMove: {}\nFlag {}",
                         board_1.to_fen(),
                         board_2.to_fen(),
-                        mv.as_string()
+                        mv.as_string(),
+                        mv.flag().0,
                     );
                 }
             }
         }
+    }
+
+    #[test]
+    fn is_pseudo_1() {
+        let board = Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+        let mv = Move::new(Square::D4, Square::D2, Flag::DOUBLE_PUSH);
+        assert!(!mv.is_pseudolegal(&board));
     }
 }
