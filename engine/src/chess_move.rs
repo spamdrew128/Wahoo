@@ -1,6 +1,6 @@
 use crate::{
     attacks,
-    board_representation::{Board, Piece, Square},
+    board_representation::{Board, Piece, Square, Bitboard},
 };
 
 pub const MAX_MOVECOUNT: usize = u8::MAX as usize;
@@ -200,8 +200,8 @@ impl Move {
                     Piece::QUEEN => attacks::queen(from, occupied),
                     _ => {
                         // assume pawn
+                        let pawn: Bitboard = from_bb.without(board.promotable_pawns());
                         if flag == Flag::NONE {
-                            let pawn = from_bb.without(board.promotable_pawns());
                             attacks::pawn_single_push(pawn, empty, color)
                         } else {
                             attacks::pawn_setwise(pawn, color)
@@ -225,7 +225,7 @@ impl Move {
             }),
             _ => {
                 // assume promotion
-                let pawn = from_bb.intersection(board.promotable_pawns());
+                let pawn: Bitboard = from_bb.intersection(board.promotable_pawns());
                 let move_bb = if self.is_capture() {
                     attacks::pawn_setwise(pawn, color)
                 } else {
