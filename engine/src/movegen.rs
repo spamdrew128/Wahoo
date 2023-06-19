@@ -48,6 +48,7 @@ impl MoveStage {
     tuple_constants_enum!(Self,
         START,
         CAPTURE,
+        KILLER,
         QUIET
     );
 
@@ -226,7 +227,12 @@ impl MoveGenerator {
         }
     }
 
-    pub fn next<const INCLUDE_QUIETS: bool>(&mut self, board: &Board, history: &History) -> Option<Move> {
+    pub fn next<const INCLUDE_QUIETS: bool>(
+        &mut self,
+        board: &Board,
+        history: &History,
+        killer: Move,
+    ) -> Option<Move> {
         while self.stage_complete() {
             self.advance_stage();
 
@@ -234,6 +240,11 @@ impl MoveGenerator {
                 MoveStage::CAPTURE => {
                     self.generate_captures(board);
                     self.score_captures(board);
+                }
+                MoveStage::KILLER => {
+                    if INCLUDE_QUIETS && killer.is_pseudolegal(board) {
+                        self.add_move(killer);
+                    }
                 }
                 MoveStage::QUIET => {
                     if INCLUDE_QUIETS {
@@ -249,7 +260,7 @@ impl MoveGenerator {
     }
 
     pub fn simple_next<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
-        self.next::<INCLUDE_QUIETS>(board, &History::new())
+        self.next::<INCLUDE_QUIETS>(board, &History::new(), Move::nullmove())
     }
 
     pub fn first_legal_move(board: &Board) -> Option<Move> {
@@ -268,8 +279,8 @@ impl MoveGenerator {
         Self::first_legal_move(board).is_none()
     }
 
-    pub fn is_quiet_stage(&self) -> bool{
-        self.stage == MoveStage::QUIET
+    pub fn is_quiet_stage(&self) -> bool {
+        self.stage >= MoveStage::KILLER
     }
 }
 
