@@ -216,22 +216,15 @@ impl Move {
                 let double_push = attacks::pawn_double_push(single_push, empty, color);
                 to_bb.overlaps(double_push)
             }
-            Flag::KS_CASTLE => {
-                board.castle_rights.can_ks_castle(board)
-            }
-            Flag::QS_CASTLE => {
-                board.castle_rights.can_qs_castle(board)
-            }
-            Flag::EP => {
-                if let Some(ep_sq) = board.ep_sq {
-                    (piece == Piece::PAWN)
-                        && (ep_sq == to)
-                        && attacks::pawn(from, color).overlaps(ep_sq.as_bitboard())
-                } else {
-                    false
-                }
-            }
-            _ => { // assume promotion
+            Flag::KS_CASTLE => board.castle_rights.can_ks_castle(board),
+            Flag::QS_CASTLE => board.castle_rights.can_qs_castle(board),
+            Flag::EP => board.ep_sq.map_or(false, |ep_sq| {
+                (piece == Piece::PAWN)
+                    && (ep_sq == to)
+                    && attacks::pawn(from, color).overlaps(ep_sq.as_bitboard())
+            }),
+            _ => {
+                // assume promotion
                 let pawn = from_bb.intersection(board.promotable_pawns());
                 let single_push = attacks::pawn_single_push(pawn, empty, color);
                 to_bb.overlaps(single_push)
