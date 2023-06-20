@@ -90,12 +90,12 @@ impl From<TTEntry> for u64 {
     }
 }
 
-struct TranspositionTable {
+pub struct TranspositionTable {
     table: Vec<AtomicU64>,
 }
 
 impl TranspositionTable {
-    fn new(megabytes: usize) -> Self {
+    pub fn new(megabytes: usize) -> Self {
         const BYTES_PER_MB: usize = 1024 * 1024;
 
         let bytes = megabytes * BYTES_PER_MB;
@@ -106,7 +106,7 @@ impl TranspositionTable {
         Self { table }
     }
 
-    fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.table
             .iter_mut()
             .for_each(|x| *x = AtomicU64::default());
@@ -162,7 +162,7 @@ impl TranspositionTable {
     fn probe(&self, hash: ZobristHash) -> Option<TTEntry> {
         let index = self.table_index(hash);
         let key = Self::key_from_hash(hash);
-        let entry: TTEntry = self.table[index].load(Ordering::Relaxed).into();
+        let entry = TTEntry::from(self.table[index].load(Ordering::Relaxed));
 
         if (entry.key == key) && (entry.flag != TTFlag::UNINITIALIZED) {
             Some(entry)

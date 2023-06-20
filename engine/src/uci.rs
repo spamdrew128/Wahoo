@@ -5,7 +5,7 @@ use crate::{
     search::{Depth, Nodes, SearchLimit, Searcher},
     time_management::{Milliseconds, TimeArgs, TimeManager},
     zobrist::ZobristHash,
-    zobrist_stack::ZobristStack,
+    zobrist_stack::ZobristStack, transposition_table::TranspositionTable,
 };
 
 use std::thread;
@@ -29,6 +29,7 @@ pub struct UciHandler {
     board: Board,
     zobrist_stack: ZobristStack,
     history: History,
+    tt: TranspositionTable,
     time_manager: TimeManager,
 }
 
@@ -44,9 +45,9 @@ impl UciHandler {
     const OVERHEAD_MIN: Milliseconds = 0;
     const OVERHEAD_MAX: Milliseconds = 500;
 
-    const HASH_DEFAULT: u32 = 16;
-    const HASH_MIN: u32 = 0;
-    const HASH_MAX: u32 = 8192;
+    const HASH_DEFAULT: usize = 16;
+    const HASH_MIN: usize = 0;
+    const HASH_MAX: usize = 8192;
 
     const THREADS_DEFAULT: u32 = 1;
     const THREADS_MIN: u32 = 1;
@@ -59,6 +60,7 @@ impl UciHandler {
             board,
             zobrist_stack,
             history: History::new(),
+            tt: TranspositionTable::new(Self::HASH_DEFAULT),
             time_manager: TimeManager::new(Self::OVERHEAD_DEFAULT),
         }
     }
@@ -169,7 +171,10 @@ impl UciHandler {
                 println!("uciok");
             }
             UciCommand::IsReady => println!("readyok"),
-            UciCommand::UciNewGame => self.history = History::new(),
+            UciCommand::UciNewGame => {
+                self.history = History::new();
+                self.tt.reset();
+            }
             UciCommand::Position(fen, move_vec) => {
                 let mut new_board = Board::from_fen(fen.as_str());
                 let mut new_zobrist_stack = ZobristStack::new(&new_board);
