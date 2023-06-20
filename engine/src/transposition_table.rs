@@ -1,6 +1,12 @@
 use std::sync::atomic::AtomicU64;
 
-use crate::{chess_move::Move, evaluation::EvalScore, search::Depth, tuple_constants_enum};
+use crate::{
+    chess_move::Move,
+    evaluation::{EvalScore, MATE_THRESHOLD},
+    search::{Depth, Ply},
+    tuple_constants_enum,
+    zobrist::ZobristHash,
+};
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 struct TTFlag(u8);
@@ -10,6 +16,21 @@ impl TTFlag {
 
     const fn new(data: u8) -> Self {
         Self(data)
+    }
+
+    const fn determine(
+        best_score: EvalScore,
+        old_alpha: EvalScore,
+        alpha: EvalScore,
+        beta: EvalScore,
+    ) -> Self {
+        if best_score >= beta {
+            Self::LOWER_BOUND
+        } else if alpha != old_alpha {
+            Self::EXACT
+        } else {
+            Self::UPPER_BOUND
+        }
     }
 }
 
@@ -36,7 +57,12 @@ impl TTEntry {
         }
     }
 
-    const fn cutoff_is_possible(self, alpha: EvalScore, beta: EvalScore, current_depth: Depth) -> bool {
+    const fn cutoff_is_possible(
+        self,
+        alpha: EvalScore,
+        beta: EvalScore,
+        current_depth: Depth,
+    ) -> bool {
         if self.depth < current_depth {
             return false;
         }
@@ -52,7 +78,7 @@ impl TTEntry {
 
 impl From<AtomicU64> for TTEntry {
     fn from(data: AtomicU64) -> Self {
-        // SAFETY: This is safe because all fields of TTEntry are (at base) integral types,
+        // SAFETY: This is safe because all fields of TTEntry are (at base) integral types, and order is known.
         unsafe { std::mem::transmute(data) }
     }
 }
@@ -86,7 +112,38 @@ impl TranspositionTable {
             .for_each(|x| *x = AtomicU64::default());
     }
 
-    fn probe(&self) {
-        
+    fn score_to_tt(score: EvalScore, ply: Ply) -> EvalScore {
+        // Adjust to be relative to the node, rather than relative to the position
+        if score >= MATE_THRESHOLD {
+            score + i16::from(ply)
+        } else if score <= -MATE_THRESHOLD {
+            score - i16::from(ply)
+        } else {
+            score
+        }
+    }
+
+    fn score_from_tt(score: EvalScore, ply: Ply) -> EvalScore {
+        if score >= MATE_THRESHOLD {
+            score - i16::from(ply)
+        } else if score <= -MATE_THRESHOLD {
+            score + i16::from(ply)
+        } else {
+            score
+        }
+    }
+
+    fn store(
+        &mut self,
+        best_score: EvalScore,
+        old_alpha: EvalScore,
+        alpha: EvalScore,
+        beta: EvalScore,
+        hash: ZobristHash,
+        ply: Ply
+    ) {
+        let flag = TTFlag::determine(best_score, old_alpha, alpha, beta);
+        let score = Self::score_to_tt(best_score, ply);
+
     }
 }
