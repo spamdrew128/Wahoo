@@ -66,4 +66,10 @@ impl TranspositionTable {
 
         Self { table }
     }
+
+    fn reset(&mut self) {
+        self.table
+            .iter_mut()
+            .for_each(|x| *x = AtomicU64::default());
+    }
 }
