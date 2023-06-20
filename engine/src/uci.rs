@@ -4,6 +4,7 @@ use crate::{
     history_table::History,
     search::{Depth, Nodes, SearchLimit, Searcher},
     time_management::{Milliseconds, TimeArgs, TimeManager},
+    transposition_table::TranspositionTable,
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
@@ -23,12 +24,14 @@ enum UciCommand {
     Position(String, Vec<String>),
     Go(Vec<String>),
     SetOptionOverhead(Milliseconds),
+    SetOptionHash(usize),
 }
 
 pub struct UciHandler {
     board: Board,
     zobrist_stack: ZobristStack,
     history: History,
+    tt: TranspositionTable,
     time_manager: TimeManager,
 }
 
@@ -44,9 +47,9 @@ impl UciHandler {
     const OVERHEAD_MIN: Milliseconds = 0;
     const OVERHEAD_MAX: Milliseconds = 500;
 
-    const HASH_DEFAULT: u32 = 16;
-    const HASH_MIN: u32 = 0;
-    const HASH_MAX: u32 = 8192;
+    const HASH_DEFAULT: usize = 16;
+    const HASH_MIN: usize = 0;
+    const HASH_MAX: usize = 8192;
 
     const THREADS_DEFAULT: u32 = 1;
     const THREADS_MIN: u32 = 1;
@@ -59,6 +62,7 @@ impl UciHandler {
             board,
             zobrist_stack,
             history: History::new(),
+            tt: TranspositionTable::new(Self::HASH_DEFAULT),
             time_manager: TimeManager::new(Self::OVERHEAD_DEFAULT),
         }
     }
@@ -124,6 +128,9 @@ impl UciHandler {
                             val.parse::<Milliseconds>()
                                 .unwrap_or(Self::OVERHEAD_DEFAULT),
                         )),
+                        "Hash" => self.process_command(UciCommand::SetOptionHash(
+                            val.parse::<usize>().unwrap_or(Self::HASH_DEFAULT),
+                        )),
                         _ => (),
                     }
                 }
@@ -169,7 +176,10 @@ impl UciHandler {
                 println!("uciok");
             }
             UciCommand::IsReady => println!("readyok"),
-            UciCommand::UciNewGame => self.history = History::new(),
+            UciCommand::UciNewGame => {
+                self.history = History::new();
+                self.tt.reset();
+            }
             UciCommand::Position(fen, move_vec) => {
                 let mut new_board = Board::from_fen(fen.as_str());
                 let mut new_zobrist_stack = ZobristStack::new(&new_board);
@@ -257,7 +267,8 @@ impl UciHandler {
                     );
                 }
 
-                let mut searcher = Searcher::new(search_limit, &self.zobrist_stack, &self.history);
+                let mut searcher =
+                    Searcher::new(search_limit, &self.zobrist_stack, &self.history, &self.tt);
                 thread::scope(|s| {
                     s.spawn(|| {
                         searcher.go(&self.board, true);
@@ -268,6 +279,9 @@ impl UciHandler {
             UciCommand::SetOptionOverhead(overhead) => {
                 self.time_manager =
                     TimeManager::new(overhead.clamp(Self::OVERHEAD_MIN, Self::OVERHEAD_MAX));
+            }
+            UciCommand::SetOptionHash(megabytes) => {
+                self.tt = TranspositionTable::new(megabytes.clamp(Self::HASH_MIN, Self::HASH_MAX));
             }
         }
     }

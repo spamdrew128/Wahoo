@@ -11,6 +11,7 @@ use crate::{
     movegen::MoveGenerator,
     pv_table::PvTable,
     time_management::{Milliseconds, SearchTimer},
+    transposition_table::{TranspositionTable, TTFlag},
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
@@ -44,12 +45,13 @@ pub enum SearchLimit {
 }
 
 #[derive(Debug)]
-pub struct Searcher {
+pub struct Searcher<'a> {
     search_limit: SearchLimit,
     zobrist_stack: ZobristStack,
     pv_table: PvTable,
     history: History,
     killers: Killers,
+    tt: &'a TranspositionTable,
 
     timer: Option<SearchTimer>,
     out_of_time: bool,
@@ -57,15 +59,21 @@ pub struct Searcher {
     seldepth: u8,
 }
 
-impl Searcher {
+impl<'a> Searcher<'a> {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
-    pub fn new(search_limit: SearchLimit, zobrist_stack: &ZobristStack, history: &History) -> Self {
+    pub fn new(
+        search_limit: SearchLimit,
+        zobrist_stack: &ZobristStack,
+        history: &History,
+        tt: &'a TranspositionTable,
+    ) -> Self {
         Self {
             search_limit,
             zobrist_stack: zobrist_stack.clone(),
             history: history.clone(),
             killers: Killers::new(),
+            tt,
             pv_table: PvTable::new(),
             timer: None,
             out_of_time: false,
@@ -187,6 +195,7 @@ impl Searcher {
     ) -> EvalScore {
         self.pv_table.set_length(ply);
 
+        let old_alpha = alpha;
         let is_root: bool = ply == 0;
         let is_drawn: bool =
             self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
@@ -207,13 +216,22 @@ impl Searcher {
         self.seldepth = self.seldepth.max(ply);
 
         let hash_base = ZobristHash::incremental_update_base(board);
+        let hash = self.zobrist_stack.current_zobrist_hash();
+
+        let tt_move = if let Some(entry) = self.tt.probe(hash) {
+            entry.best_move
+        } else {
+            Move::nullmove()
+        };
 
         let mut generator = MoveGenerator::new();
 
+        let mut best_move = Move::nullmove();
         let mut best_score = -INF;
         let mut moves_played = 0;
         let mut quiets: ArrayVec<Move, MAX_MOVECOUNT> = ArrayVec::new();
-        while let Some(mv) = generator.next::<true>(board, &self.history, self.killers.killer(ply))
+        while let Some(mv) =
+            generator.next::<true>(board, &self.history, self.killers.killer(ply), tt_move)
         {
             let mut next_board = (*board).clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
@@ -240,6 +258,7 @@ impl Searcher {
             }
 
             if score > best_score {
+                best_move = mv;
                 best_score = score;
 
                 if score >= beta {
@@ -266,6 +285,8 @@ impl Searcher {
             };
         }
 
+        let tt_flag = TTFlag::determine(best_score, old_alpha, alpha, beta);
+        self.tt.store(tt_flag, best_score, hash, ply, depth, best_move);
         best_score
     }
 
@@ -297,7 +318,9 @@ impl Searcher {
         let mut generator = MoveGenerator::new();
 
         let mut best_score = stand_pat;
-        while let Some(mv) = generator.next::<false>(board, &self.history, Move::nullmove()) {
+        while let Some(mv) =
+            generator.next::<false>(board, &self.history, Move::nullmove(), Move::nullmove())
+        {
             let mut next_board = (*board).clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
             if !is_legal {

@@ -24,6 +24,7 @@ mod perft;
 mod pv_table;
 pub mod search;
 pub mod time_management;
+pub mod transposition_table;
 pub mod uci;
 mod util_macros;
 pub mod zobrist;
