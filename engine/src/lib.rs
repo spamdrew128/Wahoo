@@ -28,3 +28,4 @@ pub mod uci;
 mod util_macros;
 pub mod zobrist;
 pub mod zobrist_stack;
+mod transposition_table;
