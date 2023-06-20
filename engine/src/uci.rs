@@ -4,8 +4,9 @@ use crate::{
     history_table::History,
     search::{Depth, Nodes, SearchLimit, Searcher},
     time_management::{Milliseconds, TimeArgs, TimeManager},
+    transposition_table::TranspositionTable,
     zobrist::ZobristHash,
-    zobrist_stack::ZobristStack, transposition_table::TranspositionTable,
+    zobrist_stack::ZobristStack,
 };
 
 use std::thread;
@@ -23,6 +24,7 @@ enum UciCommand {
     Position(String, Vec<String>),
     Go(Vec<String>),
     SetOptionOverhead(Milliseconds),
+    SetOptionHash(usize),
 }
 
 pub struct UciHandler {
@@ -125,6 +127,9 @@ impl UciHandler {
                         "Overhead" => self.process_command(UciCommand::SetOptionOverhead(
                             val.parse::<Milliseconds>()
                                 .unwrap_or(Self::OVERHEAD_DEFAULT),
+                        )),
+                        "Hash" => self.process_command(UciCommand::SetOptionHash(
+                            val.parse::<usize>().unwrap_or(Self::HASH_DEFAULT),
                         )),
                         _ => (),
                     }
@@ -273,6 +278,9 @@ impl UciHandler {
             UciCommand::SetOptionOverhead(overhead) => {
                 self.time_manager =
                     TimeManager::new(overhead.clamp(Self::OVERHEAD_MIN, Self::OVERHEAD_MAX));
+            }
+            UciCommand::SetOptionHash(megabytes) => {
+                self.tt = TranspositionTable::new(megabytes.clamp(Self::HASH_MIN, Self::HASH_MAX));
             }
         }
     }
