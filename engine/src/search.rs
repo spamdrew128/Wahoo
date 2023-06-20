@@ -11,7 +11,7 @@ use crate::{
     movegen::MoveGenerator,
     pv_table::PvTable,
     time_management::{Milliseconds, SearchTimer},
-    transposition_table::{TranspositionTable, TTFlag},
+    transposition_table::{TTFlag, TranspositionTable},
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
@@ -185,6 +185,17 @@ impl<'a> Searcher<'a> {
         search_results
     }
 
+    fn null_window_search(
+        &mut self,
+        board: &Board,
+        depth: Depth,
+        ply: Ply,
+        alpha: EvalScore,
+        beta: EvalScore,
+    ) -> EvalScore {
+        -self.negamax(board, depth, ply, alpha, beta)
+    }
+
     fn negamax(
         &mut self,
         board: &Board,
@@ -239,16 +250,27 @@ impl<'a> Searcher<'a> {
                 continue;
             }
 
-            self.node_count += 1;
-            moves_played += 1;
+            let score = if moves_played == 0 {
+                -self.negamax(&next_board, depth - 1, ply + 1, -beta, -alpha)
+            } else {
+                let mut score =
+                    self.null_window_search(&next_board, depth - 1, ply + 1, -alpha - 1, -alpha);
 
-            let score = -self.negamax(&next_board, depth - 1, ply + 1, -beta, -alpha);
+                // if our NWS beat alpha without failing high, that means we might have a better move and need to re search with full window
+                if score > alpha && score < beta {
+                    score = -self.negamax(&next_board, depth - 1, ply + 1, -beta, -alpha);
+                }
+                score
+            };
 
             self.zobrist_stack.revert_state();
 
             if self.out_of_time {
                 return 0;
             }
+
+            self.node_count += 1;
+            moves_played += 1;
 
             let is_quiet = generator.is_quiet_stage();
             // I am well aware that this does not include killer moves, but for
@@ -286,7 +308,8 @@ impl<'a> Searcher<'a> {
         }
 
         let tt_flag = TTFlag::determine(best_score, old_alpha, alpha, beta);
-        self.tt.store(tt_flag, best_score, hash, ply, depth, best_move);
+        self.tt
+            .store(tt_flag, best_score, hash, ply, depth, best_move);
         best_score
     }
 
