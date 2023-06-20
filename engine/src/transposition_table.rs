@@ -160,7 +160,7 @@ impl TranspositionTable {
         self.table[self.table_index(hash)].store(entry.into(), Ordering::Relaxed);
     }
 
-    fn probe(&self, hash: ZobristHash) -> Option<TTEntry> {
+    pub fn probe(&self, hash: ZobristHash) -> Option<TTEntry> {
         let index = self.table_index(hash);
         let key = Self::key_from_hash(hash);
         let entry = TTEntry::from(self.table[index].load(Ordering::Relaxed));

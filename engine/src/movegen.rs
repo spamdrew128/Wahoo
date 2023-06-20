@@ -47,6 +47,7 @@ impl MoveStage {
     #[rustfmt::skip]
     tuple_constants_enum!(Self,
         START,
+        TT,
         CAPTURE,
         KILLER,
         QUIET
@@ -108,6 +109,11 @@ impl MoveGenerator {
             self.movelist[self.len].mv = mv;
             self.len += 1;
         }
+    }
+
+    fn add_unrepeated_move(&mut self, mv: Move) {
+            self.movelist[self.len].mv = mv;
+            self.len += 1;
     }
 
     fn pick_move(&mut self) -> Move {
@@ -246,18 +252,24 @@ impl MoveGenerator {
         board: &Board,
         history: &History,
         killer: Move,
+        tt_move: Move,
     ) -> Option<Move> {
         while self.stage_complete() {
             self.advance_stage();
 
             match self.stage {
+                MoveStage::TT => {
+                    if tt_move.is_pseudolegal(board) {
+                        self.add_unrepeated_move(tt_move);
+                    }
+                },
                 MoveStage::CAPTURE => {
                     self.generate_captures(board, Move::nullmove());
                     self.score_captures(board);
                 }
                 MoveStage::KILLER => {
                     if INCLUDE_QUIETS && killer.is_pseudolegal(board) {
-                        self.add_move(killer, Move::nullmove());
+                        self.add_unrepeated_move(killer);
                     }
                 }
                 MoveStage::QUIET => {
@@ -274,7 +286,7 @@ impl MoveGenerator {
     }
 
     pub fn simple_next<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
-        self.next::<INCLUDE_QUIETS>(board, &History::new(), Move::nullmove())
+        self.next::<INCLUDE_QUIETS>(board, &History::new(), Move::nullmove(), Move::nullmove())
     }
 
     pub fn first_legal_move(board: &Board) -> Option<Move> {

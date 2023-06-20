@@ -209,13 +209,20 @@ impl <'a> Searcher<'a> {
         self.seldepth = self.seldepth.max(ply);
 
         let hash_base = ZobristHash::incremental_update_base(board);
+        let hash = self.zobrist_stack.current_zobrist_hash();
+
+        let tt_move = if let Some(entry) = self.tt.probe(hash) {
+            entry.best_move
+        } else {
+            Move::nullmove()
+        };
 
         let mut generator = MoveGenerator::new();
 
         let mut best_score = -INF;
         let mut moves_played = 0;
         let mut quiets: ArrayVec<Move, MAX_MOVECOUNT> = ArrayVec::new();
-        while let Some(mv) = generator.next::<true>(board, &self.history, self.killers.killer(ply))
+        while let Some(mv) = generator.next::<true>(board, &self.history, self.killers.killer(ply), tt_move)
         {
             let mut next_board = (*board).clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
@@ -299,7 +306,7 @@ impl <'a> Searcher<'a> {
         let mut generator = MoveGenerator::new();
 
         let mut best_score = stand_pat;
-        while let Some(mv) = generator.next::<false>(board, &self.history, Move::nullmove()) {
+        while let Some(mv) = generator.next::<false>(board, &self.history, Move::nullmove(), Move::nullmove()) {
             let mut next_board = (*board).clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
             if !is_legal {
