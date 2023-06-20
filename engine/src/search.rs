@@ -11,7 +11,7 @@ use crate::{
     movegen::MoveGenerator,
     pv_table::PvTable,
     time_management::{Milliseconds, SearchTimer},
-    transposition_table::TranspositionTable,
+    transposition_table::{TranspositionTable, TTFlag},
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
@@ -195,6 +195,7 @@ impl<'a> Searcher<'a> {
     ) -> EvalScore {
         self.pv_table.set_length(ply);
 
+        let old_alpha = alpha;
         let is_root: bool = ply == 0;
         let is_drawn: bool =
             self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
@@ -225,6 +226,7 @@ impl<'a> Searcher<'a> {
 
         let mut generator = MoveGenerator::new();
 
+        let mut best_move = Move::nullmove();
         let mut best_score = -INF;
         let mut moves_played = 0;
         let mut quiets: ArrayVec<Move, MAX_MOVECOUNT> = ArrayVec::new();
@@ -256,6 +258,7 @@ impl<'a> Searcher<'a> {
             }
 
             if score > best_score {
+                best_move = mv;
                 best_score = score;
 
                 if score >= beta {
@@ -282,6 +285,8 @@ impl<'a> Searcher<'a> {
             };
         }
 
+        let tt_flag = TTFlag::determine(best_score, old_alpha, alpha, beta);
+        self.tt.store(tt_flag, best_score, hash, ply, depth, best_move);
         best_score
     }
 

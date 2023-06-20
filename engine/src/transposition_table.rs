@@ -144,7 +144,7 @@ impl TranspositionTable {
         hash.as_usize() % self.table.len()
     }
 
-    fn store(
+    pub fn store(
         &self,
         flag: TTFlag,
         best_score: EvalScore,
