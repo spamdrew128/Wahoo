@@ -260,7 +260,7 @@ impl MoveGenerator {
                     }
                 }
                 MoveStage::CAPTURE => {
-                    self.generate_captures(board, &[]);
+                    self.generate_captures(board, &[tt_move]);
                     self.score_captures(board);
                 }
                 MoveStage::KILLER => {
