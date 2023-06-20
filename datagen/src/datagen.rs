@@ -10,8 +10,9 @@ use engine::{
     history_table::History,
     movegen::MoveGenerator,
     search::{Ply, SearchLimit, SearchResults, Searcher},
+    transposition_table::TranspositionTable,
     zobrist::ZobristHash,
-    zobrist_stack::ZobristStack, transposition_table::TranspositionTable,
+    zobrist_stack::ZobristStack,
 };
 
 use crate::rng::Rng;

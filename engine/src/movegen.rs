@@ -112,11 +112,6 @@ impl MoveGenerator {
         self.len += 1;
     }
 
-    fn add_unrepeated_move(&mut self, mv: Move) {
-            self.movelist[self.len].mv = mv;
-            self.len += 1;
-    }
-
     fn pick_move(&mut self) -> Move {
         let mut best_index = self.index;
         let mut best_score = self.movelist[self.index].score;
@@ -261,16 +256,16 @@ impl MoveGenerator {
             match self.stage {
                 MoveStage::TT => {
                     if tt_move.is_pseudolegal(board) {
-                        self.add_unrepeated_move(tt_move);
+                        self.add_move(tt_move, &[]);
                     }
-                },
+                }
                 MoveStage::CAPTURE => {
                     self.generate_captures(board, &[]);
                     self.score_captures(board);
                 }
                 MoveStage::KILLER => {
                     if INCLUDE_QUIETS && killer.is_pseudolegal(board) {
-                        self.add_unrepeated_move(killer);
+                        self.add_move(killer, &[]);
                     }
                 }
                 MoveStage::QUIET => {

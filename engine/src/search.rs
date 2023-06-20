@@ -11,8 +11,9 @@ use crate::{
     movegen::MoveGenerator,
     pv_table::PvTable,
     time_management::{Milliseconds, SearchTimer},
+    transposition_table::TranspositionTable,
     zobrist::ZobristHash,
-    zobrist_stack::ZobristStack, transposition_table::TranspositionTable,
+    zobrist_stack::ZobristStack,
 };
 
 pub type Nodes = u64;
@@ -58,10 +59,15 @@ pub struct Searcher<'a> {
     seldepth: u8,
 }
 
-impl <'a> Searcher<'a> {
+impl<'a> Searcher<'a> {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
-    pub fn new(search_limit: SearchLimit, zobrist_stack: &ZobristStack, history: &History, tt: &'a TranspositionTable) -> Self {
+    pub fn new(
+        search_limit: SearchLimit,
+        zobrist_stack: &ZobristStack,
+        history: &History,
+        tt: &'a TranspositionTable,
+    ) -> Self {
         Self {
             search_limit,
             zobrist_stack: zobrist_stack.clone(),
@@ -222,7 +228,8 @@ impl <'a> Searcher<'a> {
         let mut best_score = -INF;
         let mut moves_played = 0;
         let mut quiets: ArrayVec<Move, MAX_MOVECOUNT> = ArrayVec::new();
-        while let Some(mv) = generator.next::<true>(board, &self.history, self.killers.killer(ply), tt_move)
+        while let Some(mv) =
+            generator.next::<true>(board, &self.history, self.killers.killer(ply), tt_move)
         {
             let mut next_board = (*board).clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
@@ -306,7 +313,9 @@ impl <'a> Searcher<'a> {
         let mut generator = MoveGenerator::new();
 
         let mut best_score = stand_pat;
-        while let Some(mv) = generator.next::<false>(board, &self.history, Move::nullmove(), Move::nullmove()) {
+        while let Some(mv) =
+            generator.next::<false>(board, &self.history, Move::nullmove(), Move::nullmove())
+        {
             let mut next_board = (*board).clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
             if !is_legal {

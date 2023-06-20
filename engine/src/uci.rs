@@ -267,7 +267,8 @@ impl UciHandler {
                     );
                 }
 
-                let mut searcher = Searcher::new(search_limit, &self.zobrist_stack, &self.history, &self.tt);
+                let mut searcher =
+                    Searcher::new(search_limit, &self.zobrist_stack, &self.history, &self.tt);
                 thread::scope(|s| {
                     s.spawn(|| {
                         searcher.go(&self.board, true);

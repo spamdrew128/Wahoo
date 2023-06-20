@@ -3,7 +3,8 @@ use crate::{
     history_table::History,
     perft::{test_postions, PerftTest},
     search::{SearchLimit, Searcher},
-    zobrist_stack::ZobristStack, transposition_table::TranspositionTable,
+    transposition_table::TranspositionTable,
+    zobrist_stack::ZobristStack,
 };
 
 pub fn bench() {
