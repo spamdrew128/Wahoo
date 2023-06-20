@@ -1,4 +1,4 @@
-use std::sync::atomic::AtomicU64;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::{
     chess_move::Move,
@@ -76,14 +76,14 @@ impl TTEntry {
     }
 }
 
-impl From<AtomicU64> for TTEntry {
-    fn from(data: AtomicU64) -> Self {
+impl From<u64> for TTEntry {
+    fn from(data: u64) -> Self {
         // SAFETY: This is safe because all fields of TTEntry are (at base) integral types, and order is known.
         unsafe { std::mem::transmute(data) }
     }
 }
 
-impl From<TTEntry> for AtomicU64 {
+impl From<TTEntry> for u64 {
     fn from(entry: TTEntry) -> Self {
         // SAFETY: This is safe because all bitpatterns of `u64` are valid.
         unsafe { std::mem::transmute(entry) }
@@ -138,7 +138,7 @@ impl TranspositionTable {
         (hash.as_u64() >> 48) as u16
     }
 
-    fn index(&self, hash: ZobristHash) -> usize {
+    fn table_index(&self, hash: ZobristHash) -> usize {
         // use lower bits for index
         hash.as_usize() % self.table.len()
     }
@@ -159,7 +159,19 @@ impl TranspositionTable {
         let score = Self::score_to_tt(best_score, ply);
         let key = Self::key_from_hash(hash);
         let entry = TTEntry::new(flag, depth, best_move, score, key);
-        
-        self.table[self.index(hash)]
+
+        self.table[self.table_index(hash)].store(entry.into(), Ordering::Relaxed);
+    }
+
+    fn probe(&self, hash: ZobristHash) -> Option<TTEntry> {
+        let index = self.table_index(hash);
+        let key = Self::key_from_hash(hash);
+        let entry: TTEntry = self.table[index].load(Ordering::Relaxed).into();
+
+        if (entry.key == key) && (entry.flag != TTFlag::UNINITIALIZED) {
+            Some(entry)
+        } else {
+            None
+        }
     }
 }
