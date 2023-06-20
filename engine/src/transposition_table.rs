@@ -90,6 +90,7 @@ impl From<TTEntry> for u64 {
     }
 }
 
+#[derive(Debug)]
 pub struct TranspositionTable {
     table: Vec<AtomicU64>,
 }

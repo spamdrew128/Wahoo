@@ -3,7 +3,7 @@ use crate::{
     history_table::History,
     perft::{test_postions, PerftTest},
     search::{SearchLimit, Searcher},
-    zobrist_stack::ZobristStack,
+    zobrist_stack::ZobristStack, transposition_table::TranspositionTable,
 };
 
 pub fn bench() {
@@ -12,12 +12,14 @@ pub fn bench() {
     let stopwatch = std::time::Instant::now();
     let mut nodes = 0;
 
+    let tt = TranspositionTable::new(16);
     for pos in positions {
         let board = Board::from_fen(pos.fen);
         let mut searcher = Searcher::new(
             SearchLimit::None,
             &ZobristStack::new(&board),
             &History::new(),
+            &tt,
         );
         nodes += searcher.bench(&board, 9);
     }

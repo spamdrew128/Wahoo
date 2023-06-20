@@ -11,7 +11,7 @@ use engine::{
     movegen::MoveGenerator,
     search::{Ply, SearchLimit, SearchResults, Searcher},
     zobrist::ZobristHash,
-    zobrist_stack::ZobristStack,
+    zobrist_stack::ZobristStack, transposition_table::TranspositionTable,
 };
 
 use crate::rng::Rng;
@@ -135,8 +135,9 @@ impl DataGenerator {
         let mut result = Self::DRAW;
 
         let mut history = History::new();
+        let tt = TranspositionTable::new(16);
         loop {
-            let mut searcher = Searcher::new(self.search_limit, &self.zobrist_stack, &history);
+            let mut searcher = Searcher::new(self.search_limit, &self.zobrist_stack, &history, &tt);
             let SearchResults { best_move, score } = searcher.go(&self.board, false);
             searcher.search_complete_actions(&mut history);
 

@@ -12,7 +12,7 @@ use crate::{
     pv_table::PvTable,
     time_management::{Milliseconds, SearchTimer},
     zobrist::ZobristHash,
-    zobrist_stack::ZobristStack,
+    zobrist_stack::ZobristStack, transposition_table::TranspositionTable,
 };
 
 pub type Nodes = u64;
@@ -44,12 +44,13 @@ pub enum SearchLimit {
 }
 
 #[derive(Debug)]
-pub struct Searcher {
+pub struct Searcher<'a> {
     search_limit: SearchLimit,
     zobrist_stack: ZobristStack,
     pv_table: PvTable,
     history: History,
     killers: Killers,
+    tt: &'a TranspositionTable,
 
     timer: Option<SearchTimer>,
     out_of_time: bool,
@@ -57,15 +58,16 @@ pub struct Searcher {
     seldepth: u8,
 }
 
-impl Searcher {
+impl <'a> Searcher<'a> {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
-    pub fn new(search_limit: SearchLimit, zobrist_stack: &ZobristStack, history: &History) -> Self {
+    pub fn new(search_limit: SearchLimit, zobrist_stack: &ZobristStack, history: &History, tt: &'a TranspositionTable) -> Self {
         Self {
             search_limit,
             zobrist_stack: zobrist_stack.clone(),
             history: history.clone(),
             killers: Killers::new(),
+            tt,
             pv_table: PvTable::new(),
             timer: None,
             out_of_time: false,
