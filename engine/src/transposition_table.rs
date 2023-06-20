@@ -133,17 +133,26 @@ impl TranspositionTable {
         }
     }
 
+    const fn key_from_hash(hash: ZobristHash) -> u16 {
+        // use upper 16 bits for key
+        (hash.as_u64() >> 48) as u16 
+    }
+
+    #[allow(clippy::too_many_arguments)]
     fn store(
-        &mut self,
+        &self,
         best_score: EvalScore,
         old_alpha: EvalScore,
         alpha: EvalScore,
         beta: EvalScore,
         hash: ZobristHash,
-        ply: Ply
+        ply: Ply,
+        depth: Depth,
+        best_move: Move,
     ) {
         let flag = TTFlag::determine(best_score, old_alpha, alpha, beta);
         let score = Self::score_to_tt(best_score, ply);
-
+        let key = Self::key_from_hash(hash);
+        let entry = TTEntry::new(flag, depth, best_move, score, key);
     }
 }

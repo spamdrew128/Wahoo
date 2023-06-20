@@ -73,8 +73,8 @@ impl ZobristHash {
         Self(hash)
     }
 
-    pub const fn as_index(self) -> usize {
-        self.0 as usize
+    pub const fn as_u64(self) -> u64 {
+        self.0
     }
 }
 
