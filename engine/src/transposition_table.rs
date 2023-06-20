@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::AtomicU64;
 
 use crate::{chess_move::Move, evaluation::EvalScore, search::Depth, tuple_constants_enum};
 
@@ -33,6 +33,19 @@ impl TTEntry {
             best_move,
             score,
             key,
+        }
+    }
+
+    const fn cutoff_is_possible(self, alpha: EvalScore, beta: EvalScore, current_depth: Depth) -> bool {
+        if self.depth < current_depth {
+            return false;
+        }
+
+        match self.flag {
+            TTFlag::EXACT => true,
+            TTFlag::LOWER_BOUND => self.score >= beta,
+            TTFlag::UPPER_BOUND => self.score <= alpha,
+            _ => false,
         }
     }
 }
@@ -71,5 +84,9 @@ impl TranspositionTable {
         self.table
             .iter_mut()
             .for_each(|x| *x = AtomicU64::default());
+    }
+
+    fn probe(&self) {
+        
     }
 }
