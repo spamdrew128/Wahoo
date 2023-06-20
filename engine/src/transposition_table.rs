@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-struct TTFlag(u8);
+pub struct TTFlag(u8);
 
 impl TTFlag {
     tuple_constants_enum!(Self, UNINITIALIZED, LOWER_BOUND, EXACT, UPPER_BOUND);
@@ -18,7 +18,7 @@ impl TTFlag {
         Self(data)
     }
 
-    const fn determine(
+    pub const fn determine(
         best_score: EvalScore,
         old_alpha: EvalScore,
         alpha: EvalScore,
@@ -34,14 +34,14 @@ impl TTFlag {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(C)]
-struct TTEntry {
-    flag: TTFlag,     // 1 byte
-    depth: Depth,     // 1 byte
-    best_move: Move,  // 2 byte
-    score: EvalScore, // 2 byte
-    key: u16,         // 2 byte
+pub struct TTEntry {
+    flag: TTFlag,        // 1 byte
+    depth: Depth,        // 1 byte
+    pub best_move: Move, // 2 byte
+    score: EvalScore,    // 2 byte
+    key: u16,            // 2 byte
 }
 
 impl TTEntry {
@@ -143,19 +143,15 @@ impl TranspositionTable {
         hash.as_usize() % self.table.len()
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn store(
         &self,
+        flag: TTFlag,
         best_score: EvalScore,
-        old_alpha: EvalScore,
-        alpha: EvalScore,
-        beta: EvalScore,
         hash: ZobristHash,
         ply: Ply,
         depth: Depth,
         best_move: Move,
     ) {
-        let flag = TTFlag::determine(best_score, old_alpha, alpha, beta);
         let score = Self::score_to_tt(best_score, ply);
         let key = Self::key_from_hash(hash);
         let entry = TTEntry::new(flag, depth, best_move, score, key);
@@ -173,5 +169,42 @@ impl TranspositionTable {
         } else {
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        board_representation::{Board, START_FEN},
+        chess_move::Move,
+        zobrist::ZobristHash,
+    };
+
+    use super::{TTEntry, TTFlag, TranspositionTable};
+
+    #[test]
+    fn probe_works() {
+        let tt = TranspositionTable::new(16);
+        let board = Board::from_fen(START_FEN);
+        let best_score = 16;
+        let flag = TTFlag::EXACT;
+        let hash = ZobristHash::complete(&board);
+        let mv = Move::from_string("d2d4", &board);
+        tt.store(flag, best_score, hash, 4, 4, mv);
+
+        let entry = tt.probe(hash).unwrap();
+        let expected = TTEntry::new(
+            flag,
+            4,
+            mv,
+            best_score,
+            TranspositionTable::key_from_hash(hash),
+        );
+        assert_eq!(entry, expected);
+
+        let other_board =
+            Board::from_fen("r3k2r/ppp2ppp/2n1bn2/8/2P1N3/1P4P1/P3PPBP/bNBR2K1 w kq - 0 12");
+        let other_hash = ZobristHash::complete(&other_board);
+        assert_eq!(tt.probe(other_hash), None);
     }
 }
