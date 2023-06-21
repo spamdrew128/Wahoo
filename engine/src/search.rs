@@ -219,6 +219,10 @@ impl<'a> Searcher<'a> {
         let hash = self.zobrist_stack.current_zobrist_hash();
 
         let tt_move = if let Some(entry) = self.tt.probe(hash) {
+            if entry.cutoff_is_possible(alpha, beta, depth) {
+                return entry.score_from_tt(ply);
+            }
+
             entry.best_move
         } else {
             Move::nullmove()
