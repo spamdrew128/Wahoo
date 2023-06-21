@@ -196,6 +196,7 @@ impl<'a> Searcher<'a> {
         self.pv_table.set_length(ply);
 
         let old_alpha = alpha;
+        let is_pv = beta - alpha != 1;
         let is_root: bool = ply == 0;
         let is_drawn: bool =
             self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
@@ -219,7 +220,7 @@ impl<'a> Searcher<'a> {
         let hash = self.zobrist_stack.current_zobrist_hash();
 
         let tt_move = if let Some(entry) = self.tt.probe(hash) {
-            if entry.cutoff_is_possible(alpha, beta, depth) {
+            if !is_pv && entry.cutoff_is_possible(alpha, beta, depth) {
                 return entry.score_from_tt(ply);
             }
 
