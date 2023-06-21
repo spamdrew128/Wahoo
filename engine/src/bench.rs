@@ -24,7 +24,7 @@ pub fn bench() {
             &History::new(),
             &tt,
         );
-        nodes += searcher.bench(&board, 10);
+        nodes += searcher.bench(&board, 11);
     }
 
     let nps = (u128::from(nodes) * 1_000_000) / stopwatch.elapsed().as_micros();
