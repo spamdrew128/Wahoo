@@ -242,7 +242,18 @@ impl<'a> Searcher<'a> {
             self.node_count += 1;
             moves_played += 1;
 
-            let score = -self.negamax(&next_board, depth - 1, ply + 1, -beta, -alpha);
+            let score = if moves_played == 1 {
+                -self.negamax(&next_board, depth - 1, ply + 1, -beta, -alpha)
+            } else {
+                // null-window search
+                let mut score = -self.negamax(&next_board, depth - 1, ply + 1, -alpha - 1, -alpha);
+
+                // if our null-window search beat alpha without failing high, that means we might have a better move and need to re search with full window
+                if score > alpha && score < beta {
+                    score = -self.negamax(&next_board, depth - 1, ply + 1, -beta, -alpha);
+                }
+                score
+            };
 
             self.zobrist_stack.revert_state();
 
