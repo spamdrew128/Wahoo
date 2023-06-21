@@ -27,7 +27,7 @@ fn simple_qsearch(board: &Board, mut alpha: EvalScore, beta: EvalScore) -> EvalS
 
     let mut best_score = stand_pat;
     while let Some(mv) = generator.simple_next::<false>(board) {
-        let mut next_board = (*board).clone();
+        let mut next_board = board.clone();
         let is_legal = next_board.simple_try_play_move(mv);
         if !is_legal {
             continue;

@@ -179,7 +179,7 @@ fn perft(board: &Board, depth: u16, count: &mut u64) {
             panic!("Fen: {}\nMove: {}", board.to_fen(), mv.as_string());
         }
 
-        let mut new_board = (*board).clone();
+        let mut new_board = board.clone();
         if new_board.simple_try_play_move(mv) {
             perft(&new_board, depth - 1, count);
         }

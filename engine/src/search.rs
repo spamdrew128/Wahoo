@@ -11,7 +11,7 @@ use crate::{
     movegen::MoveGenerator,
     pv_table::PvTable,
     time_management::{Milliseconds, SearchTimer},
-    transposition_table::{TranspositionTable, TTFlag},
+    transposition_table::{TTFlag, TranspositionTable},
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
@@ -185,7 +185,7 @@ impl<'a> Searcher<'a> {
         search_results
     }
 
-    fn negamax<const DO_NULL_MOVE:bool>(
+    fn negamax<const DO_NULL_MOVE: bool>(
         &mut self,
         board: &Board,
         depth: Depth,
@@ -236,11 +236,17 @@ impl<'a> Searcher<'a> {
             if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH {
                 let mut reduction = 3;
                 reduction = reduction.min(depth);
-                
-                let mut nmp_board = (*board).clone();
+
+                let mut nmp_board = board.clone();
                 nmp_board.play_nullmove(&mut self.zobrist_stack);
-                let null_move_score = -self.negamax::<false>(&nmp_board, depth - reduction, ply + 1, -beta, -beta + 1);
-                
+                let null_move_score = -self.negamax::<false>(
+                    &nmp_board,
+                    depth - reduction,
+                    ply + 1,
+                    -beta,
+                    -beta + 1,
+                );
+
                 self.zobrist_stack.revert_state();
 
                 if null_move_score >= beta {
@@ -258,7 +264,7 @@ impl<'a> Searcher<'a> {
         while let Some(mv) =
             generator.next::<true>(board, &self.history, self.killers.killer(ply), tt_move)
         {
-            let mut next_board = (*board).clone();
+            let mut next_board = board.clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
             if !is_legal {
                 continue;
@@ -270,7 +276,8 @@ impl<'a> Searcher<'a> {
             let score = if moves_played == 1 {
                 -self.negamax::<true>(&next_board, depth - 1, ply + 1, -beta, -alpha)
             } else {
-                let mut score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -alpha - 1, -alpha);
+                let mut score =
+                    -self.negamax::<true>(&next_board, depth - 1, ply + 1, -alpha - 1, -alpha);
 
                 // if our null-window search beat alpha without failing high, that means we might have a better move and need to re search with full window
                 if score > alpha && score < beta {
@@ -321,7 +328,8 @@ impl<'a> Searcher<'a> {
         }
 
         let tt_flag = TTFlag::determine(best_score, old_alpha, alpha, beta);
-        self.tt.store(tt_flag, best_score, hash, ply, depth, best_move);
+        self.tt
+            .store(tt_flag, best_score, hash, ply, depth, best_move);
         best_score
     }
 
@@ -356,7 +364,7 @@ impl<'a> Searcher<'a> {
         while let Some(mv) =
             generator.next::<false>(board, &self.history, Move::nullmove(), Move::nullmove())
         {
-            let mut next_board = (*board).clone();
+            let mut next_board = board.clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
             if !is_legal {
                 continue;

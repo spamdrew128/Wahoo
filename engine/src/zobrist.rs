@@ -73,7 +73,6 @@ impl ZobristHash {
         Self(hash)
     }
 
-
     pub const fn nullmove_base(board: &Board) -> Self {
         let mut hash: u64 = ZOBRIST_KEYS.black_to_move;
 
