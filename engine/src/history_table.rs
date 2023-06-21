@@ -10,8 +10,8 @@ pub struct History {
 }
 
 impl History {
-    const BONUS_MAX: i16 = 1200;
-    const SCORE_MAX: i16 = i16::MAX;
+    const BONUS_MAX: i32 = 1200;
+    const SCORE_MAX: i32 = i16::MAX as i32;
 
     pub const fn new() -> Self {
         Self {
@@ -27,18 +27,19 @@ impl History {
         self.scores[color][piece][to]
     }
 
-    fn update_history_score(&mut self, board: &Board, mv: Move, bonus: i16) {
-        let scaled_bonus = bonus - self.score(board, mv) * bonus.abs() / Self::SCORE_MAX;
+    fn update_history_score(&mut self, board: &Board, mv: Move, bonus: i32) {
+        let scaled_bonus = bonus - i32::from(self.score(board, mv)) * bonus.abs() / Self::SCORE_MAX;
 
         let piece = board.piece_on_sq(mv.from()).as_index();
         let to = mv.to().as_index();
         let color = board.color_to_move.as_index();
 
-        self.scores[color][piece][to] += scaled_bonus;
+        // safe truncation because scaled bonus won't let us go above this
+        self.scores[color][piece][to] += scaled_bonus as i16;
     }
 
     pub fn update(&mut self, board: &Board, quiets: &[Move], depth: Depth) {
-        let d = i16::from(depth);
+        let d = i32::from(depth);
         let bonus = (16 * d * d).min(Self::BONUS_MAX);
 
         let cutoff_move = quiets[quiets.len() - 1];
