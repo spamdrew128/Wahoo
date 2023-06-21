@@ -898,6 +898,11 @@ impl Board {
         self.try_play_move(mv, &mut dummy_stack, dummy_base)
     }
 
+    pub fn play_nullmove(&mut self, zobrist_stack: &mut ZobristStack) {
+        self.color_to_move = self.color_to_move.flip();
+        zobrist_stack.add_hash(ZobristHash::nullmove_base(self));
+    }
+
     pub const fn fifty_move_draw(&self) -> bool {
         self.halfmoves >= 100
     }
