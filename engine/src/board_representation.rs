@@ -903,8 +903,10 @@ impl Board {
     }
 
     pub fn play_nullmove(&mut self, zobrist_stack: &mut ZobristStack) {
+        let null_base = ZobristHash::nullmove_base(self);
         self.color_to_move = self.color_to_move.flip();
-        zobrist_stack.add_hash(ZobristHash::nullmove_base(self));
+        self.ep_sq = None;
+        zobrist_stack.add_hash(null_base);
     }
 
     pub const fn fifty_move_draw(&self) -> bool {

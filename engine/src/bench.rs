@@ -8,6 +8,8 @@ use crate::{
 };
 
 pub fn bench() {
+    std::env::set_var("RUST_BACKTRACE", "1");
+
     let positions: Vec<PerftTest> = test_postions();
 
     let stopwatch = std::time::Instant::now();
