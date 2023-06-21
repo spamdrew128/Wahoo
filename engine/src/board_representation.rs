@@ -509,7 +509,7 @@ impl CastleRights {
         self.has_kingside(color)
             && !(occ_mask.overlaps(board.occupied())
                 || thru_sq.is_attacked(board)
-                || board.king_sq().is_attacked(board))
+                || board.in_check())
     }
 
     pub const fn can_qs_castle(self, board: &Board) -> bool {
@@ -521,7 +521,7 @@ impl CastleRights {
             && !(occ_mask.overlaps(board.occupied())
                 || thru_sq_1.is_attacked(board)
                 || thru_sq_2.is_attacked(board)
-                || board.king_sq().is_attacked(board))
+                || board.in_check())
     }
 
     pub const fn as_index(self) -> usize {
@@ -742,6 +742,10 @@ impl Board {
         self.piece_bb(Piece::KING, self.color_to_move).lsb()
     }
 
+    pub const fn in_check(&self) -> bool {
+        self.king_sq().is_attacked(self)
+    }
+
     pub const fn promotable_pawns(&self) -> Bitboard {
         let color = self.color_to_move;
         let pawns = self.piece_bb(Piece::PAWN, color);
@@ -877,7 +881,7 @@ impl Board {
             _ => panic!("Invalid Move!"),
         }
 
-        if self.king_sq().is_attacked(self) {
+        if self.in_check() {
             return false;
         }
 
@@ -896,6 +900,13 @@ impl Board {
         let mut dummy_stack = ZobristStack::new(self);
         let dummy_base = ZobristHash::incremental_update_base(self);
         self.try_play_move(mv, &mut dummy_stack, dummy_base)
+    }
+
+    pub fn play_nullmove(&mut self, zobrist_stack: &mut ZobristStack) {
+        let null_base = ZobristHash::nullmove_base(self);
+        self.color_to_move = self.color_to_move.flip();
+        self.ep_sq = None;
+        zobrist_stack.add_hash(null_base);
     }
 
     pub const fn fifty_move_draw(&self) -> bool {

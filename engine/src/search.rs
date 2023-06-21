@@ -140,7 +140,7 @@ impl<'a> Searcher<'a> {
 
     pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
         for d in 1..depth {
-            self.negamax(board, d, 0, -INF, INF);
+            self.negamax::<true>(board, d, 0, -INF, INF);
         }
 
         self.node_count
@@ -158,7 +158,7 @@ impl<'a> Searcher<'a> {
         while !self.stop_searching(depth) {
             self.seldepth = 0;
 
-            let score = self.negamax(board, depth, 0, -INF, INF);
+            let score = self.negamax::<true>(board, depth, 0, -INF, INF);
 
             if self.out_of_time {
                 break;
@@ -185,7 +185,7 @@ impl<'a> Searcher<'a> {
         search_results
     }
 
-    fn negamax(
+    fn negamax<const DO_NULL_MOVE:bool>(
         &mut self,
         board: &Board,
         depth: Depth,
@@ -196,9 +196,10 @@ impl<'a> Searcher<'a> {
         self.pv_table.set_length(ply);
 
         let old_alpha = alpha;
+        let in_check = board.in_check();
         let is_pv = beta != alpha + 1;
-        let is_root: bool = ply == 0;
-        let is_drawn: bool =
+        let is_root = ply == 0;
+        let is_drawn =
             self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
 
         if !is_root && is_drawn {
@@ -229,6 +230,25 @@ impl<'a> Searcher<'a> {
             Move::nullmove()
         };
 
+        if !is_pv && !in_check {
+            // NULL MOVE PRUNING
+            const NMP_MIN_DEPTH: Depth = 3;
+            if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH {
+                let mut reduction = 3;
+                reduction = reduction.min(depth);
+                
+                let mut nmp_board = (*board).clone();
+                nmp_board.play_nullmove(&mut self.zobrist_stack);
+                let null_move_score = -self.negamax::<false>(&nmp_board, depth - reduction, ply + 1, -beta, -beta + 1);
+                
+                self.zobrist_stack.revert_state();
+
+                if null_move_score >= beta {
+                    return null_move_score;
+                }
+            }
+        }
+
         let mut generator = MoveGenerator::new();
 
         let mut best_move = Move::nullmove();
@@ -248,14 +268,13 @@ impl<'a> Searcher<'a> {
             moves_played += 1;
 
             let score = if moves_played == 1 {
-                -self.negamax(&next_board, depth - 1, ply + 1, -beta, -alpha)
+                -self.negamax::<true>(&next_board, depth - 1, ply + 1, -beta, -alpha)
             } else {
-                // null-window search
-                let mut score = -self.negamax(&next_board, depth - 1, ply + 1, -alpha - 1, -alpha);
+                let mut score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -alpha - 1, -alpha);
 
                 // if our null-window search beat alpha without failing high, that means we might have a better move and need to re search with full window
                 if score > alpha && score < beta {
-                    score = -self.negamax(&next_board, depth - 1, ply + 1, -beta, -alpha);
+                    score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -beta, -alpha);
                 }
                 score
             };
@@ -294,7 +313,7 @@ impl<'a> Searcher<'a> {
 
         if moves_played == 0 {
             // either checkmate or stalemate
-            return if board.king_sq().is_attacked(board) {
+            return if in_check {
                 -EVAL_MAX + i16::from(ply)
             } else {
                 0
