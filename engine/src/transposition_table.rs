@@ -57,6 +57,11 @@ impl TTEntry {
         }
     }
 
+    const fn key_from_hash(hash: ZobristHash) -> u16 {
+        // use upper 16 bits for key
+        (hash.as_u64() >> 48) as u16
+    }
+
     fn score_to_tt(score: EvalScore, ply: Ply) -> EvalScore {
         // Adjust to be relative to the node, rather than relative to the position
         if score >= MATE_THRESHOLD {
@@ -68,7 +73,7 @@ impl TTEntry {
         }
     }
 
-    fn score_from_tt(self, ply: Ply) -> EvalScore {
+    pub fn score_from_tt(self, ply: Ply) -> EvalScore {
         let score = self.score;
         if score >= MATE_THRESHOLD {
             score - i16::from(ply)
@@ -79,12 +84,7 @@ impl TTEntry {
         }
     }
 
-    const fn key_from_hash(hash: ZobristHash) -> u16 {
-        // use upper 16 bits for key
-        (hash.as_u64() >> 48) as u16
-    }
-
-    const fn cutoff_is_possible(
+    pub const fn cutoff_is_possible(
         self,
         alpha: EvalScore,
         beta: EvalScore,
