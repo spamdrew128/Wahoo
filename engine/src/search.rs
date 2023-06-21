@@ -196,9 +196,10 @@ impl<'a> Searcher<'a> {
         self.pv_table.set_length(ply);
 
         let old_alpha = alpha;
+        let in_check = board.in_check();
         let is_pv = beta != alpha + 1;
-        let is_root: bool = ply == 0;
-        let is_drawn: bool =
+        let is_root = ply == 0;
+        let is_drawn =
             self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
 
         if !is_root && is_drawn {
@@ -294,7 +295,7 @@ impl<'a> Searcher<'a> {
 
         if moves_played == 0 {
             // either checkmate or stalemate
-            return if board.king_sq().is_attacked(board) {
+            return if in_check {
                 -EVAL_MAX + i16::from(ply)
             } else {
                 0
