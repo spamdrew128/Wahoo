@@ -57,6 +57,33 @@ impl TTEntry {
         }
     }
 
+    fn score_to_tt(score: EvalScore, ply: Ply) -> EvalScore {
+        // Adjust to be relative to the node, rather than relative to the position
+        if score >= MATE_THRESHOLD {
+            score + i16::from(ply)
+        } else if score <= -MATE_THRESHOLD {
+            score - i16::from(ply)
+        } else {
+            score
+        }
+    }
+
+    fn score_from_tt(self, ply: Ply) -> EvalScore {
+        let score = self.score;
+        if score >= MATE_THRESHOLD {
+            score - i16::from(ply)
+        } else if score <= -MATE_THRESHOLD {
+            score + i16::from(ply)
+        } else {
+            score
+        }
+    }
+
+    const fn key_from_hash(hash: ZobristHash) -> u16 {
+        // use upper 16 bits for key
+        (hash.as_u64() >> 48) as u16
+    }
+
     const fn cutoff_is_possible(
         self,
         alpha: EvalScore,
@@ -113,32 +140,6 @@ impl TranspositionTable {
             .for_each(|x| *x = AtomicU64::default());
     }
 
-    fn score_to_tt(score: EvalScore, ply: Ply) -> EvalScore {
-        // Adjust to be relative to the node, rather than relative to the position
-        if score >= MATE_THRESHOLD {
-            score + i16::from(ply)
-        } else if score <= -MATE_THRESHOLD {
-            score - i16::from(ply)
-        } else {
-            score
-        }
-    }
-
-    fn score_from_tt(score: EvalScore, ply: Ply) -> EvalScore {
-        if score >= MATE_THRESHOLD {
-            score - i16::from(ply)
-        } else if score <= -MATE_THRESHOLD {
-            score + i16::from(ply)
-        } else {
-            score
-        }
-    }
-
-    const fn key_from_hash(hash: ZobristHash) -> u16 {
-        // use upper 16 bits for key
-        (hash.as_u64() >> 48) as u16
-    }
-
     fn table_index(&self, hash: ZobristHash) -> usize {
         // use lower bits for index
         hash.as_usize() % self.table.len()
@@ -153,8 +154,8 @@ impl TranspositionTable {
         depth: Depth,
         best_move: Move,
     ) {
-        let score = Self::score_to_tt(best_score, ply);
-        let key = Self::key_from_hash(hash);
+        let score = TTEntry::score_to_tt(best_score, ply);
+        let key = TTEntry::key_from_hash(hash);
         let entry = TTEntry::new(flag, depth, best_move, score, key);
 
         self.table[self.table_index(hash)].store(entry.into(), Ordering::Relaxed);
@@ -162,7 +163,7 @@ impl TranspositionTable {
 
     pub fn probe(&self, hash: ZobristHash) -> Option<TTEntry> {
         let index = self.table_index(hash);
-        let key = Self::key_from_hash(hash);
+        let key = TTEntry::key_from_hash(hash);
         let entry = TTEntry::from(self.table[index].load(Ordering::Relaxed));
 
         if (entry.key == key) && (entry.flag != TTFlag::UNINITIALIZED) {
@@ -199,7 +200,7 @@ mod tests {
             4,
             mv,
             best_score,
-            TranspositionTable::key_from_hash(hash),
+            TTEntry::key_from_hash(hash),
         );
         assert_eq!(entry, expected);
 
