@@ -196,6 +196,7 @@ impl<'a> Searcher<'a> {
         self.pv_table.set_length(ply);
 
         let old_alpha = alpha;
+        let is_pv = beta - alpha != 1;
         let is_root: bool = ply == 0;
         let is_drawn: bool =
             self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
