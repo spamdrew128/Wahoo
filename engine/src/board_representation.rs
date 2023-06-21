@@ -743,7 +743,7 @@ impl Board {
     }
 
     pub const fn in_check(&self) -> bool {
-        self.king_sq().is_attacked(&self)
+        self.king_sq().is_attacked(self)
     }
 
     pub const fn promotable_pawns(&self) -> Bitboard {
