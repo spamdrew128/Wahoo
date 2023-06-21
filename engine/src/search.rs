@@ -247,7 +247,8 @@ impl<'a> Searcher<'a> {
             } else {
                 let mut score = -self.negamax(&next_board, depth - 1, ply + 1, -alpha - 1, -alpha);
 
-                if (score > alpha) && (score < beta) {
+                // if our null-window search beat alpha without failing high, that means we might have a better move and need to re search with full window
+                if score > alpha && score < beta {
                     score = -self.negamax(&next_board, depth - 1, ply + 1, -beta, -alpha);
                 }
                 score
