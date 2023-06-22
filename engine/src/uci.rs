@@ -198,8 +198,7 @@ impl UciHandler {
             }
             UciCommand::Go(arg_vec) => {
                 let mut time_args = TimeArgs::default();
-                let mut search_limit = SearchLimit::None;
-                let mut should_calc_time = true;
+                let mut search_limits = vec![];
 
                 let mut args_iterator = arg_vec.iter();
                 while let Some(arg) = args_iterator.next() {
@@ -243,32 +242,29 @@ impl UciHandler {
                             let depth = args_iterator.next().unwrap().parse::<Depth>().unwrap_or(0);
 
                             if depth > 0 {
-                                search_limit = SearchLimit::Depth(depth);
-                                should_calc_time = false;
+                                search_limits.push(SearchLimit::Depth(depth));
                             }
                         }
                         "nodes" => {
                             let nodes = args_iterator.next().unwrap().parse::<Nodes>().unwrap_or(0);
 
                             if nodes > 0 {
-                                search_limit = SearchLimit::Nodes(nodes);
-                                should_calc_time = false;
+                                search_limits.push(SearchLimit::Nodes(nodes));
                             }
                         }
-                        "infinite" => should_calc_time = false,
                         _ => (),
                     }
                 }
 
-                if should_calc_time {
-                    search_limit = SearchLimit::Time(
+                if time_args != TimeArgs::default() {
+                    search_limits.push(SearchLimit::Time(
                         self.time_manager
                             .calculate_search_time(time_args, self.board.color_to_move),
-                    );
+                    ));
                 }
 
                 let mut searcher =
-                    Searcher::new(search_limit, &self.zobrist_stack, &self.history, &self.tt);
+                    Searcher::new(search_limits, &self.zobrist_stack, &self.history, &self.tt);
                 thread::scope(|s| {
                     s.spawn(|| {
                         searcher.go(&self.board, true);

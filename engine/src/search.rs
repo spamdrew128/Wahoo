@@ -41,12 +41,11 @@ pub enum SearchLimit {
     Time(Milliseconds),
     Depth(Depth),
     Nodes(Nodes),
-    None,
 }
 
 #[derive(Debug)]
 pub struct Searcher<'a> {
-    search_limit: SearchLimit,
+    search_limits: Vec<SearchLimit>,
     zobrist_stack: ZobristStack,
     pv_table: PvTable,
     history: History,
@@ -63,13 +62,13 @@ impl<'a> Searcher<'a> {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
     pub fn new(
-        search_limit: SearchLimit,
+        search_limits: Vec<SearchLimit>,
         zobrist_stack: &ZobristStack,
         history: &History,
         tt: &'a TranspositionTable,
     ) -> Self {
         Self {
-            search_limit,
+            search_limits,
             zobrist_stack: zobrist_stack.clone(),
             history: history.clone(),
             killers: Killers::new(),
@@ -115,17 +114,21 @@ impl<'a> Searcher<'a> {
         );
     }
 
-    const fn stop_searching(&self, depth: Depth) -> bool {
+    fn stop_searching(&self, depth: Depth) -> bool {
         if depth == MAX_DEPTH {
             return true;
         }
 
-        match self.search_limit {
-            SearchLimit::Time(_) => self.out_of_time,
-            SearchLimit::Depth(depth_limit) => depth > depth_limit,
-            SearchLimit::Nodes(node_limit) => self.node_count > node_limit,
-            SearchLimit::None => false,
+        let mut result = false;
+        for &limit in &self.search_limits {
+            result |= match limit {
+                SearchLimit::Time(_) => self.out_of_time,
+                SearchLimit::Depth(depth_limit) => depth > depth_limit,
+                SearchLimit::Nodes(node_limit) => self.node_count > node_limit,
+            }
         }
+
+        result
     }
 
     fn is_out_of_time(&self) -> bool {
@@ -147,8 +150,10 @@ impl<'a> Searcher<'a> {
     }
 
     pub fn go(&mut self, board: &Board, report_info: bool) -> SearchResults {
-        if let SearchLimit::Time(limit) = self.search_limit {
-            self.timer = Some(SearchTimer::new(limit));
+        for &limit in &self.search_limits {
+            if let SearchLimit::Time(t) = limit {
+                self.timer = Some(SearchTimer::new(t));
+            }
         }
 
         let stopwatch = std::time::Instant::now();
