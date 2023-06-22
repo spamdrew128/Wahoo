@@ -240,12 +240,7 @@ impl Tuner {
 
         writeln!(
             output,
-            "{}\n{}\n{}\n{}\n{}\n",
-            "macro_rules! s {",
-            "  ($mg:expr, $eg:expr) => {",
-            "    ScoreTuple::new($mg, $eg)",
-            "  };",
-            "}",
+            "const fn s(mg: i32, eg: i32) -> ScoreTuple {{ ScoreTuple::new(mg, eg) }}\n"
         )
         .unwrap();
     }
@@ -267,7 +262,7 @@ impl Tuner {
                 }
                 write!(
                     output,
-                    "s!({}, {}), ",
+                    "s({}, {}), ",
                     self.weights[MG][Pst::index(piece, sq)] as EvalScore,
                     self.weights[EG][Pst::index(piece, sq)] as EvalScore,
                 )
