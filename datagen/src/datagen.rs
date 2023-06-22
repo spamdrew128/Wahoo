@@ -62,7 +62,7 @@ pub struct DataGenerator {
 
     board: Board,
     zobrist_stack: ZobristStack,
-    search_limit: SearchLimit,
+    search_limits: Vec<SearchLimit>,
 
     file: BufWriter<File>,
 }
@@ -73,7 +73,7 @@ impl DataGenerator {
     const DRAW: &str = "0.5";
     const LOSS: &str = "0.0";
 
-    pub fn new(search_limit: SearchLimit, path: &str) -> Self {
+    pub fn new(search_limits: Vec<SearchLimit>, path: &str) -> Self {
         let board = Board::from_fen(START_FEN);
         Self {
             rng: Rng::new(),
@@ -81,7 +81,7 @@ impl DataGenerator {
             positions_written: 0,
             board: board.clone(),
             zobrist_stack: ZobristStack::new(&board),
-            search_limit,
+            search_limits,
             file: BufWriter::new(File::create(path).unwrap()),
         }
     }
@@ -138,7 +138,12 @@ impl DataGenerator {
         let mut history = History::new();
         let tt = TranspositionTable::new(16);
         loop {
-            let mut searcher = Searcher::new(self.search_limit, &self.zobrist_stack, &history, &tt);
+            let mut searcher = Searcher::new(
+                self.search_limits.clone(),
+                &self.zobrist_stack,
+                &history,
+                &tt,
+            );
 
             let SearchResults { best_move, score } = searcher.go(&self.board, false);
             searcher.search_complete_actions(&mut history);
