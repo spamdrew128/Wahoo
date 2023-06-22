@@ -139,7 +139,7 @@ impl DataGenerator {
         let tt = TranspositionTable::new(16);
         loop {
             let mut searcher = Searcher::new(self.search_limit, &self.zobrist_stack, &history, &tt);
-            println!("{}", self.board.to_fen());
+            
             let SearchResults { best_move, score } = searcher.go(&self.board, false);
             searcher.search_complete_actions(&mut history);
 
