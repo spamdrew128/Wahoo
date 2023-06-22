@@ -10,6 +10,7 @@ fn main() {
         None => "data.txt",
     };
 
-    let mut data_generator = datagen::DataGenerator::new(SearchLimit::Nodes(100_000), file_name);
+    let search_limits = vec![SearchLimit::Nodes(100_000), SearchLimit::Time(1000)];
+    let mut data_generator = datagen::DataGenerator::new(search_limits, file_name);
     data_generator.generate_data(5000);
 }

@@ -2,7 +2,7 @@ use crate::{
     board_representation::Board,
     history_table::History,
     perft::{test_postions, PerftTest},
-    search::{SearchLimit, Searcher},
+    search::Searcher,
     transposition_table::TranspositionTable,
     zobrist_stack::ZobristStack,
 };
@@ -18,12 +18,7 @@ pub fn bench() {
     let tt = TranspositionTable::new(16);
     for pos in positions {
         let board = Board::from_fen(pos.fen);
-        let mut searcher = Searcher::new(
-            SearchLimit::None,
-            &ZobristStack::new(&board),
-            &History::new(),
-            &tt,
-        );
+        let mut searcher = Searcher::new(vec![], &ZobristStack::new(&board), &History::new(), &tt);
         nodes += searcher.bench(&board, 11);
     }
 
