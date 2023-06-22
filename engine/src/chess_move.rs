@@ -89,6 +89,10 @@ impl Move {
     }
 
     pub fn as_string(self) -> String {
+        if self.is_null() {
+            return "NULL".to_owned();
+        }
+
         let mut move_str = String::new();
         move_str.push_str(self.from().as_string().as_str());
         move_str.push_str(self.to().as_string().as_str());

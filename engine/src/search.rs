@@ -124,7 +124,7 @@ impl<'a> Searcher<'a> {
             SearchLimit::Time(_) => self.out_of_time,
             SearchLimit::Depth(depth_limit) => depth > depth_limit,
             SearchLimit::Nodes(node_limit) => self.node_count > node_limit,
-            SearchLimit::None => true,
+            SearchLimit::None => false,
         }
     }
 
