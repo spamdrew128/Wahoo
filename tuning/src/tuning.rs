@@ -100,7 +100,7 @@ pub struct Tuner {
 
 impl Tuner {
     const K: f64 = 0.006634;
-    const CONVERGENCE_DELTA: f64 = 1e-9;
+    const CONVERGENCE_DELTA: f64 = 1e-8;
     const CONVERGENCE_CHECK_FREQ: u32 = 50;
     const MAX_EPOCHS: u32 = 20000;
 
@@ -240,7 +240,7 @@ impl Tuner {
 
         writeln!(
             output,
-            "const fn s(mg: i32, eg: i32) -> ScoreTuple {{ ScoreTuple::new(mg, eg) }}\n"
+            "const fn s(mg: i16, eg: i16) -> ScoreTuple {{ ScoreTuple::new(mg, eg) }}\n"
         )
         .unwrap();
     }
