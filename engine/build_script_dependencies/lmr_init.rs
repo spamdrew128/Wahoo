@@ -29,7 +29,7 @@ pub fn lmr_init_string() -> String {
         }
         result.push_str("],\n");
     }
-    result.push_str("\n]");
+    result.push(']');
 
     result
 }
