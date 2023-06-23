@@ -356,8 +356,7 @@ impl<'a> Searcher<'a> {
         }
 
         let tt_flag = TTFlag::determine(best_score, old_alpha, alpha, beta);
-        self.tt
-            .store(tt_flag, best_score, hash, ply, depth, best_move);
+        self.tt.store(tt_flag, best_score, hash, ply, depth, best_move);
         best_score
     }
 
