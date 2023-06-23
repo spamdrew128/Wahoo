@@ -18,6 +18,7 @@ mod eval_constants;
 pub mod evaluation;
 pub mod history_table;
 mod killers;
+mod late_move_reductions;
 mod magic;
 pub mod movegen;
 mod perft;
