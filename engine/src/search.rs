@@ -8,6 +8,7 @@ use crate::{
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     history_table::History,
     killers::Killers,
+    late_move_reductions::get_reduction,
     movegen::MoveGenerator,
     pv_table::PvTable,
     time_management::{Milliseconds, SearchTimer},
@@ -190,6 +191,7 @@ impl<'a> Searcher<'a> {
         search_results
     }
 
+    #[rustfmt::skip]
     fn negamax<const DO_NULL_MOVE: bool>(
         &mut self,
         board: &Board,
@@ -278,17 +280,38 @@ impl<'a> Searcher<'a> {
             self.node_count += 1;
             moves_played += 1;
 
-            let score = if moves_played == 1 {
-                -self.negamax::<true>(&next_board, depth - 1, ply + 1, -beta, -alpha)
+            let mut score = 0;
+            if moves_played == 1 {
+                score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -beta, -alpha);
             } else {
-                let mut score =
-                    -self.negamax::<true>(&next_board, depth - 1, ply + 1, -alpha - 1, -alpha);
+                // LATE MOVE REDUCTIONS (heavily inspired by Svart https://github.com/crippa1337/svart/blob/master/src/engine/search.rs)
+                const LMR_MIN_DEPTH: Depth = 3;
+                let lmr_threshold = if is_pv { 5 } else { 3 };
 
-                // if our null-window search beat alpha without failing high, that means we might have a better move and need to re search with full window
-                if score > alpha && score < beta {
-                    score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -beta, -alpha);
+                let mut do_full_depth_pvs = true;
+                if !in_check && depth >= LMR_MIN_DEPTH && moves_played > lmr_threshold {
+                    let mut r = get_reduction(depth, moves_played);
+                    if !is_pv {
+                        r += 1;
+                    }
+
+                    if r > 1 {
+                        // REDUCED PVS
+                        r = r.min(depth - 1);
+                        score = -self.negamax::<true>(&next_board, depth - r, ply + 1, -alpha - 1, -alpha);
+                        do_full_depth_pvs = score > alpha && score < beta; // we want to try again without reductions if we beat alpha
+                    }
                 }
-                score
+
+                if do_full_depth_pvs {
+                    // FULL DEPTH PVS
+                    score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -alpha - 1, -alpha);
+
+                    // if our null-window search beat alpha without failing high, that means we might have a better move and need to re search with full window
+                    if score > alpha && score < beta {
+                        score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -beta, -alpha);
+                    }
+                }
             };
 
             self.zobrist_stack.revert_state();

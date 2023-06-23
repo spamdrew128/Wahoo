@@ -3,7 +3,8 @@ use crate::{
     search::{Depth, MAX_PLY},
 };
 
-const LMR_TABLE: [[Depth; MAX_MOVECOUNT]; MAX_PLY as usize] = include!(concat!(env!("OUT_DIR"), "/lmr_init.rs"));
+const LMR_TABLE: [[Depth; MAX_MOVECOUNT]; MAX_PLY as usize] =
+    include!(concat!(env!("OUT_DIR"), "/lmr_init.rs"));
 
 #[allow(clippy::cast_sign_loss)]
 pub const fn get_reduction(depth: Depth, move_count: i32) -> Depth {
