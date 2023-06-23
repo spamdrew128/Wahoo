@@ -172,6 +172,18 @@ impl TranspositionTable {
             None
         }
     }
+
+    pub fn hashfull(&self) -> i32 {
+        let mut hash_full = 0;
+        self.table.iter().take(1000).for_each(|x| {
+            let entry = TTEntry::from(x.load(Ordering::Relaxed));
+            if entry.flag != TTFlag::UNINITIALIZED {
+                hash_full += 1;
+            }
+        });
+
+        hash_full
+    }
 }
 
 #[cfg(test)]

@@ -107,10 +107,11 @@ impl<'a> Searcher<'a> {
 
         print!("info ");
         println!(
-            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} pv {}",
+            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} hashfull {} pv {}",
             self.node_count,
             elapsed.as_millis(),
             self.seldepth,
+            self.tt.hashfull(),
             self.pv_table.pv_string()
         );
     }
