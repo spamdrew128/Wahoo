@@ -931,6 +931,13 @@ impl Board {
             && self.at_most_one_minor_piece(Color::White)
             && self.at_most_one_minor_piece(Color::Black)
     }
+
+    pub fn we_only_have_pawns(&self) -> bool {
+        let us = self.us();
+        let kings = self.piece_bb(Piece::KING, self.color_to_move);
+        let pawns = self.piece_bb(Piece::PAWN, self.color_to_move);
+        us == (kings.union(pawns))
+    }
 }
 
 #[cfg(test)]
