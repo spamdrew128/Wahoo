@@ -241,7 +241,7 @@ impl<'a> Searcher<'a> {
         if !is_pv && !in_check {
             // NULL MOVE PRUNING
             const NMP_MIN_DEPTH: Depth = 3;
-            if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH {
+            if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH && !board.we_only_have_pawns() {
                 let mut reduction = 3;
                 reduction = reduction.min(depth);
 
