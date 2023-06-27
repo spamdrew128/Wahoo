@@ -302,10 +302,11 @@ impl Tuner {
         .unwrap();
 
         for piece in Piece::LIST {
+            writeln!(output, "// {} PST", piece.as_string().unwrap()).unwrap();
             self.write_pst(output, |sq| MaterialPst::index(piece, sq))
         }
 
-        writeln!(output, "];").unwrap();
+        writeln!(output, "];\n").unwrap();
     }
 
     fn write_passer_pst(&self, output: &mut BufWriter<File>) {
