@@ -1,7 +1,6 @@
-use std::ops::{Add, Sub};
+use std::ops::{Add, AddAssign, Sub};
 
 use crate::{
-    bitloop,
     board_representation::{Board, Color, Piece, Square},
     eval_bitloop,
     eval_constants::{PASSER_PST, PST},
@@ -45,6 +44,12 @@ impl Add for ScoreTuple {
     }
 }
 
+impl AddAssign for ScoreTuple {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = Self(self.0 + rhs.0, self.1 + rhs.1);
+    }
+}
+
 impl Sub for ScoreTuple {
     type Output = Self;
 
@@ -61,18 +66,13 @@ pub fn phase(board: &Board) -> Phase {
     phase.min(PHASE_MAX)
 }
 
-fn pst_eval(board: &Board) -> ScoreTuple {
+fn pst_eval(board: &Board, color: Color) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
     for piece in Piece::LIST {
-        let mut w_pieces = board.piece_bb(piece, Color::White);
-        let mut b_pieces = board.piece_bb(piece, Color::Black);
+        let mut pieces = board.piece_bb(piece, color);
 
-        bitloop!(|sq|, w_pieces, {
-            score = score + PST[piece.as_index()][sq.flip().as_index()];
-        });
-
-        bitloop!(|sq|, b_pieces, {
-            score = score - PST[piece.as_index()][sq.as_index()];
+        eval_bitloop!(|sq|, pieces, color, {
+            score += PST[piece.as_index()][sq.as_index()];
         });
     }
     score
@@ -87,16 +87,15 @@ fn passed_pawns(board: &Board, color: Color) -> ScoreTuple {
 
     let mut passers = pawns.without(opp_blocks);
     eval_bitloop!(|sq|, passers, color, {
-        score = score + PASSER_PST[sq.as_index()];
+        score += PASSER_PST[sq.as_index()];
     });
     score
 }
 
 pub fn evaluate(board: &Board) -> EvalScore {
     let mut score_tuple = ScoreTuple::new(0, 0);
-    score_tuple = score_tuple + pst_eval(board);
-    score_tuple =
-        score_tuple + passed_pawns(board, Color::White) - passed_pawns(board, Color::Black);
+    score_tuple += pst_eval(board, Color::White) - pst_eval(board, Color::Black);
+    score_tuple += passed_pawns(board, Color::White) - passed_pawns(board, Color::Black);
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
