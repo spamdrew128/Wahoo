@@ -1,9 +1,9 @@
 use std::ops::{Add, AddAssign, Sub};
 
 use crate::{
+    bitloop,
     board_representation::{Board, Color, Piece, Square},
-    eval_bitloop,
-    eval_constants::{PASSER_PST, PST},
+    eval_constants::{MATERIAL_PSTS, PASSER_PST},
     search::MAX_PLY,
 };
 
@@ -70,9 +70,10 @@ fn pst_eval(board: &Board, color: Color) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
     for piece in Piece::LIST {
         let mut pieces = board.piece_bb(piece, color);
+        let pst = &MATERIAL_PSTS[piece.as_index()];
 
-        eval_bitloop!(|sq|, pieces, color, {
-            score += PST[piece.as_index()][sq.as_index()];
+        bitloop!(|sq|, pieces, {
+            score += pst.access(color, sq);
         });
     }
     score
@@ -86,8 +87,8 @@ fn passed_pawns(board: &Board, color: Color) -> ScoreTuple {
     let opp_blocks = opp_front_span | opp_front_span.east_one() | opp_front_span.west_one();
 
     let mut passers = pawns.without(opp_blocks);
-    eval_bitloop!(|sq|, passers, color, {
-        score += PASSER_PST[sq.as_index()];
+    bitloop!(|sq|, passers, {
+        score += PASSER_PST.access(color, sq);
     });
     score
 }
@@ -95,7 +96,7 @@ fn passed_pawns(board: &Board, color: Color) -> ScoreTuple {
 pub fn evaluate(board: &Board) -> EvalScore {
     let mut score_tuple = ScoreTuple::new(0, 0);
     score_tuple += pst_eval(board, Color::White) - pst_eval(board, Color::Black);
-    score_tuple += passed_pawns(board, Color::White) - passed_pawns(board, Color::Black);
+    // score_tuple += passed_pawns(board, Color::White) - passed_pawns(board, Color::Black);
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;

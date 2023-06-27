@@ -15,6 +15,7 @@ pub mod bench;
 pub mod board_representation;
 pub mod chess_move;
 mod eval_constants;
+mod eval_constants_helpers;
 pub mod evaluation;
 pub mod history_table;
 mod killers;
