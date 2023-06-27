@@ -99,7 +99,7 @@ pub fn evaluate(board: &Board) -> EvalScore {
 
     let mut score_tuple = ScoreTuple::new(0, 0);
     score_tuple += pst_eval(board, us) - pst_eval(board, them);
-    // score_tuple += passed_pawns(board, Color::White) - passed_pawns(board, Color::Black);
+    // score_tuple += passed_pawns(board, us) - passed_pawns(board, them);
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;

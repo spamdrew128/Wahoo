@@ -387,17 +387,18 @@ impl Bitboard {
         result
     }
 
-    pub fn fill(mut self, color: Color) -> Self {
+    pub fn fill(self, color: Color) -> Self {
+        let mut r = self;
         match color {
             Color::White => {
-                self |= self.shift_north(1);
-                self |= self.shift_north(2);
-                self.shift_north(4)
+                r |= r.shift_north(1);
+                r |= r.shift_north(2);
+                r | r.shift_north(4)
             }
             Color::Black => {
-                self |= self.shift_south(1);
-                self |= self.shift_south(2);
-                self.shift_south(4)
+                r |= r.shift_south(1);
+                r |= r.shift_south(2);
+                r | r.shift_south(4)
             }
         }
     }
@@ -965,6 +966,16 @@ impl Board {
         let pawns = self.piece_bb(Piece::PAWN, self.color_to_move);
         us == (kings.union(pawns))
     }
+
+    pub fn passed_pawns(&self, color: Color) -> Bitboard {
+        let our_pawns = self.piece_bb(Piece::PAWN, color);
+        let their_pawns = self.piece_bb(Piece::PAWN, color.flip());
+
+        let opp_front_span = their_pawns.forward_fill(color.flip());
+        let opp_blocks = opp_front_span | opp_front_span.east_one() | opp_front_span.west_one();
+
+        our_pawns.without(opp_blocks)
+    }
 }
 
 #[cfg(test)]
@@ -1093,5 +1104,15 @@ mod tests {
     fn material_draw_dection() {
         let board = Board::from_fen("8/8/4k3/8/8/3K4/R7/8 w - - 0 1");
         assert!(!board.insufficient_material_draw());
+    }
+
+    #[test]
+    fn passed_pawns() {
+        let board = Board::from_fen("5k2/8/p1p4p/P4K2/8/1PP5/3PpP2/8 w - - 0 1");
+        let w_expected = bb_from_squares!(F2);
+        let b_expected = bb_from_squares!(E2, H6);
+
+        assert_eq!(board.passed_pawns(Color::White), w_expected);
+        assert_eq!(board.passed_pawns(Color::Black), b_expected);
     }
 }

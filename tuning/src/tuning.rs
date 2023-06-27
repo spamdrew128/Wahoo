@@ -1,5 +1,5 @@
 use engine::{
-    board_representation::{Board, Color, Piece, Square, NUM_PIECES, NUM_SQUARES},
+    board_representation::{Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_SQUARES},
     evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
 };
 use std::{
@@ -8,7 +8,8 @@ use std::{
     io::Write,
 };
 
-type TunerVec = [[f64; Pst::LEN]; NUM_PHASES];
+const TUNER_VEC_LEN: usize = Pst::LEN + Passer::LEN;
+type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct Pst;
 impl Pst {
@@ -17,6 +18,16 @@ impl Pst {
 
     fn index(piece: Piece, sq: Square) -> usize {
         Self::START + usize::from(NUM_SQUARES) * piece.as_index() + sq.as_index()
+    }
+}
+
+struct Passer;
+impl Passer {
+    const START: usize = Pst::LEN;
+    const LEN: usize = (NUM_SQUARES as usize);
+
+    fn index(sq: Square) -> usize {
+        Self::START + sq.as_index()
     }
 }
 
@@ -38,23 +49,35 @@ struct Entry {
 }
 
 impl Entry {
+    pub fn pst_update<F>(&mut self, w_pieces: Bitboard, b_pieces: Bitboard, index_fn: F)
+    where
+        F: Fn(Square) -> usize,
+    {
+        for i in 0..NUM_SQUARES {
+            let sq = Square::new(i);
+            let w_sq = sq.flip();
+            let b_sq = sq;
+
+            let value = (w_sq.as_bitboard().intersection(w_pieces).popcount() as i8)
+                - (b_sq.as_bitboard().intersection(b_pieces).popcount() as i8);
+            if value != 0 {
+                self.feature_vec.push(Feature::new(value, index_fn(sq)));
+            }
+        }
+    }
+
     fn add_pst_features(&mut self, board: &Board) {
         for piece in Piece::LIST {
             let w_piece_bb = board.piece_bb(piece, Color::White);
             let b_piece_bb = board.piece_bb(piece, Color::Black);
-            for i in 0..NUM_SQUARES {
-                let sq = Square::new(i);
-                let w_sq = sq.flip();
-                let b_sq = sq;
-
-                let value = (w_sq.as_bitboard().intersection(w_piece_bb).popcount() as i8)
-                    - (b_sq.as_bitboard().intersection(b_piece_bb).popcount() as i8);
-                if value != 0 {
-                    self.feature_vec
-                        .push(Feature::new(value, Pst::index(piece, sq)));
-                }
-            }
+            self.pst_update(w_piece_bb, b_piece_bb, |sq| Pst::index(piece, sq));
         }
+    }
+
+    fn add_passer_features(&mut self, board: &Board) {
+        let w_passers = board.passed_pawns(Color::White);
+        let b_passers = board.passed_pawns(Color::Black);
+        self.pst_update(w_passers, b_passers, Passer::index);
     }
 
     fn new(board: &Board, game_result: f64) -> Self {
@@ -65,6 +88,7 @@ impl Entry {
         };
 
         entry.add_pst_features(board);
+        entry.add_passer_features(board);
 
         entry
     }
@@ -106,11 +130,11 @@ impl Tuner {
 
     fn new_weights(from_zero: bool) -> TunerVec {
         if from_zero {
-            return [[0.0; Pst::LEN]; NUM_PHASES];
+            return [[0.0; TUNER_VEC_LEN]; NUM_PHASES];
         }
 
         let scores: [EvalScore; NUM_PIECES as usize] = [300, 320, 500, 900, 100, 0];
-        let mut result = [[0.0; Pst::LEN]; NUM_PHASES];
+        let mut result = [[0.0; TUNER_VEC_LEN]; NUM_PHASES];
 
         for piece in Piece::LIST {
             for i in 0..NUM_SQUARES {
@@ -125,10 +149,10 @@ impl Tuner {
     pub fn new(from_zero: bool) -> Self {
         Self {
             entries: vec![],
-            gradient: [[0.0; Pst::LEN]; NUM_PHASES],
+            gradient: [[0.0; TUNER_VEC_LEN]; NUM_PHASES],
             weights: Self::new_weights(from_zero),
-            momentum: [[0.0; Pst::LEN]; NUM_PHASES],
-            velocity: [[0.0; Pst::LEN]; NUM_PHASES],
+            momentum: [[0.0; TUNER_VEC_LEN]; NUM_PHASES],
+            velocity: [[0.0; TUNER_VEC_LEN]; NUM_PHASES],
         }
     }
 
@@ -144,7 +168,7 @@ impl Tuner {
     }
 
     pub fn reset_gradient(&mut self) {
-        self.gradient = [[0.0; Pst::LEN]; NUM_PHASES];
+        self.gradient = [[0.0; TUNER_VEC_LEN]; NUM_PHASES];
     }
 
     fn sigmoid(e: f64) -> f64 {
@@ -236,7 +260,11 @@ impl Tuner {
     #[allow(clippy::write_literal)]
     fn write_header(&self, output: &mut BufWriter<File>) {
         writeln!(output, "#![cfg_attr(rustfmt, rustfmt_skip)]").unwrap();
-        writeln!(output, "use crate::{{evaluation::ScoreTuple, board_representation::NUM_PIECES, pst::Pst}};\n").unwrap();
+        writeln!(
+            output,
+            "use crate::{{evaluation::ScoreTuple, board_representation::NUM_PIECES, pst::Pst}};\n"
+        )
+        .unwrap();
 
         writeln!(
             output,
