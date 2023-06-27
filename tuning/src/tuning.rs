@@ -273,7 +273,28 @@ impl Tuner {
         .unwrap();
     }
 
-    fn write_psts(&self, output: &mut BufWriter<File>) {
+    fn write_pst<F>(&self, output: &mut BufWriter<File>, index_fn: F)
+    where
+        F: Fn(Square) -> usize,
+    {
+        write!(output, "Pst::new([").unwrap();
+        for i in 0..NUM_SQUARES {
+            let sq = Square::new(i);
+            if i % 8 == 0 {
+                write!(output, "\n  ").unwrap();
+            }
+            write!(
+                output,
+                "s({}, {}), ",
+                self.weights[MG][index_fn(sq)] as EvalScore,
+                self.weights[EG][index_fn(sq)] as EvalScore,
+            )
+            .unwrap();
+        }
+        writeln!(output, "\n]),").unwrap();
+    }
+
+    fn write_material_psts(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
             "pub const MATERIAL_PSTS: [Pst; NUM_PIECES as usize] = ["
@@ -281,30 +302,25 @@ impl Tuner {
         .unwrap();
 
         for piece in Piece::LIST {
-            writeln!(output, "// {} PST", piece.as_string().unwrap()).unwrap();
-            write!(output, "Pst::new([").unwrap();
-            for i in 0..NUM_SQUARES {
-                let sq = Square::new(i);
-                if i % 8 == 0 {
-                    write!(output, "\n  ").unwrap();
-                }
-                write!(
-                    output,
-                    "s({}, {}), ",
-                    self.weights[MG][MaterialPst::index(piece, sq)] as EvalScore,
-                    self.weights[EG][MaterialPst::index(piece, sq)] as EvalScore,
-                )
-                .unwrap();
-            }
-            writeln!(output, "\n]),").unwrap();
+            self.write_pst(output, |sq| MaterialPst::index(piece, sq))
         }
 
         writeln!(output, "];").unwrap();
     }
 
+    fn write_passer_pst(&self, output: &mut BufWriter<File>) {
+        writeln!(
+            output,
+            "pub const PASSER_PST: [Pst; NUM_PIECES as usize] = "
+        )
+        .unwrap();
+        self.write_pst(output, Passer::index)
+    }
+
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
         self.write_header(&mut output);
-        self.write_psts(&mut output);
+        self.write_material_psts(&mut output);
+        self.write_passer_pst(&mut output);
     }
 }
