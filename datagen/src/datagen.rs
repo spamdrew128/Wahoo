@@ -52,7 +52,10 @@ fn simple_qsearch(board: &Board, mut alpha: EvalScore, beta: EvalScore) -> EvalS
 }
 
 fn pos_is_quiet(board: &Board) -> bool {
-    simple_qsearch(board, -INF, INF) == evaluate(board)
+    const THRESHOLD: EvalScore = 30;
+    let q = simple_qsearch(board, -INF, INF);
+    let e = evaluate(board);
+    (q <= e + THRESHOLD) && (q >= e - THRESHOLD)
 }
 
 pub struct DataGenerator {

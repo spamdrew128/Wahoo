@@ -124,9 +124,10 @@ pub struct Tuner {
 
 impl Tuner {
     const K: f64 = 0.006634;
-    const CONVERGENCE_DELTA: f64 = 1e-8;
+    const CONVERGENCE_DELTA: f64 = 5e-6;
     const CONVERGENCE_CHECK_FREQ: u32 = 50;
     const MAX_EPOCHS: u32 = 20000;
+    const LEARN_RATE: f64 = 0.05;
 
     fn new_weights(from_zero: bool) -> TunerVec {
         if from_zero {
@@ -213,11 +214,11 @@ impl Tuner {
         for i in 0..self.gradient[0].len() {
             for phase in PHASES {
                 // we left off k eariler, so we add it back here
-                let grad_component: f64 = -Self::K * self.gradient[phase][i] / (self.entries.len() as f64);
+                let grad_component: f64 = -2.0 * Self::K * self.gradient[phase][i] / (self.entries.len() as f64);
                 self.momentum[phase][i] = BETA1 * self.momentum[phase][i] + (1.0 - BETA1) * grad_component;
                 self.velocity[phase][i] = BETA2 * self.velocity[phase][i] + (1.0 - BETA2) * (grad_component * grad_component);
 
-                self.weights[phase][i] -= self.momentum[phase][i] / (EPSILON + self.velocity[phase][i].sqrt());
+                self.weights[phase][i] -= (self.momentum[phase][i] / (EPSILON + self.velocity[phase][i].sqrt())) * Self::LEARN_RATE;
             }
         }
     }
@@ -273,7 +274,7 @@ impl Tuner {
         .unwrap();
     }
 
-    fn write_pst<F>(&self, output: &mut BufWriter<File>, index_fn: F)
+    fn write_pst<F>(&self, output: &mut BufWriter<File>, closing_char: char, index_fn: F)
     where
         F: Fn(Square) -> usize,
     {
@@ -291,7 +292,7 @@ impl Tuner {
             )
             .unwrap();
         }
-        writeln!(output, "\n])").unwrap();
+        writeln!(output, "\n]){closing_char}").unwrap();
     }
 
     fn write_material_psts(&self, output: &mut BufWriter<File>) {
@@ -303,21 +304,15 @@ impl Tuner {
 
         for piece in Piece::LIST {
             writeln!(output, "// {} PST", piece.as_string().unwrap()).unwrap();
-            self.write_pst(output, |sq| MaterialPst::index(piece, sq));
-            write!(output, ",").unwrap();
+            self.write_pst(output, ',', |sq| MaterialPst::index(piece, sq));
         }
 
         writeln!(output, "];\n").unwrap();
     }
 
     fn write_passer_pst(&self, output: &mut BufWriter<File>) {
-        write!(
-            output,
-            "pub const PASSER_PST: Pst = "
-        )
-        .unwrap();
-        self.write_pst(output, Passer::index);
-        write!(output, ";").unwrap();
+        write!(output, "pub const PASSER_PST: Pst = ").unwrap();
+        self.write_pst(output, ';', Passer::index);
     }
 
     fn create_output_file(&self) {
