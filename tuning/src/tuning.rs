@@ -291,7 +291,7 @@ impl Tuner {
             )
             .unwrap();
         }
-        writeln!(output, "\n]),").unwrap();
+        writeln!(output, "\n])").unwrap();
     }
 
     fn write_material_psts(&self, output: &mut BufWriter<File>) {
@@ -303,7 +303,8 @@ impl Tuner {
 
         for piece in Piece::LIST {
             writeln!(output, "// {} PST", piece.as_string().unwrap()).unwrap();
-            self.write_pst(output, |sq| MaterialPst::index(piece, sq))
+            self.write_pst(output, |sq| MaterialPst::index(piece, sq));
+            write!(output, ",").unwrap();
         }
 
         writeln!(output, "];\n").unwrap();
@@ -312,10 +313,11 @@ impl Tuner {
     fn write_passer_pst(&self, output: &mut BufWriter<File>) {
         write!(
             output,
-            "pub const PASSER_PST: [Pst; NUM_PIECES as usize] = "
+            "pub const PASSER_PST: Pst = "
         )
         .unwrap();
-        self.write_pst(output, Passer::index)
+        self.write_pst(output, Passer::index);
+        write!(output, ";").unwrap();
     }
 
     fn create_output_file(&self) {
