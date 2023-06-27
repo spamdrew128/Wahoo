@@ -22,6 +22,7 @@ mod late_move_reductions;
 mod magic;
 pub mod movegen;
 mod perft;
+mod pst;
 mod pv_table;
 pub mod search;
 pub mod time_management;

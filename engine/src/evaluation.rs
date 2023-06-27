@@ -1,7 +1,9 @@
+use std::ops::{Add, AddAssign, Sub};
+
 use crate::{
     bitloop,
     board_representation::{Board, Color, Piece, Square},
-    eval_constants::PST,
+    eval_constants::{MATERIAL_PSTS, PASSER_PST},
     search::MAX_PLY,
 };
 
@@ -32,12 +34,26 @@ impl ScoreTuple {
     const fn eg(self) -> EvalScore {
         self.1
     }
+}
 
-    const fn add(self, rhs: Self) -> Self {
+impl Add for ScoreTuple {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self {
         Self(self.0 + rhs.0, self.1 + rhs.1)
     }
+}
 
-    const fn subtract(self, rhs: Self) -> Self {
+impl AddAssign for ScoreTuple {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = Self(self.0 + rhs.0, self.1 + rhs.1);
+    }
+}
+
+impl Sub for ScoreTuple {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self {
         Self(self.0 - rhs.0, self.1 - rhs.1)
     }
 }
@@ -50,34 +66,42 @@ pub fn phase(board: &Board) -> Phase {
     phase.min(PHASE_MAX)
 }
 
-fn pst_eval(board: &Board) -> ScoreTuple {
+fn pst_eval(board: &Board, color: Color) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
     for piece in Piece::LIST {
-        let mut w_pieces = board.piece_bb(piece, Color::White);
-        let mut b_pieces = board.piece_bb(piece, Color::Black);
+        let mut pieces = board.piece_bb(piece, color);
+        let pst = &MATERIAL_PSTS[piece.as_index()];
 
-        bitloop!(|sq|, w_pieces, {
-            score = score.add(PST[piece.as_index()][sq.flip().as_index()]);
-        });
-
-        bitloop!(|sq|, b_pieces, {
-            score = score.subtract(PST[piece.as_index()][sq.as_index()]);
+        bitloop!(|sq|, pieces, {
+            score += pst.access(color, sq);
         });
     }
     score
 }
 
+fn passed_pawns(board: &Board, color: Color) -> ScoreTuple {
+    let mut score = ScoreTuple::new(0, 0);
+    let mut passers = board.passed_pawns(color);
+
+    bitloop!(|sq|, passers, {
+        score += PASSER_PST.access(color, sq);
+    });
+    score
+}
+
 pub fn evaluate(board: &Board) -> EvalScore {
+    let us = board.color_to_move;
+    let them = board.color_to_move.flip();
+
     let mut score_tuple = ScoreTuple::new(0, 0);
-    score_tuple = score_tuple.add(pst_eval(board));
+    score_tuple += pst_eval(board, us) - pst_eval(board, them);
+    score_tuple += passed_pawns(board, us) - passed_pawns(board, them);
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
+
     let score = (i32::from(score_tuple.mg()) * mg_phase + i32::from(score_tuple.eg()) * eg_phase)
         / i32::from(PHASE_MAX);
 
-    match board.color_to_move {
-        Color::White => score as EvalScore,
-        Color::Black => -score as EvalScore,
-    }
+    score.try_into().unwrap()
 }
