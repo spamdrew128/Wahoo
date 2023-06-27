@@ -8,11 +8,11 @@ use std::{
     io::Write,
 };
 
-const TUNER_VEC_LEN: usize = Pst::LEN + Passer::LEN;
+const TUNER_VEC_LEN: usize = MaterialPst::LEN + Passer::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
-struct Pst;
-impl Pst {
+struct MaterialPst;
+impl MaterialPst {
     const START: usize = 0;
     const LEN: usize = (NUM_PIECES as usize) * (NUM_SQUARES as usize);
 
@@ -23,7 +23,7 @@ impl Pst {
 
 struct Passer;
 impl Passer {
-    const START: usize = Pst::LEN;
+    const START: usize = MaterialPst::LEN;
     const LEN: usize = (NUM_SQUARES as usize);
 
     fn index(sq: Square) -> usize {
@@ -70,7 +70,7 @@ impl Entry {
         for piece in Piece::LIST {
             let w_piece_bb = board.piece_bb(piece, Color::White);
             let b_piece_bb = board.piece_bb(piece, Color::Black);
-            self.pst_update(w_piece_bb, b_piece_bb, |sq| Pst::index(piece, sq));
+            self.pst_update(w_piece_bb, b_piece_bb, |sq| MaterialPst::index(piece, sq));
         }
     }
 
@@ -138,7 +138,7 @@ impl Tuner {
 
         for piece in Piece::LIST {
             for i in 0..NUM_SQUARES {
-                let index = Pst::index(piece, Square::new(i));
+                let index = MaterialPst::index(piece, Square::new(i));
                 result[MG][index] = scores[piece.as_index()] as f64;
                 result[EG][index] = scores[piece.as_index()] as f64;
             }
@@ -291,8 +291,8 @@ impl Tuner {
                 write!(
                     output,
                     "s({}, {}), ",
-                    self.weights[MG][Pst::index(piece, sq)] as EvalScore,
-                    self.weights[EG][Pst::index(piece, sq)] as EvalScore,
+                    self.weights[MG][MaterialPst::index(piece, sq)] as EvalScore,
+                    self.weights[EG][MaterialPst::index(piece, sq)] as EvalScore,
                 )
                 .unwrap();
             }
