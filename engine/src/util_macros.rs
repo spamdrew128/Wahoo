@@ -30,3 +30,16 @@ macro_rules! bitloop {
         }
     }};
 }
+
+#[macro_export]
+macro_rules! eval_bitloop {
+    (|$sq:ident|, $bb:ident, $color:ident, $body:expr) => {{
+        while $bb.is_not_empty() {
+            let $sq: Square = match $color {
+                Color::White => $bb.pop_lsb().flip(),
+                Color::Black => $bb.pop_lsb(),
+            };
+            $body
+        }
+    }};
+}

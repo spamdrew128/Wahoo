@@ -387,6 +387,33 @@ impl Bitboard {
         result
     }
 
+    pub fn fill(mut self, color: Color) -> Self {
+        match color {
+            Color::White => {
+                self |= self.shift_north(1);
+                self |= self.shift_north(2);
+                self.shift_north(4)
+            }
+            Color::Black => {
+                self |= self.shift_south(1);
+                self |= self.shift_south(2);
+                self.shift_south(4)
+            }
+        }
+    }
+
+    pub fn file_fill(self) -> Self {
+        self.fill(Color::White).fill(Color::White)
+    }
+
+    pub fn forward_fill(self, color: Color) -> Self {
+        let fill = self.fill(color);
+        match color {
+            Color::White => fill.north_one(),
+            Color::Black => fill.south_one(),
+        }
+    }
+
     pub fn print(self) {
         for i in 0..NUM_SQUARES {
             let bitset = fen_index_as_bitboard(i);

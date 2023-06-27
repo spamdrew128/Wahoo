@@ -1,7 +1,10 @@
+use std::ops::{Add, Sub};
+
 use crate::{
     bitloop,
     board_representation::{Board, Color, Piece, Square},
-    eval_constants::PST,
+    eval_bitloop,
+    eval_constants::{PASSER_PST, PST},
     search::MAX_PLY,
 };
 
@@ -32,12 +35,20 @@ impl ScoreTuple {
     const fn eg(self) -> EvalScore {
         self.1
     }
+}
 
-    const fn add(self, rhs: Self) -> Self {
+impl Add for ScoreTuple {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self {
         Self(self.0 + rhs.0, self.1 + rhs.1)
     }
+}
 
-    const fn subtract(self, rhs: Self) -> Self {
+impl Sub for ScoreTuple {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self {
         Self(self.0 - rhs.0, self.1 - rhs.1)
     }
 }
@@ -57,19 +68,35 @@ fn pst_eval(board: &Board) -> ScoreTuple {
         let mut b_pieces = board.piece_bb(piece, Color::Black);
 
         bitloop!(|sq|, w_pieces, {
-            score = score.add(PST[piece.as_index()][sq.flip().as_index()]);
+            score = score + PST[piece.as_index()][sq.flip().as_index()];
         });
 
         bitloop!(|sq|, b_pieces, {
-            score = score.subtract(PST[piece.as_index()][sq.as_index()]);
+            score = score - PST[piece.as_index()][sq.as_index()];
         });
     }
     score
 }
 
+fn passed_pawns(board: &Board, color: Color) -> ScoreTuple {
+    let mut score = ScoreTuple::new(0, 0);
+
+    let pawns = board.piece_bb(Piece::PAWN, color);
+    let opp_front_span = pawns.forward_fill(color.flip());
+    let opp_blocks = opp_front_span | opp_front_span.east_one() | opp_front_span.west_one();
+
+    let mut passers = pawns.without(opp_blocks);
+    eval_bitloop!(|sq|, passers, color, {
+        score = score + PASSER_PST[sq.as_index()];
+    });
+    score
+}
+
 pub fn evaluate(board: &Board) -> EvalScore {
     let mut score_tuple = ScoreTuple::new(0, 0);
-    score_tuple = score_tuple.add(pst_eval(board));
+    score_tuple = score_tuple + pst_eval(board);
+    score_tuple =
+        score_tuple + passed_pawns(board, Color::White) - passed_pawns(board, Color::Black);
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
