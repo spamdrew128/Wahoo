@@ -94,17 +94,18 @@ fn passed_pawns(board: &Board, color: Color) -> ScoreTuple {
 }
 
 pub fn evaluate(board: &Board) -> EvalScore {
+    let us = board.color_to_move;
+    let them = board.color_to_move.flip();
+
     let mut score_tuple = ScoreTuple::new(0, 0);
-    score_tuple += pst_eval(board, Color::White) - pst_eval(board, Color::Black);
+    score_tuple += pst_eval(board, us) - pst_eval(board, them);
     // score_tuple += passed_pawns(board, Color::White) - passed_pawns(board, Color::Black);
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
+
     let score = (i32::from(score_tuple.mg()) * mg_phase + i32::from(score_tuple.eg()) * eg_phase)
         / i32::from(PHASE_MAX);
 
-    match board.color_to_move {
-        Color::White => score as EvalScore,
-        Color::Black => -score as EvalScore,
-    }
+    score.try_into().unwrap()
 }

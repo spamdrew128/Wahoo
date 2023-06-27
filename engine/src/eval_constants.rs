@@ -1,5 +1,5 @@
 #![cfg_attr(rustfmt, rustfmt_skip)]
-use crate::{evaluation::ScoreTuple, board_representation::NUM_PIECES, eval_constants_helpers::Pst};
+use crate::{evaluation::ScoreTuple, board_representation::NUM_PIECES, pst::Pst};
 
 const fn s(mg: i16, eg: i16) -> ScoreTuple { ScoreTuple::new(mg, eg) }
 

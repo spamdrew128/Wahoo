@@ -19,7 +19,7 @@ impl Pst {
             i += 1;
         }
 
-        Pst { table }
+        Self { table }
     }
 
     pub const fn access(&self, color: Color, sq: Square) -> ScoreTuple {
