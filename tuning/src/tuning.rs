@@ -309,7 +309,7 @@ impl Tuner {
     }
 
     fn write_passer_pst(&self, output: &mut BufWriter<File>) {
-        writeln!(
+        write!(
             output,
             "pub const PASSER_PST: [Pst; NUM_PIECES as usize] = "
         )
