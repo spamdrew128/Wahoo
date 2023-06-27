@@ -81,12 +81,8 @@ fn pst_eval(board: &Board, color: Color) -> ScoreTuple {
 
 fn passed_pawns(board: &Board, color: Color) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
+    let mut passers = board.passed_pawns(color);
 
-    let pawns = board.piece_bb(Piece::PAWN, color);
-    let opp_front_span = pawns.forward_fill(color.flip());
-    let opp_blocks = opp_front_span | opp_front_span.east_one() | opp_front_span.west_one();
-
-    let mut passers = pawns.without(opp_blocks);
     bitloop!(|sq|, passers, {
         score += PASSER_PST.access(color, sq);
     });
