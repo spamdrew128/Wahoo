@@ -15,7 +15,7 @@ pub mod bench;
 pub mod board_representation;
 pub mod chess_move;
 mod eval_constants;
-mod eval_constants_helpers;
+mod pst;
 pub mod evaluation;
 pub mod history_table;
 mod killers;
@@ -30,4 +30,4 @@ pub mod transposition_table;
 pub mod uci;
 mod util_macros;
 pub mod zobrist;
-pub pst
+pub mod zobrist_stack;

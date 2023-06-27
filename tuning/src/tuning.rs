@@ -236,7 +236,7 @@ impl Tuner {
     #[allow(clippy::write_literal)]
     fn write_header(&self, output: &mut BufWriter<File>) {
         writeln!(output, "#![cfg_attr(rustfmt, rustfmt_skip)]").unwrap();
-        writeln!(output, "use crate::{{evaluation::ScoreTuple, board_representation::{{NUM_SQUARES, NUM_PIECES}}}};\n").unwrap();
+        writeln!(output, "use crate::{{evaluation::ScoreTuple, board_representation::NUM_PIECES, pst::Pst}};\n").unwrap();
 
         writeln!(
             output,
@@ -248,13 +248,13 @@ impl Tuner {
     fn write_psts(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
-            "pub const PST: [[ScoreTuple; NUM_SQUARES as usize]; NUM_PIECES as usize] = ["
+            "pub const MATERIAL_PSTS: [Pst; NUM_PIECES as usize] = ["
         )
         .unwrap();
 
         for piece in Piece::LIST {
             writeln!(output, "// {} PST", piece.as_string().unwrap()).unwrap();
-            write!(output, "[").unwrap();
+            write!(output, "Pst::new([").unwrap();
             for i in 0..NUM_SQUARES {
                 let sq = Square::new(i);
                 if i % 8 == 0 {
@@ -268,7 +268,7 @@ impl Tuner {
                 )
                 .unwrap();
             }
-            writeln!(output, "\n],").unwrap();
+            writeln!(output, "\n]),").unwrap();
         }
 
         writeln!(output, "];").unwrap();
