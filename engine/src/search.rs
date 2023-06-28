@@ -261,6 +261,15 @@ impl<'a> Searcher<'a> {
                     return null_move_score;
                 }
             }
+
+            // REVERSE FUTILITY PRUNING
+            const RFP_MAX_DEPTH: Depth = 8;
+            const RFP_MARGIN: EvalScore = 120;
+
+            let static_eval = evaluate(board);
+            if depth <= RFP_MAX_DEPTH && static_eval >= (beta + RFP_MARGIN * i16::from(depth)) {
+                return static_eval;
+            }
         }
 
         let mut generator = MoveGenerator::new();
