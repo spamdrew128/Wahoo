@@ -1,4 +1,7 @@
-use std::time::Instant;
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::Instant,
+};
 
 use arrayvec::ArrayVec;
 
@@ -22,6 +25,16 @@ pub type Depth = i8;
 pub type Ply = u8;
 const MAX_DEPTH: Depth = i8::MAX;
 pub const MAX_PLY: Ply = MAX_DEPTH as u8;
+
+static STOP_FLAG: AtomicBool = AtomicBool::new(false);
+
+pub fn write_stop_flag(val: bool) {
+    STOP_FLAG.store(val, Ordering::Relaxed);
+}
+
+fn stop_flag_is_set() -> bool {
+    STOP_FLAG.load(Ordering::Relaxed)
+}
 
 pub struct SearchResults {
     pub best_move: Move,
@@ -144,6 +157,8 @@ impl<'a> Searcher<'a> {
     }
 
     pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
+        write_stop_flag(false);
+
         for d in 1..depth {
             self.negamax::<true>(board, d, 0, -INF, INF);
         }
@@ -152,6 +167,8 @@ impl<'a> Searcher<'a> {
     }
 
     pub fn go(&mut self, board: &Board, report_info: bool) -> SearchResults {
+        write_stop_flag(false);
+
         for &limit in &self.search_limits {
             if let SearchLimit::Time(t) = limit {
                 self.timer = Some(SearchTimer::new(t));
@@ -167,7 +184,7 @@ impl<'a> Searcher<'a> {
 
             let score = self.negamax::<true>(board, depth, 0, -INF, INF);
 
-            if self.out_of_time {
+            if self.out_of_time || stop_flag_is_set() {
                 break;
             }
 
@@ -326,7 +343,7 @@ impl<'a> Searcher<'a> {
 
             self.zobrist_stack.revert_state();
 
-            if self.out_of_time {
+            if self.out_of_time || stop_flag_is_set() {
                 return 0;
             }
 
@@ -413,7 +430,7 @@ impl<'a> Searcher<'a> {
 
             self.zobrist_stack.revert_state();
 
-            if self.out_of_time {
+            if self.out_of_time || stop_flag_is_set() {
                 return 0;
             }
 

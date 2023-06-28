@@ -2,7 +2,7 @@ use crate::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
     history_table::History,
-    search::{Depth, Nodes, SearchLimit, Searcher},
+    search::{self, Depth, Nodes, SearchLimit, Searcher},
     time_management::{Milliseconds, TimeArgs, TimeManager},
     transposition_table::TranspositionTable,
     zobrist::ZobristHash,
@@ -304,8 +304,11 @@ impl UciHandler {
             let buffer = Self::read_uci_input();
 
             match buffer.as_str().trim() {
-                "stop" => return,
                 "quit" => kill_program(),
+                "stop" => {
+                    search::write_stop_flag(true);
+                    return;
+                }
                 _ => {
                     if !is_searching.load(Ordering::Relaxed) {
                         *stored_message = Some(buffer);
