@@ -371,7 +371,7 @@ impl Tuner {
 
     fn write_passer_blocker_rst(&self, output: &mut BufWriter<File>) {
         write!(output, "pub const PASSER_BLOCKERS_RST: Rst = ").unwrap();
-        self.write_rst(output, ";\n", PasserBlocker::index);
+        self.write_rst(output, ";", PasserBlocker::index);
     }
 
     fn create_output_file(&self) {
