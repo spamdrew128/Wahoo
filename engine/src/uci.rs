@@ -2,20 +2,17 @@ use crate::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
     history_table::History,
-    search::{Depth, Nodes, SearchLimit, Searcher},
+    search::{self, Depth, Nodes, SearchLimit, Searcher},
     time_management::{Milliseconds, TimeArgs, TimeManager},
     transposition_table::TranspositionTable,
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
 
-use std::thread;
-
-#[derive(Debug, Copy, Clone)]
-pub enum ProgramStatus {
-    Run,
-    Quit,
-}
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    thread,
+};
 
 enum UciCommand {
     Uci,
@@ -33,6 +30,7 @@ pub struct UciHandler {
     history: History,
     tt: TranspositionTable,
     time_manager: TimeManager,
+    stored_message: Option<String>,
 }
 
 macro_rules! send_uci_option {
@@ -40,6 +38,17 @@ macro_rules! send_uci_option {
         print!("option name {} type {} ", $name, $type);
         println!($($format)*);
     };
+}
+
+fn end_of_transmission(buffer: &str) -> bool {
+    buffer
+        .chars()
+        .next()
+        .map_or(false, |c| c == char::from(0x04))
+}
+
+fn kill_program() {
+    std::process::exit(0);
 }
 
 impl UciHandler {
@@ -64,25 +73,30 @@ impl UciHandler {
             history: History::new(),
             tt: TranspositionTable::new(Self::HASH_DEFAULT),
             time_manager: TimeManager::new(Self::OVERHEAD_DEFAULT),
+            stored_message: None,
         }
     }
 
-    fn end_of_transmission(buffer: &str) -> bool {
-        buffer
-            .chars()
-            .next()
-            .map_or(false, |c| c == char::from(0x04))
-    }
-
-    pub fn execute_instructions(&mut self) -> ProgramStatus {
+    fn read_uci_input() -> String {
         let mut buffer = String::new();
         let bytes_read = std::io::stdin()
             .read_line(&mut buffer)
             .expect("UCI Input Failure");
 
-        if bytes_read == 0 || Self::end_of_transmission(buffer.as_str()) {
-            return ProgramStatus::Quit;
+        if bytes_read == 0 || end_of_transmission(buffer.as_str()) {
+            kill_program();
         }
+
+        buffer
+    }
+
+    pub fn execute_instructions(&mut self) {
+        let buffer = if let Some(message) = &self.stored_message {
+            message.clone()
+        } else {
+            Self::read_uci_input()
+        };
+        self.stored_message = None;
 
         let message = buffer.split_whitespace().collect::<Vec<&str>>();
 
@@ -134,12 +148,10 @@ impl UciHandler {
                         _ => (),
                     }
                 }
-                "quit" => return ProgramStatus::Quit,
+                "quit" => kill_program(),
                 _ => (),
             }
         }
-
-        ProgramStatus::Run
     }
 
     fn process_command(&mut self, command: UciCommand) {
@@ -265,11 +277,16 @@ impl UciHandler {
 
                 let mut searcher =
                     Searcher::new(search_limits, &self.zobrist_stack, &self.history, &self.tt);
+
+                let is_searching: AtomicBool = true.into();
                 thread::scope(|s| {
                     s.spawn(|| {
                         searcher.go(&self.board, true);
                         searcher.search_complete_actions(&mut self.history);
+                        is_searching.store(false, Ordering::Relaxed);
                     });
+
+                    Self::handle_stop_and_quit(&mut self.stored_message, &is_searching);
                 });
             }
             UciCommand::SetOptionOverhead(overhead) => {
@@ -279,6 +296,26 @@ impl UciHandler {
             UciCommand::SetOptionHash(megabytes) => {
                 self.tt = TranspositionTable::new(megabytes.clamp(Self::HASH_MIN, Self::HASH_MAX));
             }
+        }
+    }
+
+    fn handle_stop_and_quit(stored_message: &mut Option<String>, is_searching: &AtomicBool) {
+        loop {
+            let buffer = Self::read_uci_input();
+
+            match buffer.as_str().trim() {
+                "quit" => kill_program(),
+                "stop" => {
+                    search::write_stop_flag(true);
+                    return;
+                }
+                _ => {
+                    if !is_searching.load(Ordering::Relaxed) {
+                        *stored_message = Some(buffer);
+                        return;
+                    }
+                }
+            };
         }
     }
 }
