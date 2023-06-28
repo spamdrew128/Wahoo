@@ -271,6 +271,8 @@ impl UciHandler {
                         searcher.go(&self.board, true);
                         searcher.search_complete_actions(&mut self.history);
                     });
+
+                    handle_stop_and_quit();
                 });
             }
             UciCommand::SetOptionOverhead(overhead) => {
@@ -282,7 +284,7 @@ impl UciHandler {
             }
         }
 
-        fn handle_stop_and_quit() -> ProgramStatus {
+        fn handle_stop_and_quit() {
             loop {
                 let mut buffer = String::new();
                 let bytes_read = std::io::stdin()
@@ -290,12 +292,12 @@ impl UciHandler {
                     .expect("UCI Input Failure");
 
                 if bytes_read == 0 || end_of_transmission(buffer.as_str()) {
-                    return ProgramStatus::Quit;
+                    std::process::exit(0);
                 }
 
-                match buffer.as_str() {
-                    "stop" => todo!(),
-                    "quit" => todo!(),
+                match buffer.as_str().trim() {
+                    "stop" => return,
+                    "quit" => std::process::exit(0),
                     _ => (),
                 };
             }
