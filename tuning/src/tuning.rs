@@ -161,10 +161,10 @@ pub struct Tuner {
 
 impl Tuner {
     const K: f64 = 0.006634;
-    const CONVERGENCE_DELTA: f64 = 1e-8;
+    const CONVERGENCE_DELTA: f64 = 1e-7;
     const CONVERGENCE_CHECK_FREQ: u32 = 50;
     const MAX_EPOCHS: u32 = 20000;
-    const LEARN_RATE: f64 = 0.085;
+    const LEARN_RATE: f64 = 0.1;
 
     fn new_weights(from_zero: bool) -> TunerVec {
         if from_zero {
