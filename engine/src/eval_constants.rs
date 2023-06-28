@@ -82,6 +82,7 @@ pub const PASSER_PST: Pst = Pst::new([
   s(-18, 0), s(1, 0), s(0, -4), s(-36, 14), s(-17, -3), s(4, -6), s(26, -2), s(-13, 4), 
   s(0, 0), s(0, 0), s(0, 0), s(0, 0), s(0, 0), s(0, 0), s(0, 0), s(0, 0), 
 ]);
+
 pub const PASSER_BLOCKERS_RST: Rst = Rst::new([
   s(66, -203),
   s(32, -133),
