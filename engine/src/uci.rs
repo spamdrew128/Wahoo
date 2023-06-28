@@ -9,7 +9,10 @@ use crate::{
     zobrist_stack::ZobristStack,
 };
 
-use std::thread;
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    thread,
+};
 
 enum UciCommand {
     Uci,
@@ -72,7 +75,7 @@ impl UciHandler {
         }
     }
 
-    pub fn execute_instructions(&mut self) {
+    fn read_uci_input() -> String {
         let mut buffer = String::new();
         let bytes_read = std::io::stdin()
             .read_line(&mut buffer)
@@ -81,6 +84,12 @@ impl UciHandler {
         if bytes_read == 0 || end_of_transmission(buffer.as_str()) {
             kill_program();
         }
+
+        buffer
+    }
+
+    pub fn execute_instructions(&mut self) {
+        let buffer = Self::read_uci_input();
 
         let message = buffer.split_whitespace().collect::<Vec<&str>>();
 
@@ -262,13 +271,15 @@ impl UciHandler {
                 let mut searcher =
                     Searcher::new(search_limits, &self.zobrist_stack, &self.history, &self.tt);
 
+                let is_searching: AtomicBool = true.into();
                 thread::scope(|s| {
                     s.spawn(|| {
                         searcher.go(&self.board, true);
                         searcher.search_complete_actions(&mut self.history);
+                        is_searching.store(false, Ordering::Relaxed);
                     });
 
-                    handle_stop_and_quit();
+                    Self::handle_stop_and_quit(&is_searching);
                 });
             }
             UciCommand::SetOptionOverhead(overhead) => {
@@ -279,24 +290,21 @@ impl UciHandler {
                 self.tt = TranspositionTable::new(megabytes.clamp(Self::HASH_MIN, Self::HASH_MAX));
             }
         }
+    }
 
-        fn handle_stop_and_quit() {
-            loop {
-                let mut buffer = String::new();
-                let bytes_read = std::io::stdin()
-                    .read_line(&mut buffer)
-                    .expect("UCI Input Failure");
+    fn handle_stop_and_quit(is_searching: &AtomicBool) {
+        loop {
+            let buffer = Self::read_uci_input();
 
-                if bytes_read == 0 || end_of_transmission(buffer.as_str()) {
-                    kill_program();
+            match buffer.as_str().trim() {
+                "stop" => return,
+                "quit" => kill_program(),
+                _ => {
+                    if !is_searching.load(Ordering::Relaxed) {
+                        return;
+                    }
                 }
-
-                match buffer.as_str().trim() {
-                    "stop" => return,
-                    "quit" => kill_program(),
-                    _ => (),
-                };
-            }
+            };
         }
     }
 }
