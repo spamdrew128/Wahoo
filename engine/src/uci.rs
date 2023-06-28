@@ -11,12 +11,6 @@ use crate::{
 
 use std::thread;
 
-#[derive(Debug, Copy, Clone)]
-pub enum ProgramStatus {
-    Run,
-    Quit,
-}
-
 enum UciCommand {
     Uci,
     IsReady,
@@ -49,6 +43,10 @@ fn end_of_transmission(buffer: &str) -> bool {
         .map_or(false, |c| c == char::from(0x04))
 }
 
+fn kill_program() {
+    std::process::exit(0);
+}
+
 impl UciHandler {
     const OVERHEAD_DEFAULT: Milliseconds = 40;
     const OVERHEAD_MIN: Milliseconds = 0;
@@ -74,14 +72,14 @@ impl UciHandler {
         }
     }
 
-    pub fn execute_instructions(&mut self) -> ProgramStatus {
+    pub fn execute_instructions(&mut self) {
         let mut buffer = String::new();
         let bytes_read = std::io::stdin()
             .read_line(&mut buffer)
             .expect("UCI Input Failure");
 
         if bytes_read == 0 || end_of_transmission(buffer.as_str()) {
-            return ProgramStatus::Quit;
+            kill_program();
         }
 
         let message = buffer.split_whitespace().collect::<Vec<&str>>();
@@ -134,12 +132,10 @@ impl UciHandler {
                         _ => (),
                     }
                 }
-                "quit" => return ProgramStatus::Quit,
+                "quit" => kill_program(),
                 _ => (),
             }
         }
-
-        ProgramStatus::Run
     }
 
     fn process_command(&mut self, command: UciCommand) {
@@ -292,12 +288,12 @@ impl UciHandler {
                     .expect("UCI Input Failure");
 
                 if bytes_read == 0 || end_of_transmission(buffer.as_str()) {
-                    std::process::exit(0);
+                    kill_program();
                 }
 
                 match buffer.as_str().trim() {
                     "stop" => return,
-                    "quit" => std::process::exit(0),
+                    "quit" => kill_program(),
                     _ => (),
                 };
             }
