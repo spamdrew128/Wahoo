@@ -8,6 +8,7 @@
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::similar_names)]
+#![allow(clippy::items_after_statements)]
 #![allow(dead_code)] // remove later
 
 mod attacks;
