@@ -30,6 +30,7 @@ pub struct UciHandler {
     history: History,
     tt: TranspositionTable,
     time_manager: TimeManager,
+    stored_message: Option<String>,
 }
 
 macro_rules! send_uci_option {
@@ -72,6 +73,7 @@ impl UciHandler {
             history: History::new(),
             tt: TranspositionTable::new(Self::HASH_DEFAULT),
             time_manager: TimeManager::new(Self::OVERHEAD_DEFAULT),
+            stored_message: None,
         }
     }
 
@@ -89,7 +91,12 @@ impl UciHandler {
     }
 
     pub fn execute_instructions(&mut self) {
-        let buffer = Self::read_uci_input();
+        let buffer = if let Some(message) = &self.stored_message {
+            message.clone()
+        } else {
+            Self::read_uci_input()
+        };
+        self.stored_message = None;
 
         let message = buffer.split_whitespace().collect::<Vec<&str>>();
 
@@ -279,7 +286,7 @@ impl UciHandler {
                         is_searching.store(false, Ordering::Relaxed);
                     });
 
-                    Self::handle_stop_and_quit(&is_searching);
+                    Self::handle_stop_and_quit(&mut self.stored_message, &is_searching);
                 });
             }
             UciCommand::SetOptionOverhead(overhead) => {
@@ -292,7 +299,7 @@ impl UciHandler {
         }
     }
 
-    fn handle_stop_and_quit(is_searching: &AtomicBool) {
+    fn handle_stop_and_quit(stored_message: &mut Option<String>, is_searching: &AtomicBool) {
         loop {
             let buffer = Self::read_uci_input();
 
@@ -301,6 +308,7 @@ impl UciHandler {
                 "quit" => kill_program(),
                 _ => {
                     if !is_searching.load(Ordering::Relaxed) {
+                        *stored_message = Some(buffer);
                         return;
                     }
                 }
