@@ -3,7 +3,7 @@ use std::ops::{Add, AddAssign, Sub};
 use crate::{
     bitloop,
     board_representation::{Board, Color, Piece, Square},
-    eval_constants::{MATERIAL_PSTS, PASSER_PST, PASSER_BLOCKERS_RST},
+    eval_constants::{MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST},
     search::MAX_PLY,
 };
 

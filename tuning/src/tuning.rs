@@ -1,5 +1,7 @@
 use engine::{
-    board_representation::{Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_SQUARES},
+    board_representation::{
+        Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
+    },
     evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
 };
 use std::{
@@ -8,7 +10,7 @@ use std::{
     io::Write,
 };
 
-const TUNER_VEC_LEN: usize = MaterialPst::LEN + Passer::LEN;
+const TUNER_VEC_LEN: usize = MaterialPst::LEN + Passer::LEN + PasserBlocker::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -23,11 +25,21 @@ impl MaterialPst {
 
 struct Passer;
 impl Passer {
-    const START: usize = MaterialPst::LEN;
+    const START: usize = MaterialPst::START + MaterialPst::LEN;
     const LEN: usize = (NUM_SQUARES as usize);
 
     fn index(sq: Square) -> usize {
         Self::START + sq.as_index()
+    }
+}
+
+struct PasserBlocker;
+impl PasserBlocker {
+    const START: usize = Passer::START + Passer::LEN;
+    const LEN: usize = (NUM_RANKS as usize);
+
+    fn index(rank: u8) -> usize {
+        Self::START + rank as usize
     }
 }
 
@@ -66,6 +78,23 @@ impl Entry {
         }
     }
 
+    pub fn rst_update<F>(&mut self, w_pieces: Bitboard, b_pieces: Bitboard, index_fn: F)
+    where
+        F: Fn(u8) -> usize,
+    {
+        let rank = Bitboard::RANK_1;
+        for i in 0..NUM_RANKS {
+            let w_rank = rank.shift_north(7 - i);
+            let b_rank = rank.shift_north(i);
+
+            let value = (w_rank.intersection(w_pieces).popcount() as i8)
+                - (b_rank.intersection(b_pieces).popcount() as i8);
+            if value != 0 {
+                self.feature_vec.push(Feature::new(value, index_fn(i)));
+            }
+        }
+    }
+
     fn add_pst_features(&mut self, board: &Board) {
         for piece in Piece::LIST {
             let w_piece_bb = board.piece_bb(piece, Color::White);
@@ -78,6 +107,14 @@ impl Entry {
         let w_passers = board.passed_pawns(Color::White);
         let b_passers = board.passed_pawns(Color::Black);
         self.pst_update(w_passers, b_passers, Passer::index);
+
+        let blocking_white = w_passers
+            .north_one()
+            .intersection(board.all[Color::Black.as_index()]);
+        let blocking_black = b_passers
+            .south_one()
+            .intersection(board.all[Color::White.as_index()]);
+        self.rst_update(blocking_white, blocking_black, PasserBlocker::index);
     }
 
     fn new(board: &Board, game_result: f64) -> Self {

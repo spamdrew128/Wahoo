@@ -406,7 +406,17 @@ impl Bitboard {
     }
 
     pub fn file_fill(self) -> Self {
-        self.fill(Color::White).fill(Color::White)
+        self.fill(Color::White).fill(Color::Black)
+    }
+
+    pub fn rank_fill(self) -> Self {
+        let mut r = self;
+        r |= r.shift_east(1);
+        r |= r.shift_east(2);
+        r |= r.shift_east(4);
+        r |= r.shift_west(1);
+        r |= r.shift_west(2);
+        r | r.shift_west(4)
     }
 
     pub fn forward_fill(self, color: Color) -> Self {
