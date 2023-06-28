@@ -332,6 +332,23 @@ impl Tuner {
         writeln!(output, "\n]){closing_char}").unwrap();
     }
 
+    fn write_rst<F>(&self, output: &mut BufWriter<File>, closing_char: char, index_fn: F)
+    where
+        F: Fn(u8) -> usize,
+    {
+        write!(output, "Rst::new([").unwrap();
+        for i in 0..NUM_RANKS {
+            write!(
+                output,
+                "\n  s({}, {}),",
+                self.weights[MG][index_fn(i)] as EvalScore,
+                self.weights[EG][index_fn(i)] as EvalScore,
+            )
+            .unwrap();
+        }
+        writeln!(output, "\n]){closing_char}").unwrap();
+    }
+
     fn write_material_psts(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
@@ -352,10 +369,16 @@ impl Tuner {
         self.write_pst(output, ';', Passer::index);
     }
 
+    fn write_passer_blocker_rst(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const PASSER_BLOCKERS_RST: Rst = ").unwrap();
+        self.write_rst(output, ';', PasserBlocker::index);
+    }
+
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
         self.write_header(&mut output);
         self.write_material_psts(&mut output);
         self.write_passer_pst(&mut output);
+        self.write_passer_blocker_rst(&mut output);
     }
 }
