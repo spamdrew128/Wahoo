@@ -42,6 +42,13 @@ macro_rules! send_uci_option {
     };
 }
 
+fn end_of_transmission(buffer: &str) -> bool {
+    buffer
+        .chars()
+        .next()
+        .map_or(false, |c| c == char::from(0x04))
+}
+
 impl UciHandler {
     const OVERHEAD_DEFAULT: Milliseconds = 40;
     const OVERHEAD_MIN: Milliseconds = 0;
@@ -67,20 +74,13 @@ impl UciHandler {
         }
     }
 
-    fn end_of_transmission(buffer: &str) -> bool {
-        buffer
-            .chars()
-            .next()
-            .map_or(false, |c| c == char::from(0x04))
-    }
-
     pub fn execute_instructions(&mut self) -> ProgramStatus {
         let mut buffer = String::new();
         let bytes_read = std::io::stdin()
             .read_line(&mut buffer)
             .expect("UCI Input Failure");
 
-        if bytes_read == 0 || Self::end_of_transmission(buffer.as_str()) {
+        if bytes_read == 0 || end_of_transmission(buffer.as_str()) {
             return ProgramStatus::Quit;
         }
 
@@ -265,6 +265,7 @@ impl UciHandler {
 
                 let mut searcher =
                     Searcher::new(search_limits, &self.zobrist_stack, &self.history, &self.tt);
+
                 thread::scope(|s| {
                     s.spawn(|| {
                         searcher.go(&self.board, true);
@@ -278,6 +279,25 @@ impl UciHandler {
             }
             UciCommand::SetOptionHash(megabytes) => {
                 self.tt = TranspositionTable::new(megabytes.clamp(Self::HASH_MIN, Self::HASH_MAX));
+            }
+        }
+
+        fn handle_stop_and_quit() -> ProgramStatus {
+            loop {
+                let mut buffer = String::new();
+                let bytes_read = std::io::stdin()
+                    .read_line(&mut buffer)
+                    .expect("UCI Input Failure");
+
+                if bytes_read == 0 || end_of_transmission(buffer.as_str()) {
+                    return ProgramStatus::Quit;
+                }
+
+                match buffer.as_str() {
+                    "stop" => todo!(),
+                    "quit" => todo!(),
+                    _ => (),
+                };
             }
         }
     }
