@@ -3,7 +3,7 @@ use std::ops::{Add, AddAssign, Sub};
 use crate::{
     bitloop,
     board_representation::{Board, Color, Piece, Square},
-    eval_constants::{MATERIAL_PSTS, PASSER_PST},
+    eval_constants::{MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST},
     search::MAX_PLY,
 };
 
@@ -83,9 +83,23 @@ fn passed_pawns(board: &Board, color: Color) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
     let mut passers = board.passed_pawns(color);
 
+    let mut blockers = match color {
+        Color::White => passers
+            .north_one()
+            .intersection(board.all[Color::Black.as_index()]),
+        Color::Black => passers
+            .south_one()
+            .intersection(board.all[Color::White.as_index()]),
+    };
+
     bitloop!(|sq|, passers, {
         score += PASSER_PST.access(color, sq);
     });
+
+    bitloop!(|sq|, blockers, {
+        score += PASSER_BLOCKERS_RST.access(color, sq);
+    });
+
     score
 }
 

@@ -9,6 +9,8 @@ type Row = u8;
 type Col = u8;
 
 pub const NUM_SQUARES: u8 = 64;
+pub const NUM_RANKS: u8 = 8;
+pub const NUM_FILES: u8 = 8;
 pub const NUM_PIECES: u8 = 6;
 pub const NUM_COLORS: u8 = 2;
 pub const START_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0";
@@ -151,7 +153,7 @@ impl Square {
         Self(self.0 ^ 0b111000)
     }
 
-    const fn rank(self) -> u8 {
+    pub const fn rank(self) -> u8 {
         self.0 / 8
     }
 
@@ -404,7 +406,17 @@ impl Bitboard {
     }
 
     pub fn file_fill(self) -> Self {
-        self.fill(Color::White).fill(Color::White)
+        self.fill(Color::White).fill(Color::Black)
+    }
+
+    pub fn rank_fill(self) -> Self {
+        let mut r = self;
+        r |= r.shift_east(1);
+        r |= r.shift_east(2);
+        r |= r.shift_east(4);
+        r |= r.shift_west(1);
+        r |= r.shift_west(2);
+        r | r.shift_west(4)
     }
 
     pub fn forward_fill(self, color: Color) -> Self {
