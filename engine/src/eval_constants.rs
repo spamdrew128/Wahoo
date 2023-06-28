@@ -1,5 +1,5 @@
 #![cfg_attr(rustfmt, rustfmt_skip)]
-use crate::{evaluation::ScoreTuple, board_representation::NUM_PIECES, pst::Pst};
+use crate::{evaluation::ScoreTuple, board_representation::NUM_PIECES, pst::{Pst, Rst}};
 
 const fn s(mg: i16, eg: i16) -> ScoreTuple { ScoreTuple::new(mg, eg) }
 
@@ -81,4 +81,8 @@ pub const PASSER_PST: Pst = Pst::new([
   s(0, 2), s(-41, 20), s(-3, 15), s(-18, 5), s(-19, 12), s(-5, 15), s(-19, 23), s(8, 6), 
   s(28, -15), s(-9, 9), s(3, -14), s(-10, -5), s(17, -10), s(-22, 14), s(-1, 9), s(-1, -5), 
   s(0, 0), s(0, 0), s(0, 0), s(0, 0), s(0, 0), s(0, 0), s(0, 0), s(0, 0), 
+]);
+
+pub const PASSER_BLOCKERS_RST: Rst = Rst::new([
+  s(0, 0), s(0, 0), s(0, 0), s(0, 0), s(0, 0), s(0, 0), s(0, 0), s(0, 0),
 ]);
