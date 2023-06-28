@@ -393,7 +393,7 @@ impl Tuner {
     fn write_tempo(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
-            "pub const TEMPO_BONUS: EvalScore = s({}, {});",
+            "pub const TEMPO_BONUS: ScoreTuple = s({}, {});",
             self.weights[MG][Tempo::index()] as EvalScore,
             self.weights[EG][Tempo::index()] as EvalScore,
         )
