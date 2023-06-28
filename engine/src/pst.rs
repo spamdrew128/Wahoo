@@ -1,5 +1,5 @@
 use crate::{
-    board_representation::{Color, Square, NUM_COLORS, NUM_SQUARES, NUM_RANKS},
+    board_representation::{Color, Square, NUM_COLORS, NUM_RANKS, NUM_SQUARES},
     evaluation::ScoreTuple,
 };
 
