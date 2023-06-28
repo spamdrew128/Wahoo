@@ -10,7 +10,7 @@ use std::{
     io::Write,
 };
 
-const TUNER_VEC_LEN: usize = MaterialPst::LEN + Passer::LEN + PasserBlocker::LEN + Tempo::LEN;
+const TUNER_VEC_LEN: usize = MaterialPst::LEN + Passer::LEN + PasserBlocker::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -40,16 +40,6 @@ impl PasserBlocker {
 
     fn index(rank: u8) -> usize {
         Self::START + rank as usize
-    }
-}
-
-struct Tempo;
-impl Tempo {
-    const START: usize = PasserBlocker::START + PasserBlocker::LEN;
-    const LEN: usize = 1;
-
-    fn index() -> usize {
-        Self::START
     }
 }
 
@@ -136,12 +126,6 @@ impl Entry {
 
         entry.add_pst_features(board);
         entry.add_passer_features(board);
-
-        let tempo = match board.color_to_move {
-            Color::White => Feature::new(1, Tempo::index()),
-            Color::Black => Feature::new(-1, Tempo::index()),
-        };
-        entry.feature_vec.push(tempo);
 
         entry
     }
@@ -390,22 +374,11 @@ impl Tuner {
         self.write_rst(output, ";\n", PasserBlocker::index);
     }
 
-    fn write_tempo(&self, output: &mut BufWriter<File>) {
-        writeln!(
-            output,
-            "pub const TEMPO_BONUS: ScoreTuple = s({}, {});",
-            self.weights[MG][Tempo::index()] as EvalScore,
-            self.weights[EG][Tempo::index()] as EvalScore,
-        )
-        .unwrap();
-    }
-
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
         self.write_header(&mut output);
         self.write_material_psts(&mut output);
         self.write_passer_pst(&mut output);
         self.write_passer_blocker_rst(&mut output);
-        self.write_tempo(&mut output);
     }
 }

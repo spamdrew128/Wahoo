@@ -3,7 +3,7 @@ use std::ops::{Add, AddAssign, Sub};
 use crate::{
     bitloop,
     board_representation::{Board, Color, Piece, Square},
-    eval_constants::{MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST, TEMPO_BONUS},
+    eval_constants::{MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST},
     search::MAX_PLY,
 };
 
@@ -110,7 +110,6 @@ pub fn evaluate(board: &Board) -> EvalScore {
     let mut score_tuple = ScoreTuple::new(0, 0);
     score_tuple += pst_eval(board, us) - pst_eval(board, them);
     score_tuple += passed_pawns(board, us) - passed_pawns(board, them);
-    score_tuple += TEMPO_BONUS;
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
