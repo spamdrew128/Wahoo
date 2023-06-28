@@ -161,10 +161,10 @@ pub struct Tuner {
 
 impl Tuner {
     const K: f64 = 0.006634;
-    const CONVERGENCE_DELTA: f64 = 5e-6;
+    const CONVERGENCE_DELTA: f64 = 1e-7;
     const CONVERGENCE_CHECK_FREQ: u32 = 50;
     const MAX_EPOCHS: u32 = 20000;
-    const LEARN_RATE: f64 = 0.05;
+    const LEARN_RATE: f64 = 0.1;
 
     fn new_weights(from_zero: bool) -> TunerVec {
         if from_zero {
@@ -311,7 +311,7 @@ impl Tuner {
         .unwrap();
     }
 
-    fn write_pst<F>(&self, output: &mut BufWriter<File>, closing_char: char, index_fn: F)
+    fn write_pst<F>(&self, output: &mut BufWriter<File>, closing_str: &str, index_fn: F)
     where
         F: Fn(Square) -> usize,
     {
@@ -329,10 +329,10 @@ impl Tuner {
             )
             .unwrap();
         }
-        writeln!(output, "\n]){closing_char}").unwrap();
+        writeln!(output, "\n]){closing_str}").unwrap();
     }
 
-    fn write_rst<F>(&self, output: &mut BufWriter<File>, closing_char: char, index_fn: F)
+    fn write_rst<F>(&self, output: &mut BufWriter<File>, closing_str: &str, index_fn: F)
     where
         F: Fn(u8) -> usize,
     {
@@ -346,7 +346,7 @@ impl Tuner {
             )
             .unwrap();
         }
-        writeln!(output, "\n]){closing_char}").unwrap();
+        writeln!(output, "\n]){closing_str}").unwrap();
     }
 
     fn write_material_psts(&self, output: &mut BufWriter<File>) {
@@ -358,7 +358,7 @@ impl Tuner {
 
         for piece in Piece::LIST {
             writeln!(output, "// {} PST", piece.as_string().unwrap()).unwrap();
-            self.write_pst(output, ',', |sq| MaterialPst::index(piece, sq));
+            self.write_pst(output, ",", |sq| MaterialPst::index(piece, sq));
         }
 
         writeln!(output, "];\n").unwrap();
@@ -366,12 +366,12 @@ impl Tuner {
 
     fn write_passer_pst(&self, output: &mut BufWriter<File>) {
         write!(output, "pub const PASSER_PST: Pst = ").unwrap();
-        self.write_pst(output, ';', Passer::index);
+        self.write_pst(output, ";\n", Passer::index);
     }
 
     fn write_passer_blocker_rst(&self, output: &mut BufWriter<File>) {
         write!(output, "pub const PASSER_BLOCKERS_RST: Rst = ").unwrap();
-        self.write_rst(output, ';', PasserBlocker::index);
+        self.write_rst(output, ";", PasserBlocker::index);
     }
 
     fn create_output_file(&self) {
