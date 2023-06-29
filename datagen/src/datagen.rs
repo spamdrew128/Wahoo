@@ -7,8 +7,10 @@ use engine::{
     board_representation::{Board, Color, START_FEN},
     chess_move::Move,
     evaluation::{evaluate, EvalScore, INF, MATE_THRESHOLD},
+    history_table::History,
     movegen::MoveGenerator,
     search::{Ply, SearchLimit, SearchResults, Searcher},
+    transposition_table::TranspositionTable,
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
@@ -24,8 +26,8 @@ fn simple_qsearch(board: &Board, mut alpha: EvalScore, beta: EvalScore) -> EvalS
     let mut generator = MoveGenerator::new();
 
     let mut best_score = stand_pat;
-    while let Some(mv) = generator.next::<false>(board) {
-        let mut next_board = (*board).clone();
+    while let Some(mv) = generator.simple_next::<false>(board) {
+        let mut next_board = board.clone();
         let is_legal = next_board.simple_try_play_move(mv);
         if !is_legal {
             continue;
@@ -50,7 +52,10 @@ fn simple_qsearch(board: &Board, mut alpha: EvalScore, beta: EvalScore) -> EvalS
 }
 
 fn pos_is_quiet(board: &Board) -> bool {
-    simple_qsearch(board, -INF, INF) == evaluate(board)
+    const THRESHOLD: EvalScore = 30;
+    let q = simple_qsearch(board, -INF, INF);
+    let e = evaluate(board);
+    (q <= e + THRESHOLD) && (q >= e - THRESHOLD)
 }
 
 pub struct DataGenerator {
@@ -60,7 +65,7 @@ pub struct DataGenerator {
 
     board: Board,
     zobrist_stack: ZobristStack,
-    search_limit: SearchLimit,
+    search_limits: Vec<SearchLimit>,
 
     file: BufWriter<File>,
 }
@@ -71,7 +76,7 @@ impl DataGenerator {
     const DRAW: &str = "0.5";
     const LOSS: &str = "0.0";
 
-    pub fn new(search_limit: SearchLimit, path: &str) -> Self {
+    pub fn new(search_limits: Vec<SearchLimit>, path: &str) -> Self {
         let board = Board::from_fen(START_FEN);
         Self {
             rng: Rng::new(),
@@ -79,7 +84,7 @@ impl DataGenerator {
             positions_written: 0,
             board: board.clone(),
             zobrist_stack: ZobristStack::new(&board),
-            search_limit,
+            search_limits,
             file: BufWriter::new(File::create(path).unwrap()),
         }
     }
@@ -87,7 +92,7 @@ impl DataGenerator {
     fn random_legal_move(&mut self, board: &Board) -> Option<Move> {
         let mut generator = MoveGenerator::new();
         let mut move_list: Vec<Move> = vec![];
-        while let Some(mv) = generator.next::<true>(board) {
+        while let Some(mv) = generator.simple_next::<true>(board) {
             let mut board_clone = board.clone();
             if board_clone.simple_try_play_move(mv) {
                 move_list.push(mv);
@@ -133,9 +138,18 @@ impl DataGenerator {
         let mut positions: Vec<Board> = vec![];
         let mut result = Self::DRAW;
 
+        let mut history = History::new();
+        let tt = TranspositionTable::new(16);
         loop {
-            let mut searcher = Searcher::new(self.search_limit, self.zobrist_stack.clone());
+            let mut searcher = Searcher::new(
+                self.search_limits.clone(),
+                &self.zobrist_stack,
+                &history,
+                &tt,
+            );
+
             let SearchResults { best_move, score } = searcher.go(&self.board, false);
+            searcher.search_complete_actions(&mut history);
 
             if score > MATE_THRESHOLD {
                 result = match self.board.color_to_move {

@@ -4,7 +4,7 @@ use crate::board_representation::Color;
 
 pub type Milliseconds = u128;
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq)]
 pub struct TimeArgs {
     pub w_time: Milliseconds,
     pub b_time: Milliseconds,

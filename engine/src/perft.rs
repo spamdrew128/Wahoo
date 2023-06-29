@@ -173,8 +173,13 @@ fn perft(board: &Board, depth: u16, count: &mut u64) {
 
     let mut generator = MoveGenerator::new();
 
-    while let Some(mv) = generator.next::<true>(board) {
-        let mut new_board = (*board).clone();
+    while let Some(mv) = generator.simple_next::<true>(board) {
+        if !mv.is_pseudolegal(board) {
+            board.print();
+            panic!("Fen: {}\nMove: {}", board.to_fen(), mv.as_string());
+        }
+
+        let mut new_board = board.clone();
         if new_board.simple_try_play_move(mv) {
             perft(&new_board, depth - 1, count);
         }
@@ -185,7 +190,7 @@ pub fn split_perft(fen: &str, depth: u16) {
     let board = Board::from_fen(fen);
     let mut generator = MoveGenerator::new();
 
-    while let Some(mv) = generator.next::<true>(&board) {
+    while let Some(mv) = generator.simple_next::<true>(&board) {
         let mut new_board = board.clone();
         if new_board.simple_try_play_move(mv) {
             let mut count = 0;
@@ -244,4 +249,15 @@ pub fn speed_test() {
         elapsed,
         (count as f64 / elapsed) / f64::from(1000000)
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::run_test_suite;
+
+    #[test]
+    #[ignore = "takes too long"]
+    fn position_suite() {
+        run_test_suite();
+    }
 }

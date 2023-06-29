@@ -73,7 +73,21 @@ impl ZobristHash {
         Self(hash)
     }
 
-    pub const fn as_index(self) -> usize {
+    pub const fn nullmove_base(board: &Board) -> Self {
+        let mut hash: u64 = ZOBRIST_KEYS.black_to_move;
+
+        if let Some(ep_sq) = board.ep_sq {
+            hash ^= ZOBRIST_KEYS.ep_file[ep_sq.file() as usize];
+        }
+
+        Self(hash)
+    }
+
+    pub const fn as_u64(self) -> u64 {
+        self.0
+    }
+
+    pub const fn as_usize(self) -> usize {
         self.0 as usize
     }
 }

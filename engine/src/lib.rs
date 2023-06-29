@@ -8,6 +8,8 @@
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::similar_names)]
+#![allow(clippy::items_after_statements)]
+#![allow(clippy::option_if_let_else)]
 #![allow(dead_code)] // remove later
 
 mod attacks;
@@ -16,12 +18,17 @@ pub mod board_representation;
 pub mod chess_move;
 mod eval_constants;
 pub mod evaluation;
+pub mod history_table;
+mod killers;
+mod late_move_reductions;
 mod magic;
 pub mod movegen;
 mod perft;
+mod pst;
 mod pv_table;
 pub mod search;
 pub mod time_management;
+pub mod transposition_table;
 pub mod uci;
 mod util_macros;
 pub mod zobrist;

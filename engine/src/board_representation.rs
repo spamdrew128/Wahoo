@@ -9,6 +9,8 @@ type Row = u8;
 type Col = u8;
 
 pub const NUM_SQUARES: u8 = 64;
+pub const NUM_RANKS: u8 = 8;
+pub const NUM_FILES: u8 = 8;
 pub const NUM_PIECES: u8 = 6;
 pub const NUM_COLORS: u8 = 2;
 pub const START_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0";
@@ -151,7 +153,7 @@ impl Square {
         Self(self.0 ^ 0b111000)
     }
 
-    const fn rank(self) -> u8 {
+    pub const fn rank(self) -> u8 {
         self.0 / 8
     }
 
@@ -387,6 +389,44 @@ impl Bitboard {
         result
     }
 
+    pub fn fill(self, color: Color) -> Self {
+        let mut r = self;
+        match color {
+            Color::White => {
+                r |= r.shift_north(1);
+                r |= r.shift_north(2);
+                r | r.shift_north(4)
+            }
+            Color::Black => {
+                r |= r.shift_south(1);
+                r |= r.shift_south(2);
+                r | r.shift_south(4)
+            }
+        }
+    }
+
+    pub fn file_fill(self) -> Self {
+        self.fill(Color::White).fill(Color::Black)
+    }
+
+    pub fn rank_fill(self) -> Self {
+        let mut r = self;
+        r |= r.shift_east(1);
+        r |= r.shift_east(2);
+        r |= r.shift_east(4);
+        r |= r.shift_west(1);
+        r |= r.shift_west(2);
+        r | r.shift_west(4)
+    }
+
+    pub fn forward_fill(self, color: Color) -> Self {
+        let fill = self.fill(color);
+        match color {
+            Color::White => fill.north_one(),
+            Color::Black => fill.south_one(),
+        }
+    }
+
     pub fn print(self) {
         for i in 0..NUM_SQUARES {
             let bitset = fen_index_as_bitboard(i);
@@ -509,7 +549,7 @@ impl CastleRights {
         self.has_kingside(color)
             && !(occ_mask.overlaps(board.occupied())
                 || thru_sq.is_attacked(board)
-                || board.king_sq().is_attacked(board))
+                || board.in_check())
     }
 
     pub const fn can_qs_castle(self, board: &Board) -> bool {
@@ -521,7 +561,7 @@ impl CastleRights {
             && !(occ_mask.overlaps(board.occupied())
                 || thru_sq_1.is_attacked(board)
                 || thru_sq_2.is_attacked(board)
-                || board.king_sq().is_attacked(board))
+                || board.in_check())
     }
 
     pub const fn as_index(self) -> usize {
@@ -742,6 +782,10 @@ impl Board {
         self.piece_bb(Piece::KING, self.color_to_move).lsb()
     }
 
+    pub const fn in_check(&self) -> bool {
+        self.king_sq().is_attacked(self)
+    }
+
     pub const fn promotable_pawns(&self) -> Bitboard {
         let color = self.color_to_move;
         let pawns = self.piece_bb(Piece::PAWN, color);
@@ -877,7 +921,7 @@ impl Board {
             _ => panic!("Invalid Move!"),
         }
 
-        if self.king_sq().is_attacked(self) {
+        if self.in_check() {
             return false;
         }
 
@@ -896,6 +940,13 @@ impl Board {
         let mut dummy_stack = ZobristStack::new(self);
         let dummy_base = ZobristHash::incremental_update_base(self);
         self.try_play_move(mv, &mut dummy_stack, dummy_base)
+    }
+
+    pub fn play_nullmove(&mut self, zobrist_stack: &mut ZobristStack) {
+        let null_base = ZobristHash::nullmove_base(self);
+        self.color_to_move = self.color_to_move.flip();
+        self.ep_sq = None;
+        zobrist_stack.add_hash(null_base);
     }
 
     pub const fn fifty_move_draw(&self) -> bool {
@@ -919,6 +970,23 @@ impl Board {
         self.only_minor_pieces_on_board()
             && self.at_most_one_minor_piece(Color::White)
             && self.at_most_one_minor_piece(Color::Black)
+    }
+
+    pub fn we_only_have_pawns(&self) -> bool {
+        let us = self.us();
+        let kings = self.piece_bb(Piece::KING, self.color_to_move);
+        let pawns = self.piece_bb(Piece::PAWN, self.color_to_move);
+        us == (kings.union(pawns))
+    }
+
+    pub fn passed_pawns(&self, color: Color) -> Bitboard {
+        let our_pawns = self.piece_bb(Piece::PAWN, color);
+        let their_pawns = self.piece_bb(Piece::PAWN, color.flip());
+
+        let opp_front_span = their_pawns.forward_fill(color.flip());
+        let opp_blocks = opp_front_span | opp_front_span.east_one() | opp_front_span.west_one();
+
+        our_pawns.without(opp_blocks)
     }
 }
 
@@ -1048,5 +1116,15 @@ mod tests {
     fn material_draw_dection() {
         let board = Board::from_fen("8/8/4k3/8/8/3K4/R7/8 w - - 0 1");
         assert!(!board.insufficient_material_draw());
+    }
+
+    #[test]
+    fn passed_pawns() {
+        let board = Board::from_fen("5k2/8/p1p4p/P4K2/8/1PP5/3PpP2/8 w - - 0 1");
+        let w_expected = bb_from_squares!(F2);
+        let b_expected = bb_from_squares!(E2, H6);
+
+        assert_eq!(board.passed_pawns(Color::White), w_expected);
+        assert_eq!(board.passed_pawns(Color::Black), b_expected);
     }
 }

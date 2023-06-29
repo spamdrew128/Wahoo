@@ -1,12 +1,21 @@
-use std::time::Instant;
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::Instant,
+};
+
+use arrayvec::ArrayVec;
 
 use crate::{
     board_representation::Board,
-    chess_move::Move,
+    chess_move::{Move, MAX_MOVECOUNT},
     evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
+    history_table::History,
+    killers::Killers,
+    late_move_reductions::get_reduction,
     movegen::MoveGenerator,
     pv_table::PvTable,
     time_management::{Milliseconds, SearchTimer},
+    transposition_table::{TTFlag, TranspositionTable},
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
@@ -16,6 +25,16 @@ pub type Depth = i8;
 pub type Ply = u8;
 const MAX_DEPTH: Depth = i8::MAX;
 pub const MAX_PLY: Ply = MAX_DEPTH as u8;
+
+static STOP_FLAG: AtomicBool = AtomicBool::new(false);
+
+pub fn write_stop_flag(val: bool) {
+    STOP_FLAG.store(val, Ordering::Relaxed);
+}
+
+fn stop_flag_is_set() -> bool {
+    STOP_FLAG.load(Ordering::Relaxed)
+}
 
 pub struct SearchResults {
     pub best_move: Move,
@@ -36,14 +55,16 @@ pub enum SearchLimit {
     Time(Milliseconds),
     Depth(Depth),
     Nodes(Nodes),
-    None,
 }
 
 #[derive(Debug)]
-pub struct Searcher {
-    search_limit: SearchLimit,
+pub struct Searcher<'a> {
+    search_limits: Vec<SearchLimit>,
     zobrist_stack: ZobristStack,
     pv_table: PvTable,
+    history: History,
+    killers: Killers,
+    tt: &'a TranspositionTable,
 
     timer: Option<SearchTimer>,
     out_of_time: bool,
@@ -51,19 +72,32 @@ pub struct Searcher {
     seldepth: u8,
 }
 
-impl Searcher {
+impl<'a> Searcher<'a> {
     const TIMER_CHECK_FREQ: u64 = 1024;
 
-    pub const fn new(search_limit: SearchLimit, zobrist_stack: ZobristStack) -> Self {
+    pub fn new(
+        search_limits: Vec<SearchLimit>,
+        zobrist_stack: &ZobristStack,
+        history: &History,
+        tt: &'a TranspositionTable,
+    ) -> Self {
         Self {
-            search_limit,
-            zobrist_stack,
+            search_limits,
+            zobrist_stack: zobrist_stack.clone(),
+            history: history.clone(),
+            killers: Killers::new(),
+            tt,
             pv_table: PvTable::new(),
             timer: None,
             out_of_time: false,
             node_count: 0,
             seldepth: 0,
         }
+    }
+
+    pub fn search_complete_actions(&self, uci_history: &mut History) {
+        *uci_history = self.history.clone();
+        uci_history.age_scores();
     }
 
     fn report_search_info(&self, score: EvalScore, depth: Depth, stopwatch: Instant) {
@@ -86,25 +120,30 @@ impl Searcher {
 
         print!("info ");
         println!(
-            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} pv {}",
+            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} hashfull {} pv {}",
             self.node_count,
             elapsed.as_millis(),
             self.seldepth,
+            self.tt.hashfull(),
             self.pv_table.pv_string()
         );
     }
 
-    const fn stop_searching(&self, depth: Depth) -> bool {
+    fn stop_searching(&self, depth: Depth) -> bool {
         if depth == MAX_DEPTH {
             return true;
         }
 
-        match self.search_limit {
-            SearchLimit::Time(_) => self.out_of_time,
-            SearchLimit::Depth(depth_limit) => depth > depth_limit,
-            SearchLimit::Nodes(node_limit) => self.node_count > node_limit,
-            SearchLimit::None => true,
+        let mut result = false;
+        for &limit in &self.search_limits {
+            result |= match limit {
+                SearchLimit::Time(_) => self.out_of_time,
+                SearchLimit::Depth(depth_limit) => depth > depth_limit,
+                SearchLimit::Nodes(node_limit) => self.node_count > node_limit,
+            }
         }
+
+        result
     }
 
     fn is_out_of_time(&self) -> bool {
@@ -118,16 +157,22 @@ impl Searcher {
     }
 
     pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
+        write_stop_flag(false);
+
         for d in 1..depth {
-            self.negamax(board, d, 0, -INF, INF);
+            self.negamax::<true>(board, d, 0, -INF, INF);
         }
 
         self.node_count
     }
 
     pub fn go(&mut self, board: &Board, report_info: bool) -> SearchResults {
-        if let SearchLimit::Time(limit) = self.search_limit {
-            self.timer = Some(SearchTimer::new(limit));
+        write_stop_flag(false);
+
+        for &limit in &self.search_limits {
+            if let SearchLimit::Time(t) = limit {
+                self.timer = Some(SearchTimer::new(t));
+            }
         }
 
         let stopwatch = std::time::Instant::now();
@@ -137,9 +182,9 @@ impl Searcher {
         while !self.stop_searching(depth) {
             self.seldepth = 0;
 
-            let score = self.negamax(board, depth, 0, -INF, INF);
+            let score = self.negamax::<true>(board, depth, 0, -INF, INF);
 
-            if self.out_of_time {
+            if self.out_of_time || stop_flag_is_set() {
                 break;
             }
 
@@ -164,7 +209,8 @@ impl Searcher {
         search_results
     }
 
-    fn negamax(
+    #[rustfmt::skip]
+    fn negamax<const DO_NULL_MOVE: bool>(
         &mut self,
         board: &Board,
         depth: Depth,
@@ -174,8 +220,11 @@ impl Searcher {
     ) -> EvalScore {
         self.pv_table.set_length(ply);
 
-        let is_root: bool = ply == 0;
-        let is_drawn: bool =
+        let old_alpha = alpha;
+        let in_check = board.in_check();
+        let is_pv = beta != alpha + 1;
+        let is_root = ply == 0;
+        let is_drawn =
             self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
 
         if !is_root && is_drawn {
@@ -194,13 +243,62 @@ impl Searcher {
         self.seldepth = self.seldepth.max(ply);
 
         let hash_base = ZobristHash::incremental_update_base(board);
+        let hash = self.zobrist_stack.current_zobrist_hash();
+
+        let tt_move = if let Some(entry) = self.tt.probe(hash) {
+            if !is_pv && entry.cutoff_is_possible(alpha, beta, depth) {
+                return entry.score_from_tt(ply);
+            }
+
+            entry.best_move
+        } else {
+            Move::nullmove()
+        };
+
+        if !is_pv && !in_check {
+            // NULL MOVE PRUNING
+            const NMP_MIN_DEPTH: Depth = 3;
+            if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH && !board.we_only_have_pawns() {
+                let mut reduction = 3;
+                reduction = reduction.min(depth);
+
+                let mut nmp_board = board.clone();
+                nmp_board.play_nullmove(&mut self.zobrist_stack);
+                let null_move_score = -self.negamax::<false>(
+                    &nmp_board,
+                    depth - reduction,
+                    ply + 1,
+                    -beta,
+                    -beta + 1,
+                );
+
+                self.zobrist_stack.revert_state();
+
+                if null_move_score >= beta {
+                    return null_move_score;
+                }
+            }
+
+            // REVERSE FUTILITY PRUNING
+            const RFP_MAX_DEPTH: Depth = 8;
+            const RFP_MARGIN: EvalScore = 120;
+
+            let static_eval = evaluate(board);
+            if depth <= RFP_MAX_DEPTH && static_eval >= (beta + RFP_MARGIN * i16::from(depth)) {
+                return static_eval;
+            }
+        }
 
         let mut generator = MoveGenerator::new();
 
+        let mut best_move = Move::nullmove();
         let mut best_score = -INF;
         let mut moves_played = 0;
-        while let Some(mv) = generator.next::<true>(board) {
-            let mut next_board = (*board).clone();
+        let mut quiets: ArrayVec<Move, MAX_MOVECOUNT> = ArrayVec::new();
+        while let Some(mv) =
+            generator.next::<true>(board, &self.history, self.killers.killer(ply), tt_move)
+        {
+            let mut next_board = board.clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
             if !is_legal {
                 continue;
@@ -209,18 +307,62 @@ impl Searcher {
             self.node_count += 1;
             moves_played += 1;
 
-            let score = -self.negamax(&next_board, depth - 1, ply + 1, -beta, -alpha);
+            let mut score = 0;
+            if moves_played == 1 {
+                score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -beta, -alpha);
+            } else {
+                // LATE MOVE REDUCTIONS (heavily inspired by Svart https://github.com/crippa1337/svart/blob/master/src/engine/search.rs)
+                const LMR_MIN_DEPTH: Depth = 3;
+                let lmr_threshold = if is_pv { 5 } else { 3 };
+
+                let mut do_full_depth_pvs = true;
+                if !in_check && depth >= LMR_MIN_DEPTH && moves_played > lmr_threshold {
+                    let mut r = get_reduction(depth, moves_played);
+                    if !is_pv {
+                        r += 1;
+                    }
+
+                    if r > 1 {
+                        // REDUCED PVS
+                        r = r.min(depth - 1);
+                        score = -self.negamax::<true>(&next_board, depth - r, ply + 1, -alpha - 1, -alpha);
+                        do_full_depth_pvs = score > alpha && score < beta; // we want to try again without reductions if we beat alpha
+                    }
+                }
+
+                if do_full_depth_pvs {
+                    // FULL DEPTH PVS
+                    score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -alpha - 1, -alpha);
+
+                    // if our null-window search beat alpha without failing high, that means we might have a better move and need to re search with full window
+                    if score > alpha && score < beta {
+                        score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -beta, -alpha);
+                    }
+                }
+            };
 
             self.zobrist_stack.revert_state();
 
-            if self.out_of_time {
+            if self.out_of_time || stop_flag_is_set() {
                 return 0;
             }
 
+            let is_quiet = generator.is_quiet_stage();
+            // I am well aware that this does not include killer moves, but for
+            // some reason it loses Elo when I include them. Screw engine development.
+            if is_quiet {
+                quiets.push(mv);
+            }
+
             if score > best_score {
+                best_move = mv;
                 best_score = score;
 
                 if score >= beta {
+                    if is_quiet {
+                        self.killers.update(mv, ply);
+                        self.history.update(board, quiets.as_slice(), depth);
+                    }
                     break;
                 }
 
@@ -233,13 +375,15 @@ impl Searcher {
 
         if moves_played == 0 {
             // either checkmate or stalemate
-            return if board.king_sq().is_attacked(board) {
+            return if in_check {
                 -EVAL_MAX + i16::from(ply)
             } else {
                 0
             };
         }
 
+        let tt_flag = TTFlag::determine(best_score, old_alpha, alpha, beta);
+        self.tt.store(tt_flag, best_score, hash, ply, depth, best_move);
         best_score
     }
 
@@ -271,8 +415,10 @@ impl Searcher {
         let mut generator = MoveGenerator::new();
 
         let mut best_score = stand_pat;
-        while let Some(mv) = generator.next::<false>(board) {
-            let mut next_board = (*board).clone();
+        while let Some(mv) =
+            generator.next::<false>(board, &self.history, Move::nullmove(), Move::nullmove())
+        {
+            let mut next_board = board.clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
             if !is_legal {
                 continue;
@@ -284,7 +430,7 @@ impl Searcher {
 
             self.zobrist_stack.revert_state();
 
-            if self.out_of_time {
+            if self.out_of_time || stop_flag_is_set() {
                 return 0;
             }
 

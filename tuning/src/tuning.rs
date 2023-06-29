@@ -1,5 +1,7 @@
 use engine::{
-    board_representation::{Board, Color, Piece, Square, NUM_PIECES, NUM_SQUARES},
+    board_representation::{
+        Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
+    },
     evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
 };
 use std::{
@@ -8,15 +10,36 @@ use std::{
     io::Write,
 };
 
-type TunerVec = [[f64; Pst::LEN]; NUM_PHASES];
+const TUNER_VEC_LEN: usize = MaterialPst::LEN + Passer::LEN + PasserBlocker::LEN;
+type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
-struct Pst;
-impl Pst {
+struct MaterialPst;
+impl MaterialPst {
     const START: usize = 0;
     const LEN: usize = (NUM_PIECES as usize) * (NUM_SQUARES as usize);
 
     fn index(piece: Piece, sq: Square) -> usize {
         Self::START + usize::from(NUM_SQUARES) * piece.as_index() + sq.as_index()
+    }
+}
+
+struct Passer;
+impl Passer {
+    const START: usize = MaterialPst::START + MaterialPst::LEN;
+    const LEN: usize = (NUM_SQUARES as usize);
+
+    fn index(sq: Square) -> usize {
+        Self::START + sq.as_index()
+    }
+}
+
+struct PasserBlocker;
+impl PasserBlocker {
+    const START: usize = Passer::START + Passer::LEN;
+    const LEN: usize = (NUM_RANKS as usize);
+
+    fn index(rank: u8) -> usize {
+        Self::START + rank as usize
     }
 }
 
@@ -38,23 +61,60 @@ struct Entry {
 }
 
 impl Entry {
+    pub fn pst_update<F>(&mut self, w_pieces: Bitboard, b_pieces: Bitboard, index_fn: F)
+    where
+        F: Fn(Square) -> usize,
+    {
+        for i in 0..NUM_SQUARES {
+            let sq = Square::new(i);
+            let w_sq = sq.flip();
+            let b_sq = sq;
+
+            let value = (w_sq.as_bitboard().intersection(w_pieces).popcount() as i8)
+                - (b_sq.as_bitboard().intersection(b_pieces).popcount() as i8);
+            if value != 0 {
+                self.feature_vec.push(Feature::new(value, index_fn(sq)));
+            }
+        }
+    }
+
+    pub fn rst_update<F>(&mut self, w_pieces: Bitboard, b_pieces: Bitboard, index_fn: F)
+    where
+        F: Fn(u8) -> usize,
+    {
+        let rank = Bitboard::RANK_1;
+        for i in 0..NUM_RANKS {
+            let w_rank = rank.shift_north(7 - i);
+            let b_rank = rank.shift_north(i);
+
+            let value = (w_rank.intersection(w_pieces).popcount() as i8)
+                - (b_rank.intersection(b_pieces).popcount() as i8);
+            if value != 0 {
+                self.feature_vec.push(Feature::new(value, index_fn(i)));
+            }
+        }
+    }
+
     fn add_pst_features(&mut self, board: &Board) {
         for piece in Piece::LIST {
             let w_piece_bb = board.piece_bb(piece, Color::White);
             let b_piece_bb = board.piece_bb(piece, Color::Black);
-            for i in 0..NUM_SQUARES {
-                let sq = Square::new(i);
-                let w_sq = sq.flip();
-                let b_sq = sq;
-
-                let value = (w_sq.as_bitboard().intersection(w_piece_bb).popcount() as i8)
-                    - (b_sq.as_bitboard().intersection(b_piece_bb).popcount() as i8);
-                if value != 0 {
-                    self.feature_vec
-                        .push(Feature::new(value, Pst::index(piece, sq)));
-                }
-            }
+            self.pst_update(w_piece_bb, b_piece_bb, |sq| MaterialPst::index(piece, sq));
         }
+    }
+
+    fn add_passer_features(&mut self, board: &Board) {
+        let w_passers = board.passed_pawns(Color::White);
+        let b_passers = board.passed_pawns(Color::Black);
+        self.pst_update(w_passers, b_passers, Passer::index);
+
+        let blocking_white = w_passers
+            .north_one()
+            .intersection(board.all[Color::Black.as_index()]);
+        let blocking_black = b_passers
+            .south_one()
+            .intersection(board.all[Color::White.as_index()]);
+        self.rst_update(blocking_white, blocking_black, PasserBlocker::index);
     }
 
     fn new(board: &Board, game_result: f64) -> Self {
@@ -65,6 +125,7 @@ impl Entry {
         };
 
         entry.add_pst_features(board);
+        entry.add_passer_features(board);
 
         entry
     }
@@ -100,21 +161,22 @@ pub struct Tuner {
 
 impl Tuner {
     const K: f64 = 0.006634;
-    const CONVERGENCE_DELTA: f64 = 1e-9;
+    const CONVERGENCE_DELTA: f64 = 1e-7;
     const CONVERGENCE_CHECK_FREQ: u32 = 50;
     const MAX_EPOCHS: u32 = 20000;
+    const LEARN_RATE: f64 = 0.1;
 
     fn new_weights(from_zero: bool) -> TunerVec {
         if from_zero {
-            return [[0.0; Pst::LEN]; NUM_PHASES];
+            return [[0.0; TUNER_VEC_LEN]; NUM_PHASES];
         }
 
         let scores: [EvalScore; NUM_PIECES as usize] = [300, 320, 500, 900, 100, 0];
-        let mut result = [[0.0; Pst::LEN]; NUM_PHASES];
+        let mut result = [[0.0; TUNER_VEC_LEN]; NUM_PHASES];
 
         for piece in Piece::LIST {
             for i in 0..NUM_SQUARES {
-                let index = Pst::index(piece, Square::new(i));
+                let index = MaterialPst::index(piece, Square::new(i));
                 result[MG][index] = scores[piece.as_index()] as f64;
                 result[EG][index] = scores[piece.as_index()] as f64;
             }
@@ -125,10 +187,10 @@ impl Tuner {
     pub fn new(from_zero: bool) -> Self {
         Self {
             entries: vec![],
-            gradient: [[0.0; Pst::LEN]; NUM_PHASES],
+            gradient: [[0.0; TUNER_VEC_LEN]; NUM_PHASES],
             weights: Self::new_weights(from_zero),
-            momentum: [[0.0; Pst::LEN]; NUM_PHASES],
-            velocity: [[0.0; Pst::LEN]; NUM_PHASES],
+            momentum: [[0.0; TUNER_VEC_LEN]; NUM_PHASES],
+            velocity: [[0.0; TUNER_VEC_LEN]; NUM_PHASES],
         }
     }
 
@@ -144,7 +206,7 @@ impl Tuner {
     }
 
     pub fn reset_gradient(&mut self) {
-        self.gradient = [[0.0; Pst::LEN]; NUM_PHASES];
+        self.gradient = [[0.0; TUNER_VEC_LEN]; NUM_PHASES];
     }
 
     fn sigmoid(e: f64) -> f64 {
@@ -189,11 +251,11 @@ impl Tuner {
         for i in 0..self.gradient[0].len() {
             for phase in PHASES {
                 // we left off k eariler, so we add it back here
-                let grad_component: f64 = -Self::K * self.gradient[phase][i] / (self.entries.len() as f64);
+                let grad_component: f64 = -2.0 * Self::K * self.gradient[phase][i] / (self.entries.len() as f64);
                 self.momentum[phase][i] = BETA1 * self.momentum[phase][i] + (1.0 - BETA1) * grad_component;
                 self.velocity[phase][i] = BETA2 * self.velocity[phase][i] + (1.0 - BETA2) * (grad_component * grad_component);
 
-                self.weights[phase][i] -= self.momentum[phase][i] / (EPSILON + self.velocity[phase][i].sqrt());
+                self.weights[phase][i] -= (self.momentum[phase][i] / (EPSILON + self.velocity[phase][i].sqrt())) * Self::LEARN_RATE;
             }
         }
     }
@@ -236,52 +298,87 @@ impl Tuner {
     #[allow(clippy::write_literal)]
     fn write_header(&self, output: &mut BufWriter<File>) {
         writeln!(output, "#![cfg_attr(rustfmt, rustfmt_skip)]").unwrap();
-        writeln!(output, "use crate::{{evaluation::ScoreTuple, board_representation::{{NUM_SQUARES, NUM_PIECES}}}};\n").unwrap();
+        writeln!(
+            output,
+            "use crate::{{evaluation::ScoreTuple, board_representation::NUM_PIECES, pst::{{Pst, Rst}}}};\n"
+        )
+        .unwrap();
 
         writeln!(
             output,
-            "{}\n{}\n{}\n{}\n{}\n",
-            "macro_rules! s {",
-            "  ($mg:expr, $eg:expr) => {",
-            "    ScoreTuple::new($mg, $eg)",
-            "  };",
-            "}",
+            "const fn s(mg: i16, eg: i16) -> ScoreTuple {{ ScoreTuple::new(mg, eg) }}\n"
         )
         .unwrap();
     }
 
-    fn write_psts(&self, output: &mut BufWriter<File>) {
+    fn write_pst<F>(&self, output: &mut BufWriter<File>, closing_str: &str, index_fn: F)
+    where
+        F: Fn(Square) -> usize,
+    {
+        write!(output, "Pst::new([").unwrap();
+        for i in 0..NUM_SQUARES {
+            let sq = Square::new(i);
+            if i % 8 == 0 {
+                write!(output, "\n  ").unwrap();
+            }
+            write!(
+                output,
+                "s({}, {}), ",
+                self.weights[MG][index_fn(sq)] as EvalScore,
+                self.weights[EG][index_fn(sq)] as EvalScore,
+            )
+            .unwrap();
+        }
+        writeln!(output, "\n]){closing_str}").unwrap();
+    }
+
+    fn write_rst<F>(&self, output: &mut BufWriter<File>, closing_str: &str, index_fn: F)
+    where
+        F: Fn(u8) -> usize,
+    {
+        write!(output, "Rst::new([").unwrap();
+        for i in 0..NUM_RANKS {
+            write!(
+                output,
+                "\n  s({}, {}),",
+                self.weights[MG][index_fn(i)] as EvalScore,
+                self.weights[EG][index_fn(i)] as EvalScore,
+            )
+            .unwrap();
+        }
+        writeln!(output, "\n]){closing_str}").unwrap();
+    }
+
+    fn write_material_psts(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
-            "pub const PST: [[ScoreTuple; NUM_SQUARES as usize]; NUM_PIECES as usize] = ["
+            "pub const MATERIAL_PSTS: [Pst; NUM_PIECES as usize] = ["
         )
         .unwrap();
 
         for piece in Piece::LIST {
             writeln!(output, "// {} PST", piece.as_string().unwrap()).unwrap();
-            write!(output, "[").unwrap();
-            for i in 0..NUM_SQUARES {
-                let sq = Square::new(i);
-                if i % 8 == 0 {
-                    write!(output, "\n  ").unwrap();
-                }
-                write!(
-                    output,
-                    "s!({}, {}), ",
-                    self.weights[MG][Pst::index(piece, sq)] as EvalScore,
-                    self.weights[EG][Pst::index(piece, sq)] as EvalScore,
-                )
-                .unwrap();
-            }
-            writeln!(output, "\n],").unwrap();
+            self.write_pst(output, ",", |sq| MaterialPst::index(piece, sq));
         }
 
-        writeln!(output, "];").unwrap();
+        writeln!(output, "];\n").unwrap();
+    }
+
+    fn write_passer_pst(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const PASSER_PST: Pst = ").unwrap();
+        self.write_pst(output, ";\n", Passer::index);
+    }
+
+    fn write_passer_blocker_rst(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const PASSER_BLOCKERS_RST: Rst = ").unwrap();
+        self.write_rst(output, ";", PasserBlocker::index);
     }
 
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
         self.write_header(&mut output);
-        self.write_psts(&mut output);
+        self.write_material_psts(&mut output);
+        self.write_passer_pst(&mut output);
+        self.write_passer_blocker_rst(&mut output);
     }
 }
