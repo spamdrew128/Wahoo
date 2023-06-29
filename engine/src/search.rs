@@ -232,7 +232,7 @@ impl<'a> Searcher<'a> {
         }
 
         // CHECK EXTENSION
-        if in_check {depth += 1};
+        if in_check { depth += 1 };
 
         if ply >= MAX_PLY {
             return evaluate(board);
