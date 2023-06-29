@@ -1,7 +1,7 @@
 #![cfg_attr(rustfmt, rustfmt_skip)]
 use crate::{evaluation::ScoreTuple, board_representation::NUM_PIECES, pst::{Pst, Rst}};
 
-const fn s(mg: i16, eg: i16) -> ScoreTuple { ScoreTuple::new(mg, eg) }
+const fn s(mg: i32, eg: i32) -> ScoreTuple { ScoreTuple::new(mg, eg) }
 
 pub const MATERIAL_PSTS: [Pst; NUM_PIECES as usize] = [
 // Knight PST

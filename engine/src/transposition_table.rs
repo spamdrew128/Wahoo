@@ -40,14 +40,14 @@ pub struct TTEntry {
     flag: TTFlag,        // 1 byte
     depth: Depth,        // 1 byte
     pub best_move: Move, // 2 byte
-    score: EvalScore,    // 2 byte
+    score: i16,    // 2 byte
     key: u16,            // 2 byte
 }
 
 impl TTEntry {
     const BYTES: usize = 8;
 
-    const fn new(flag: TTFlag, depth: Depth, best_move: Move, score: EvalScore, key: u16) -> Self {
+    const fn new(flag: TTFlag, depth: Depth, best_move: Move, score: i16, key: u16) -> Self {
         Self {
             flag,
             depth,
@@ -62,29 +62,29 @@ impl TTEntry {
         (hash.as_u64() >> 48) as u16
     }
 
-    fn score_to_tt(score: EvalScore, ply: Ply) -> EvalScore {
+    fn score_to_tt(score: EvalScore, ply: Ply) -> i16 {
         // Adjust to be relative to the node, rather than relative to the position
         if score >= MATE_THRESHOLD {
-            score + i16::from(ply)
+            (score as i16) + i16::from(ply)
         } else if score <= -MATE_THRESHOLD {
-            score - i16::from(ply)
+            (score as i16) - i16::from(ply)
         } else {
-            score
+            score as i16
         }
     }
 
     pub fn score_from_tt(self, ply: Ply) -> EvalScore {
-        let score = self.score;
+        let score = i32::from(self.score);
         if score >= MATE_THRESHOLD {
-            score - i16::from(ply)
+            score - i32::from(ply)
         } else if score <= -MATE_THRESHOLD {
-            score + i16::from(ply)
+            score + i32::from(ply)
         } else {
             score
         }
     }
 
-    pub const fn cutoff_is_possible(
+    pub fn cutoff_is_possible(
         self,
         alpha: EvalScore,
         beta: EvalScore,
@@ -94,10 +94,11 @@ impl TTEntry {
             return false;
         }
 
+        let score = i32::from(self.score);
         match self.flag {
             TTFlag::EXACT => true,
-            TTFlag::LOWER_BOUND => self.score >= beta,
-            TTFlag::UPPER_BOUND => self.score <= alpha,
+            TTFlag::LOWER_BOUND => score >= beta,
+            TTFlag::UPPER_BOUND => score <= alpha,
             _ => false,
         }
     }
@@ -207,7 +208,7 @@ mod tests {
         tt.store(flag, best_score, hash, 4, 4, mv);
 
         let entry = tt.probe(hash).unwrap();
-        let expected = TTEntry::new(flag, 4, mv, best_score, TTEntry::key_from_hash(hash));
+        let expected = TTEntry::new(flag, 4, mv, best_score.try_into().unwrap(), TTEntry::key_from_hash(hash));
         assert_eq!(entry, expected);
 
         let other_board =
