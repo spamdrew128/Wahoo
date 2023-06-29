@@ -1,12 +1,12 @@
 use crate::{
     board_representation::{Board, NUM_COLORS, NUM_PIECES, NUM_SQUARES},
     chess_move::Move,
-    search::Depth,
+    search::Depth, evaluation::EvalScore,
 };
 
 #[derive(Debug, Clone)]
 pub struct History {
-    scores: [[[i16; NUM_SQUARES as usize]; NUM_PIECES as usize]; NUM_COLORS as usize],
+    scores: [[[EvalScore; NUM_SQUARES as usize]; NUM_PIECES as usize]; NUM_COLORS as usize],
 }
 
 impl History {
@@ -19,7 +19,7 @@ impl History {
         }
     }
 
-    pub fn score(&self, board: &Board, mv: Move) -> i16 {
+    pub fn score(&self, board: &Board, mv: Move) -> EvalScore {
         let piece = board.piece_on_sq(mv.from()).as_index();
         let to = mv.to().as_index();
         let color = board.color_to_move.as_index();
@@ -28,14 +28,13 @@ impl History {
     }
 
     fn update_history_score(&mut self, board: &Board, mv: Move, bonus: i32) {
-        let scaled_bonus = bonus - i32::from(self.score(board, mv)) * bonus.abs() / Self::SCORE_MAX;
+        let scaled_bonus = bonus - self.score(board, mv) * bonus.abs() / Self::SCORE_MAX;
 
         let piece = board.piece_on_sq(mv.from()).as_index();
         let to = mv.to().as_index();
         let color = board.color_to_move.as_index();
 
-        // safe truncation because scaled bonus won't let us go above this
-        self.scores[color][piece][to] += scaled_bonus as i16;
+        self.scores[color][piece][to] += scaled_bonus;
     }
 
     pub fn update(&mut self, board: &Board, quiets: &[Move], depth: Depth) {

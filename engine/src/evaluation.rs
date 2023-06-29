@@ -14,10 +14,10 @@ pub const EG: usize = 1;
 pub const PHASES: [usize; NUM_PHASES] = [MG, EG];
 pub const NUM_PHASES: usize = 2;
 
-pub type EvalScore = i16;
-pub const INF: EvalScore = i16::MAX - 10;
+pub type EvalScore = i32;
+pub const INF: EvalScore = (i16::MAX - 10) as i32;
 pub const EVAL_MAX: EvalScore = INF - 1;
-pub const MATE_THRESHOLD: EvalScore = EVAL_MAX - (MAX_PLY as i16);
+pub const MATE_THRESHOLD: EvalScore = EVAL_MAX - (MAX_PLY as i32);
 
 #[derive(Debug, Copy, Clone)]
 pub struct ScoreTuple(EvalScore, EvalScore);
@@ -114,8 +114,6 @@ pub fn evaluate(board: &Board) -> EvalScore {
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
 
-    let score = (i32::from(score_tuple.mg()) * mg_phase + i32::from(score_tuple.eg()) * eg_phase)
-        / i32::from(PHASE_MAX);
-
-    score.try_into().unwrap()
+    (score_tuple.mg() * mg_phase + score_tuple.eg() * eg_phase)
+        / i32::from(PHASE_MAX)
 }

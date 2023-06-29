@@ -239,7 +239,7 @@ impl MoveGenerator {
 
     fn score_quiets(&mut self, board: &Board, history: &History) {
         for elem in self.movelist.iter_mut().take(self.len) {
-            elem.score = history.score(board, elem.mv);
+            elem.score = history.score(board, elem.mv) as i16;
         }
     }
 
