@@ -234,11 +234,7 @@ impl<'a> Searcher<'a> {
         // CHECK EXTENSION
         if in_check { depth += 1 };
 
-        if ply >= MAX_PLY {
-            return evaluate(board);
-        }
-
-        if depth == 0 {
+        if depth == 0 || ply >= MAX_PLY {
             return self.qsearch(board, ply, alpha, beta);
         }
 
