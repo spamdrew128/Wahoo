@@ -114,6 +114,5 @@ pub fn evaluate(board: &Board) -> EvalScore {
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
 
-    (score_tuple.mg() * mg_phase + score_tuple.eg() * eg_phase)
-        / i32::from(PHASE_MAX)
+    (score_tuple.mg() * mg_phase + score_tuple.eg() * eg_phase) / i32::from(PHASE_MAX)
 }

@@ -213,7 +213,7 @@ impl<'a> Searcher<'a> {
     fn negamax<const DO_NULL_MOVE: bool>(
         &mut self,
         board: &Board,
-        depth: Depth,
+        mut depth: Depth,
         ply: Ply,
         mut alpha: EvalScore,
         beta: EvalScore,
@@ -229,6 +229,13 @@ impl<'a> Searcher<'a> {
 
         if !is_root && is_drawn {
             return 0;
+        }
+
+        // CHECK EXTENSION
+        if in_check {depth += 1};
+
+        if ply >= MAX_PLY {
+            return evaluate(board);
         }
 
         if depth == 0 {

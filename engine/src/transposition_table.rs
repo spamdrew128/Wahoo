@@ -40,7 +40,7 @@ pub struct TTEntry {
     flag: TTFlag,        // 1 byte
     depth: Depth,        // 1 byte
     pub best_move: Move, // 2 byte
-    score: i16,    // 2 byte
+    score: i16,          // 2 byte
     key: u16,            // 2 byte
 }
 
@@ -208,7 +208,13 @@ mod tests {
         tt.store(flag, best_score, hash, 4, 4, mv);
 
         let entry = tt.probe(hash).unwrap();
-        let expected = TTEntry::new(flag, 4, mv, best_score.try_into().unwrap(), TTEntry::key_from_hash(hash));
+        let expected = TTEntry::new(
+            flag,
+            4,
+            mv,
+            best_score.try_into().unwrap(),
+            TTEntry::key_from_hash(hash),
+        );
         assert_eq!(entry, expected);
 
         let other_board =
