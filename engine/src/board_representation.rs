@@ -950,7 +950,7 @@ impl Board {
     }
 
     pub const fn fifty_move_draw(&self) -> bool {
-        self.halfmoves >= 100
+        self.halfmoves > 100
     }
 
     const fn at_most_one_minor_piece(&self, color: Color) -> bool {
