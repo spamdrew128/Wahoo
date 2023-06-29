@@ -281,11 +281,11 @@ impl<'a> Searcher<'a> {
 
             // REVERSE FUTILITY PRUNING
             const RFP_MAX_DEPTH: Depth = 8;
-            const RFP_MARGIN: i32 = 120;
+            const RFP_MARGIN: EvalScore = 120;
 
-            let static_eval = i32::from(evaluate(board));
-            if depth <= RFP_MAX_DEPTH && static_eval >= (i32::from(beta) + RFP_MARGIN * i32::from(depth)) {
-                return static_eval as EvalScore;
+            let static_eval = evaluate(board);
+            if depth <= RFP_MAX_DEPTH && static_eval >= (beta + RFP_MARGIN * i32::from(depth)) {
+                return static_eval;
             }
         }
 
@@ -376,7 +376,7 @@ impl<'a> Searcher<'a> {
         if moves_played == 0 {
             // either checkmate or stalemate
             return if in_check {
-                -EVAL_MAX + i16::from(ply)
+                -EVAL_MAX + i32::from(ply)
             } else {
                 0
             };
