@@ -183,15 +183,21 @@ impl<'a> Searcher<'a> {
             self.seldepth = 0;
 
             let score = self.negamax::<true>(board, depth, 0, -INF, INF);
-            search_results.best_move = self.pv_table.best_move();
 
             if self.out_of_time || stop_flag_is_set() {
+                if depth > 1 {
+                    // we can use incomplete search bestmove as a lower bound, since it will 
+                    // at least be as good as the previous iteration's bestmove stored in TT.
+                    search_results.best_move = self.pv_table.best_move();
+                }
                 break;
             }
 
             if report_info {
                 self.report_search_info(score, depth, stopwatch);
             }
+
+            search_results.best_move = self.pv_table.best_move();
             search_results.score = score;
 
             depth += 1;
