@@ -304,6 +304,7 @@ impl UciHandler {
             let buffer = Self::read_uci_input();
 
             match buffer.as_str().trim() {
+                "isready" => println!("readyok"),
                 "quit" => kill_program(),
                 "stop" => {
                     search::write_stop_flag(true);
