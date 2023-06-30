@@ -8,6 +8,7 @@ pub struct Pst {
 }
 
 impl Pst {
+    #[allow(clippy::large_types_passed_by_value)]
     pub const fn new(before: [ScoreTuple; NUM_SQUARES as usize]) -> Self {
         let mut table = [[ScoreTuple::new(0, 0); NUM_SQUARES as usize]; NUM_COLORS as usize];
         let mut i = 0;

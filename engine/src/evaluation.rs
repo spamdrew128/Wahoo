@@ -3,7 +3,7 @@ use std::ops::{Add, AddAssign, Sub};
 use crate::{
     bitloop,
     board_representation::{Board, Color, Piece, Square},
-    eval_constants::{MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST, BISHOP_PAIR_BONUS},
+    eval_constants::{BISHOP_PAIR_BONUS, MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST},
     search::MAX_PLY,
 };
 
@@ -79,7 +79,7 @@ fn pst_eval(board: &Board, color: Color) -> ScoreTuple {
     score
 }
 
-fn bishop_pair(board: &Board, color: Color) -> ScoreTuple {
+const fn bishop_pair(board: &Board, color: Color) -> ScoreTuple {
     let bishops = board.piece_bb(Piece::BISHOP, color);
     if bishops.popcount() >= 2 {
         BISHOP_PAIR_BONUS
