@@ -3,7 +3,7 @@ use std::ops::{Add, AddAssign, Sub};
 use crate::{
     bitloop,
     board_representation::{Board, Color, Piece, Square},
-    eval_constants::{MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST},
+    eval_constants::{BISHOP_PAIR_BONUS, MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST},
     search::MAX_PLY,
 };
 
@@ -79,6 +79,15 @@ fn pst_eval(board: &Board, color: Color) -> ScoreTuple {
     score
 }
 
+const fn bishop_pair(board: &Board, color: Color) -> ScoreTuple {
+    let bishops = board.piece_bb(Piece::BISHOP, color);
+    if bishops.popcount() >= 2 {
+        BISHOP_PAIR_BONUS
+    } else {
+        ScoreTuple::new(0, 0)
+    }
+}
+
 fn passed_pawns(board: &Board, color: Color) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
     let mut passers = board.passed_pawns(color);
@@ -109,6 +118,7 @@ pub fn evaluate(board: &Board) -> EvalScore {
 
     let mut score_tuple = ScoreTuple::new(0, 0);
     score_tuple += pst_eval(board, us) - pst_eval(board, them);
+    score_tuple += bishop_pair(board, us) - bishop_pair(board, them);
     score_tuple += passed_pawns(board, us) - passed_pawns(board, them);
 
     let mg_phase = i32::from(phase(board));

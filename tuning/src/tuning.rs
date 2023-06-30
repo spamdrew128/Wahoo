@@ -10,7 +10,7 @@ use std::{
     io::Write,
 };
 
-const TUNER_VEC_LEN: usize = MaterialPst::LEN + Passer::LEN + PasserBlocker::LEN;
+const TUNER_VEC_LEN: usize = MaterialPst::LEN + Passer::LEN + PasserBlocker::LEN + BishopPair::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -40,6 +40,16 @@ impl PasserBlocker {
 
     fn index(rank: u8) -> usize {
         Self::START + rank as usize
+    }
+}
+
+struct BishopPair;
+impl BishopPair {
+    const START: usize = PasserBlocker::START + PasserBlocker::LEN;
+    const LEN: usize = 1;
+
+    fn index() -> usize {
+        Self::START
     }
 }
 
@@ -126,6 +136,12 @@ impl Entry {
 
         entry.add_pst_features(board);
         entry.add_passer_features(board);
+
+        let bishop_pair_val = i8::from(board.piece_bb(Piece::BISHOP, Color::White).popcount() >= 2)
+            - i8::from(board.piece_bb(Piece::BISHOP, Color::Black).popcount() >= 2);
+        entry
+            .feature_vec
+            .push(Feature::new(bishop_pair_val, BishopPair::index()));
 
         entry
     }
@@ -306,7 +322,7 @@ impl Tuner {
 
         writeln!(
             output,
-            "const fn s(mg: i16, eg: i16) -> ScoreTuple {{ ScoreTuple::new(mg, eg) }}\n"
+            "const fn s(mg: i32, eg: i32) -> ScoreTuple {{ ScoreTuple::new(mg, eg) }}\n"
         )
         .unwrap();
     }
@@ -371,7 +387,17 @@ impl Tuner {
 
     fn write_passer_blocker_rst(&self, output: &mut BufWriter<File>) {
         write!(output, "pub const PASSER_BLOCKERS_RST: Rst = ").unwrap();
-        self.write_rst(output, ";", PasserBlocker::index);
+        self.write_rst(output, ";\n", PasserBlocker::index);
+    }
+
+    fn write_bishop_pair(&self, output: &mut BufWriter<File>) {
+        writeln!(
+            output,
+            "pub const BISHOP_PAIR_BONUS: ScoreTuple = s({}, {});",
+            self.weights[MG][BishopPair::index()] as EvalScore,
+            self.weights[EG][BishopPair::index()] as EvalScore,
+        )
+        .unwrap();
     }
 
     fn create_output_file(&self) {
@@ -380,5 +406,6 @@ impl Tuner {
         self.write_material_psts(&mut output);
         self.write_passer_pst(&mut output);
         self.write_passer_blocker_rst(&mut output);
+        self.write_bishop_pair(&mut output);
     }
 }
