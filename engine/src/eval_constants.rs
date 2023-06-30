@@ -93,3 +93,5 @@ pub const PASSER_BLOCKERS_RST: Rst = Rst::new([
   s(0, 0),
   s(0, 0),
 ]);
+
+pub const BISHOP_PAIR_BONUS: ScoreTuple = S(0, 0);
