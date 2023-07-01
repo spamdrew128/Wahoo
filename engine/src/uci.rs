@@ -278,15 +278,15 @@ impl UciHandler {
                 let mut searcher =
                     Searcher::new(search_limits, &self.zobrist_stack, &self.history, &self.tt);
 
-                let is_searching: AtomicBool = true.into();
+                // let is_searching: AtomicBool = true.into();
                 thread::scope(|s| {
                     s.spawn(|| {
                         searcher.go(&self.board, true);
                         searcher.search_complete_actions(&mut self.history);
-                        is_searching.store(false, Ordering::Relaxed);
+                        // is_searching.store(false, Ordering::Relaxed);
                     });
 
-                    Self::handle_stop_and_quit(&mut self.stored_message, &is_searching);
+                    // Self::handle_stop_and_quit(&mut self.stored_message, &is_searching);
                 });
             }
             UciCommand::SetOptionOverhead(overhead) => {
