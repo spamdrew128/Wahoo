@@ -33,6 +33,8 @@ pub struct UciHandler {
     stored_message: Option<String>,
 }
 
+static mut PREV: String = String::new();
+
 macro_rules! send_uci_option {
     ($name:expr, $type:expr, $($format:tt)*) => {
         print!("option name {} type {} ", $name, $type);
@@ -85,6 +87,9 @@ impl UciHandler {
 
         if bytes_read == 0 || end_of_transmission(buffer.as_str()) {
             kill_program();
+        }
+        unsafe {
+            PREV = buffer.replace(' ', "_"); 
         }
 
         buffer
@@ -315,8 +320,7 @@ impl UciHandler {
                         *stored_message = Some(buffer);
                         return;
                     }
-                    let cmd = buffer.replace(' ', "_");
-                    println!("bestmove {cmd}");
+                    println!("bestmove {}", unsafe{PREV.clone()});
                     eprintln!("Cannot handle command \"{buffer}\" while searching");
                 }
             };
