@@ -315,6 +315,7 @@ impl UciHandler {
                         *stored_message = Some(buffer);
                         return;
                     }
+                    println!("bestmove a8a8");
                     eprintln!("Cannot handle command \"{buffer}\" while searching");
                 }
             };
