@@ -315,7 +315,8 @@ impl UciHandler {
                         *stored_message = Some(buffer);
                         return;
                     }
-                    println!("bestmove {buffer}");
+                    let cmd = buffer.replace(' ', "_");
+                    println!("bestmove {cmd}");
                     eprintln!("Cannot handle command \"{buffer}\" while searching");
                 }
             };
