@@ -282,7 +282,7 @@ impl UciHandler {
                 thread::scope(|s| {
                     s.spawn(|| {
                         searcher.go(&self.board, true);
-                        is_searching.store(false, Ordering::Relaxed);
+                        is_searching.store(false, Ordering::SeqCst);
                         searcher.search_complete_actions(&mut self.history);
                     });
 
@@ -311,7 +311,7 @@ impl UciHandler {
                     return;
                 }
                 _ => {
-                    if !is_searching.load(Ordering::Relaxed) {
+                    if !is_searching.load(Ordering::SeqCst) {
                         *stored_message = Some(buffer);
                         return;
                     }
