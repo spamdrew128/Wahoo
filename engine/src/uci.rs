@@ -278,15 +278,15 @@ impl UciHandler {
                 let mut searcher =
                     Searcher::new(search_limits, &self.zobrist_stack, &self.history, &self.tt);
 
-                let is_searching: AtomicBool = true.into();
+                let done_searching: AtomicBool = false.into();
                 thread::scope(|s| {
                     s.spawn(|| {
                         searcher.go(&self.board, true);
-                        is_searching.store(false, Ordering::SeqCst);
+                        done_searching.store(true, Ordering::SeqCst);
                         searcher.search_complete_actions(&mut self.history);
                     });
 
-                    Self::handle_stop_and_quit(&mut self.stored_message, &is_searching);
+                    Self::handle_stop_and_quit(&mut self.stored_message, &done_searching);
                 });
             }
             UciCommand::SetOptionOverhead(overhead) => {
@@ -299,7 +299,7 @@ impl UciHandler {
         }
     }
 
-    fn handle_stop_and_quit(stored_message: &mut Option<String>, is_searching: &AtomicBool) {
+    fn handle_stop_and_quit(stored_message: &mut Option<String>, done_searching: &AtomicBool) {
         loop {
             let buffer = Self::read_uci_input();
 
@@ -311,10 +311,11 @@ impl UciHandler {
                     return;
                 }
                 _ => {
-                    if !is_searching.load(Ordering::SeqCst) {
+                    if done_searching.load(Ordering::SeqCst) {
                         *stored_message = Some(buffer);
                         return;
                     }
+                    eprintln!("Cannot handle command \"{buffer}\" while searching");
                 }
             };
         }
