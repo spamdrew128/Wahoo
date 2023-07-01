@@ -159,7 +159,7 @@ impl<'a> Searcher<'a> {
     pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
         write_stop_flag(false);
         for d in 1..depth {
-            self.negamax::<true>(board, d, 0, -INF, INF);
+            self.negamax::<false>(board, d, 0, -INF, INF);
         }
         write_stop_flag(true);
 
@@ -181,7 +181,7 @@ impl<'a> Searcher<'a> {
         while !self.stop_searching(depth) {
             self.seldepth = 0;
 
-            let score = self.negamax::<true>(board, depth, 0, -INF, INF);
+            let score = self.negamax::<false>(board, depth, 0, -INF, INF);
 
             if self.out_of_time || stop_flag_is_set() {
                 break;
