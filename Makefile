@@ -39,6 +39,9 @@ release:
 	cargo rustc --release -p uci_loop -- -C target-cpu=x86-64-v3 --emit link=$(V3NAME)
 	cargo rustc --release -p uci_loop -- -C target-cpu=x86-64-v4 --emit link=$(V4NAME)
 
+bench:
+	cargo r --release --bin uci_loop bench
+
 clean:
 	$(RM_COMMAND) $(NAME) $(V1NAME) $(V2NAME) $(V3NAME) $(V4NAME) $(TUNER_NAME) $(GENERATOR_NAME)
 	

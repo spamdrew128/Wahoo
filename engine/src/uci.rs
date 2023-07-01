@@ -9,10 +9,7 @@ use crate::{
     zobrist_stack::ZobristStack,
 };
 
-use std::{
-    sync::atomic::{AtomicBool, Ordering},
-    thread,
-};
+use std::thread;
 
 enum UciCommand {
     Uci,
@@ -278,15 +275,13 @@ impl UciHandler {
                 let mut searcher =
                     Searcher::new(search_limits, &self.zobrist_stack, &self.history, &self.tt);
 
-                let is_searching: AtomicBool = true.into();
                 thread::scope(|s| {
                     s.spawn(|| {
                         searcher.go(&self.board, true);
                         searcher.search_complete_actions(&mut self.history);
-                        is_searching.store(false, Ordering::Relaxed);
                     });
 
-                    Self::handle_stop_and_quit(&mut self.stored_message, &is_searching);
+                    Self::handle_stop_and_quit(&mut self.stored_message);
                 });
             }
             UciCommand::SetOptionOverhead(overhead) => {
@@ -299,7 +294,7 @@ impl UciHandler {
         }
     }
 
-    fn handle_stop_and_quit(stored_message: &mut Option<String>, is_searching: &AtomicBool) {
+    fn handle_stop_and_quit(stored_message: &mut Option<String>) {
         loop {
             let buffer = Self::read_uci_input();
 
@@ -311,10 +306,14 @@ impl UciHandler {
                     return;
                 }
                 _ => {
-                    if !is_searching.load(Ordering::Relaxed) {
+                    if search::stop_flag_is_set() {
                         *stored_message = Some(buffer);
                         return;
                     }
+                    eprintln!(
+                        "Cannot handle command \"{}\" while searching",
+                        buffer.trim()
+                    );
                 }
             };
         }
