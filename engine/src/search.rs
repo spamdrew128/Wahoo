@@ -185,8 +185,11 @@ impl<'a> Searcher<'a> {
 
             if self.out_of_time || stop_flag_is_set() {
                 if depth > 1 {
-                    // we can use incomplete search bestmove as a lower bound, since it will 
-                    // at least be as good as the previous iteration's bestmove stored in TT.
+                    /*
+                    We can use incomplete search bestmove as a lower bound, since it will
+                    at least be as good as the previous iteration's bestmove stored in TT.
+                    The depth > 1 condition is to make sure we have a bestmove from previous search stored.
+                    */
                     search_results.best_move = self.pv_table.best_move();
                 }
                 break;
