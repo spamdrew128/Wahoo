@@ -310,7 +310,10 @@ impl UciHandler {
                         *stored_message = Some(buffer);
                         return;
                     }
-                    eprintln!("Cannot handle command \"{}\" while searching", buffer.trim());
+                    eprintln!(
+                        "Cannot handle command \"{}\" while searching",
+                        buffer.trim()
+                    );
                 }
             };
         }
