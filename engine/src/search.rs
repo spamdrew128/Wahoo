@@ -32,7 +32,7 @@ pub fn write_stop_flag(val: bool) {
     STOP_FLAG.store(val, Ordering::Relaxed);
 }
 
-fn stop_flag_is_set() -> bool {
+pub fn stop_flag_is_set() -> bool {
     STOP_FLAG.load(Ordering::Relaxed)
 }
 
@@ -158,17 +158,15 @@ impl<'a> Searcher<'a> {
 
     pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
         write_stop_flag(false);
-
         for d in 1..depth {
-            self.negamax::<true>(board, d, 0, -INF, INF);
+            self.negamax::<false>(board, d, 0, -INF, INF);
         }
+        write_stop_flag(true);
 
         self.node_count
     }
 
     pub fn go(&mut self, board: &Board, report_info: bool) -> SearchResults {
-        write_stop_flag(false);
-
         for &limit in &self.search_limits {
             if let SearchLimit::Time(t) = limit {
                 self.timer = Some(SearchTimer::new(t));
@@ -179,10 +177,11 @@ impl<'a> Searcher<'a> {
         let mut depth: Depth = 1;
 
         let mut search_results = SearchResults::new(board);
+        write_stop_flag(false);
         while !self.stop_searching(depth) {
             self.seldepth = 0;
 
-            let score = self.negamax::<true>(board, depth, 0, -INF, INF);
+            let score = self.negamax::<false>(board, depth, 0, -INF, INF);
 
             if self.out_of_time || stop_flag_is_set() {
                 break;
@@ -196,6 +195,7 @@ impl<'a> Searcher<'a> {
 
             depth += 1;
         }
+        write_stop_flag(true);
 
         assert!(
             search_results.best_move.to() != search_results.best_move.from(),
