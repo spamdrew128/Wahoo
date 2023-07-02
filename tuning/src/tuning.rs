@@ -155,7 +155,10 @@ impl Entry {
 
                 bitloop!(|sq|, pieces, {
                     let attacks = attacks::generic(piece, sq, board.occupied(), color) & availible;
-                    mobility[Mobility::index(piece, attacks.popcount()) - Mobility::START] += val;
+                    let count = attacks.popcount();
+                    if count > 0 {
+                        mobility[Mobility::index(piece, count) - Mobility::START] += val;
+                    }
                 });
             }
         }
