@@ -143,7 +143,7 @@ impl Entry {
 
     fn add_mobility_features(&mut self, board: &Board) {
         let mut mobility = [0; Mobility::LEN];
-        for piece in Piece::LIST {
+        for &piece in Piece::LIST.iter().take(4) {
             let mut w_pieces = board.piece_bb(piece, Color::White);
             let mut b_pieces = board.piece_bb(piece, Color::Black);
             bitloop!(|sq|, w_pieces, {
@@ -440,7 +440,7 @@ impl Tuner {
     }
 
     fn write_mobility(&self, output: &mut BufWriter<File>) {
-        for piece in Piece::LIST {
+        for piece in Piece::LIST.iter().take(4) {
             let init_line = format!(
                 "pub const {}_MOBILITY: [ScoreTuple; {}] = [",
                 piece.as_string().unwrap(),
@@ -449,15 +449,15 @@ impl Tuner {
             writeln!(output, "{}", init_line).unwrap();
 
             for i in Mobility::START..(Mobility::START + Mobility::PIECE_MOVECOUNTS[piece.as_index()]) {
-                writeln!(
+                write!(
                     output,
-                    "s({}, {}),",
+                    "s({}, {}), ",
                     self.weights[MG][i] as EvalScore,
                     self.weights[EG][i] as EvalScore,
                 )
                 .unwrap();
             }
-            writeln!(output, "]\n").unwrap();
+            writeln!(output, "];\n").unwrap();
         }
     }
 
