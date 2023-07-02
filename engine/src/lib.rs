@@ -12,7 +12,7 @@
 #![allow(clippy::option_if_let_else)]
 #![allow(dead_code)] // remove later
 
-mod attacks;
+pub mod attacks;
 pub mod bench;
 pub mod board_representation;
 pub mod chess_move;

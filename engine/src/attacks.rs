@@ -1,4 +1,4 @@
-use crate::board_representation::{Bitboard, Color, Square, Piece, NUM_COLORS, NUM_SQUARES};
+use crate::board_representation::{Bitboard, Color, Piece, Square, NUM_COLORS, NUM_SQUARES};
 use crate::magic::{MagicEntry, MagicLookup};
 
 macro_rules! init_lookup {
@@ -93,13 +93,13 @@ pub const fn pawn_double_push(single_pushes: Bitboard, empty: Bitboard, color: C
     }
 }
 
-pub fn generic(piece: Piece, sq: Square, occupied: Bitboard) -> Bitboard {
+pub fn generic(piece: Piece, sq: Square, occupied: Bitboard, color: Color) -> Bitboard {
     match piece {
         Piece::KNIGHT => knight(sq),
         Piece::BISHOP => bishop(sq, occupied),
         Piece::ROOK => rook(sq, occupied),
         Piece::QUEEN => queen(sq, occupied),
-        Piece::PAWN => pawn(sq),
+        Piece::PAWN => pawn(sq, color),
         Piece::KING => king(sq),
         _ => panic!(),
     }

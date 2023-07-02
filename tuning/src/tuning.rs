@@ -1,8 +1,9 @@
 use engine::{
+    bitloop,
     board_representation::{
         Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
     },
-    evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
+    evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX}, attacks,
 };
 use std::{
     fs::{read_to_string, File},
@@ -10,7 +11,8 @@ use std::{
     io::Write,
 };
 
-const TUNER_VEC_LEN: usize = MaterialPst::LEN + Passer::LEN + PasserBlocker::LEN + BishopPair::LEN;
+const TUNER_VEC_LEN: usize =
+    MaterialPst::LEN + Passer::LEN + PasserBlocker::LEN + BishopPair::LEN + Mobility::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -50,6 +52,17 @@ impl BishopPair {
 
     fn index() -> usize {
         Self::START
+    }
+}
+
+struct Mobility;
+impl Mobility {
+    const START: usize = BishopPair::START + BishopPair::LEN;
+    const PIECE_OFFSETS: [usize; 4] = [0, 9, 9 + 14, 9 + 14 + 15];
+    const LEN: usize = 9 + 14 + 15 + 28;
+
+    fn index(piece: Piece, attacks: Bitboard) -> usize {
+        Self::START + (attacks.popcount() as usize) + Self::PIECE_OFFSETS[piece.as_index()]
     }
 }
 
@@ -125,6 +138,30 @@ impl Entry {
             .south_one()
             .intersection(board.all[Color::White.as_index()]);
         self.rst_update(blocking_white, blocking_black, PasserBlocker::index);
+    }
+
+    fn add_mobility_features(&mut self, board: &Board) {
+        let mut mobility = [0; Mobility::LEN];
+        for piece in Piece::LIST {
+            let mut w_pieces = board.piece_bb(piece, Color::White);
+            let mut b_pieces = board.piece_bb(piece, Color::Black);
+            bitloop!(|sq|, w_pieces, {
+                let attacks = attacks::generic(piece, sq, board.occupied(), Color::White);
+                mobility[Mobility::index(piece, attacks) - Mobility::START] += 1;
+            });
+            bitloop!(|sq|, b_pieces, {
+                let attacks = attacks::generic(piece, sq, board.occupied(), Color::Black);
+                mobility[Mobility::index(piece, attacks) - Mobility::START] -= 1;
+            });
+        }
+
+        for i in 0..Mobility::LEN {
+            let val = mobility[i];
+            if val != 0 {
+                let vec_index = i + Mobility::START;
+                self.feature_vec.push(Feature::new(val, vec_index));
+            }
+        }
     }
 
     fn new(board: &Board, game_result: f64) -> Self {
