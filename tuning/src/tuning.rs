@@ -447,7 +447,7 @@ impl Tuner {
         for &piece in Piece::LIST.iter().take(4) {
             let init_line = format!(
                 "pub const {}_MOBILITY: [ScoreTuple; {}] = [",
-                piece.as_string().unwrap(),
+                piece.as_string().unwrap().to_uppercase(),
                 Mobility::PIECE_MOVECOUNTS[piece.as_index()]
             );
             writeln!(output, "{}", init_line).unwrap();
