@@ -155,12 +155,15 @@ impl Entry {
 
                 bitloop!(|sq|, pieces, {
                     let attacks = attacks::generic(piece, sq, board.occupied(), color) & availible;
-                    mobility[Mobility::index(piece, attacks.popcount()) - Mobility::START] += val;
+                    let count = attacks.popcount();
+                    if count > 0 {
+                        mobility[Mobility::index(count, attacks.popcount()) - Mobility::START] += val;
+                    }
                 });
             }
         }
 
-        for i in 1..Mobility::LEN {
+        for i in 0..Mobility::LEN {
             let val = mobility[i];
             if val != 0 {
                 let vec_index = i + Mobility::START;

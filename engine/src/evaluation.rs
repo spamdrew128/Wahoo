@@ -4,7 +4,8 @@ use crate::{
     bitloop,
     board_representation::{Board, Color, Piece, Square},
     eval_constants::{BISHOP_PAIR_BONUS, MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST},
-    search::MAX_PLY, piece_loop_eval::mobility,
+    piece_loop_eval::mobility,
+    search::MAX_PLY,
 };
 
 pub type Phase = u8;
