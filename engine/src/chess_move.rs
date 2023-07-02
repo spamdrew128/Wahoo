@@ -12,16 +12,16 @@ impl Flag {
     pub const NONE: Self = Self(0 << Move::FLAGS_OFFSET);
     pub const KS_CASTLE: Self = Self(1 << Move::FLAGS_OFFSET);
     pub const QS_CASTLE: Self = Self(2 << Move::FLAGS_OFFSET);
-    pub const EP: Self = Self(3 << Move::FLAGS_OFFSET);
-    pub const DOUBLE_PUSH: Self = Self(4 << Move::FLAGS_OFFSET);
-    pub const KNIGHT_PROMO: Self = Self(5 << Move::FLAGS_OFFSET);
-    pub const BISHOP_PROMO: Self = Self(6 << Move::FLAGS_OFFSET);
-    pub const ROOK_PROMO: Self = Self(7 << Move::FLAGS_OFFSET);
-    pub const QUEEN_PROMO: Self = Self(8 << Move::FLAGS_OFFSET);
-    pub const KNIGHT_CAPTURE_PROMO: Self = Self(9 << Move::FLAGS_OFFSET);
-    pub const BISHOP_CAPTURE_PROMO: Self = Self(10 << Move::FLAGS_OFFSET);
-    pub const ROOK_CAPTURE_PROMO: Self = Self(11 << Move::FLAGS_OFFSET);
-    pub const QUEEN_CAPTURE_PROMO: Self = Self(12 << Move::FLAGS_OFFSET);
+    pub const DOUBLE_PUSH: Self = Self(3 << Move::FLAGS_OFFSET);
+    pub const KNIGHT_PROMO: Self = Self(4 << Move::FLAGS_OFFSET);
+    pub const BISHOP_PROMO: Self = Self(5 << Move::FLAGS_OFFSET);
+    pub const ROOK_PROMO: Self = Self(6 << Move::FLAGS_OFFSET);
+    pub const QUEEN_PROMO: Self = Self(7 << Move::FLAGS_OFFSET);
+    pub const KNIGHT_CAPTURE_PROMO: Self = Self(8 << Move::FLAGS_OFFSET);
+    pub const BISHOP_CAPTURE_PROMO: Self = Self(9 << Move::FLAGS_OFFSET);
+    pub const ROOK_CAPTURE_PROMO: Self = Self(10 << Move::FLAGS_OFFSET);
+    pub const QUEEN_CAPTURE_PROMO: Self = Self(11 << Move::FLAGS_OFFSET);
+    pub const EP: Self = Self(12 << Move::FLAGS_OFFSET);
     pub const CAPTURE: Self = Self(13 << Move::FLAGS_OFFSET);
 }
 
@@ -183,14 +183,15 @@ impl Move {
         let us = board.us();
         let them = board.them();
         let occupied = board.occupied();
+        let flag = self.flag();
 
         // make sure to move a piece that is our color, and non-empty
         if !from_bb.overlaps(us) {
             return false;
         }
 
-        // we actually need to capture an enemy piece if the move is a capture
-        if self.is_capture() && !to_bb.overlaps(them) {
+        // we actually need to capture an enemy piece if the move is a capture (and not en passant)
+        if self.is_capture() && flag != Flag::EP && !to_bb.overlaps(them) {
             return false;
         }
 
@@ -199,7 +200,6 @@ impl Move {
             return false;
         }
 
-        let flag = self.flag();
         let piece = board.piece_on_sq(from);
         let color = board.color_to_move;
         let empty = board.empty();
