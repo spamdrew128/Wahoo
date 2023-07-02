@@ -137,7 +137,7 @@ impl<'a> Searcher<'a> {
         let mut result = false;
         for &limit in &self.search_limits {
             result |= match limit {
-                SearchLimit::Time(_) => self.out_of_time,
+                SearchLimit::Time(_) => self.timer.unwrap().soft_cutoff_is_expired(),
                 SearchLimit::Depth(depth_limit) => depth > depth_limit,
                 SearchLimit::Nodes(node_limit) => self.node_count > node_limit,
             }
