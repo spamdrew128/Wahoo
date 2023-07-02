@@ -1,9 +1,9 @@
 use engine::{
-    bitloop,
+    attacks, bitloop,
     board_representation::{
         Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
     },
-    evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX}, attacks,
+    evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
 };
 use std::{
     fs::{read_to_string, File},
@@ -58,6 +58,7 @@ impl BishopPair {
 struct Mobility;
 impl Mobility {
     const START: usize = BishopPair::START + BishopPair::LEN;
+    const PIECE_MOVECOUNTS: [usize; 4] = [9, 14, 15, 28];
     const PIECE_OFFSETS: [usize; 4] = [0, 9, 9 + 14, 9 + 14 + 15];
     const LEN: usize = 9 + 14 + 15 + 28;
 
@@ -173,6 +174,7 @@ impl Entry {
 
         entry.add_pst_features(board);
         entry.add_passer_features(board);
+        entry.add_mobility_features(board);
 
         let bishop_pair_val = i8::from(board.piece_bb(Piece::BISHOP, Color::White).popcount() >= 2)
             - i8::from(board.piece_bb(Piece::BISHOP, Color::Black).popcount() >= 2);
@@ -437,6 +439,28 @@ impl Tuner {
         .unwrap();
     }
 
+    fn write_mobility(&self, output: &mut BufWriter<File>) {
+        for piece in Piece::LIST {
+            let init_line = format!(
+                "pub const {}_MOBILITY: [ScoreTuple; {}] = [",
+                piece.as_string().unwrap(),
+                Mobility::PIECE_MOVECOUNTS[piece.as_index()]
+            );
+            writeln!(output, "{}", init_line).unwrap();
+
+            for i in Mobility::START..(Mobility::START + Mobility::PIECE_MOVECOUNTS[piece.as_index()]) {
+                writeln!(
+                    output,
+                    "s({}, {}),",
+                    self.weights[MG][i] as EvalScore,
+                    self.weights[EG][i] as EvalScore,
+                )
+                .unwrap();
+            }
+            writeln!(output, "]\n").unwrap();
+        }
+    }
+
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
         self.write_header(&mut output);
@@ -444,5 +468,6 @@ impl Tuner {
         self.write_passer_pst(&mut output);
         self.write_passer_blocker_rst(&mut output);
         self.write_bishop_pair(&mut output);
+        self.write_mobility(&mut output);
     }
 }
