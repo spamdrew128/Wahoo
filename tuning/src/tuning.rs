@@ -157,7 +157,7 @@ impl Entry {
                     let attacks = attacks::generic(piece, sq, board.occupied(), color) & availible;
                     let count = attacks.popcount();
                     if count > 0 {
-                        mobility[Mobility::index(count, attacks.popcount()) - Mobility::START] += val;
+                        mobility[Mobility::index(piece, count) - Mobility::START] += val;
                     }
                 });
             }
