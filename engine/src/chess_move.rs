@@ -89,7 +89,7 @@ impl Move {
     }
 
     pub fn is_quiet(self) -> bool {
-        self.flag() < Flag::KNIGHT_CAPTURE_PROMO
+        !self.is_capture()
     }
 
     pub fn as_string(self) -> String {
