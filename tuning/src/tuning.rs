@@ -62,8 +62,8 @@ impl Mobility {
     const PIECE_OFFSETS: [usize; 4] = [0, 9, 9 + 14, 9 + 14 + 15];
     const LEN: usize = 9 + 14 + 15 + 28;
 
-    fn index(piece: Piece, attacks: Bitboard) -> usize {
-        Self::START + (attacks.popcount() as usize) + Self::PIECE_OFFSETS[piece.as_index()]
+    fn index(piece: Piece, attack_count: u32) -> usize {
+        Self::START + (attack_count as usize) + Self::PIECE_OFFSETS[piece.as_index()]
     }
 }
 
@@ -148,11 +148,11 @@ impl Entry {
             let mut b_pieces = board.piece_bb(piece, Color::Black);
             bitloop!(|sq|, w_pieces, {
                 let attacks = attacks::generic(piece, sq, board.occupied(), Color::White);
-                mobility[Mobility::index(piece, attacks) - Mobility::START] += 1;
+                mobility[Mobility::index(piece, attacks.popcount()) - Mobility::START] += 1;
             });
             bitloop!(|sq|, b_pieces, {
                 let attacks = attacks::generic(piece, sq, board.occupied(), Color::Black);
-                mobility[Mobility::index(piece, attacks) - Mobility::START] -= 1;
+                mobility[Mobility::index(piece, attacks.popcount()) - Mobility::START] -= 1;
             });
         }
 
@@ -440,7 +440,7 @@ impl Tuner {
     }
 
     fn write_mobility(&self, output: &mut BufWriter<File>) {
-        for piece in Piece::LIST.iter().take(4) {
+        for &piece in Piece::LIST.iter().take(4) {
             let init_line = format!(
                 "pub const {}_MOBILITY: [ScoreTuple; {}] = [",
                 piece.as_string().unwrap(),
@@ -448,12 +448,12 @@ impl Tuner {
             );
             writeln!(output, "{}", init_line).unwrap();
 
-            for i in Mobility::START..(Mobility::START + Mobility::PIECE_MOVECOUNTS[piece.as_index()]) {
+            for i in 0..Mobility::PIECE_MOVECOUNTS[piece.as_index()] {
+                let index = Mobility::index(piece, i.try_into().unwrap());
                 write!(
                     output,
                     "s({}, {}), ",
-                    self.weights[MG][i] as EvalScore,
-                    self.weights[EG][i] as EvalScore,
+                    self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore,
                 )
                 .unwrap();
             }
