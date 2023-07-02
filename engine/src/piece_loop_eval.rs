@@ -68,6 +68,6 @@ pub const fn availible(board: &Board, color: Color) -> Bitboard {
     let enemy_pawns = board.piece_bb(Piece::PAWN, opp_color);
     let enemy_pawn_attacks = attacks::pawn_setwise(enemy_pawns, opp_color);
     let enemy_or_empty = board.all[opp_color.as_index()].union(board.empty());
-    
+
     enemy_or_empty.without(enemy_pawn_attacks)
 }

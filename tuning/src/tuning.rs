@@ -3,7 +3,8 @@ use engine::{
     board_representation::{
         Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
     },
-    evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX}, piece_loop_eval,
+    evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
+    piece_loop_eval,
 };
 use std::{
     fs::{read_to_string, File},
@@ -435,7 +436,7 @@ impl Tuner {
     fn write_bishop_pair(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
-            "pub const BISHOP_PAIR_BONUS: ScoreTuple = s({}, {});",
+            "pub const BISHOP_PAIR_BONUS: ScoreTuple = s({}, {});\n",
             self.weights[MG][BishopPair::index()] as EvalScore,
             self.weights[EG][BishopPair::index()] as EvalScore,
         )
@@ -450,6 +451,7 @@ impl Tuner {
                 Mobility::PIECE_MOVECOUNTS[piece.as_index()]
             );
             writeln!(output, "{}", init_line).unwrap();
+            write!(output, "  ").unwrap();
 
             for i in 0..Mobility::PIECE_MOVECOUNTS[piece.as_index()] {
                 let index = Mobility::index(piece, i.try_into().unwrap());
@@ -460,7 +462,7 @@ impl Tuner {
                 )
                 .unwrap();
             }
-            writeln!(output, "];\n").unwrap();
+            writeln!(output, "\n];\n").unwrap();
         }
     }
 
