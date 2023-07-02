@@ -88,6 +88,10 @@ impl Move {
         self.flag() >= Flag::KNIGHT_CAPTURE_PROMO
     }
 
+    pub fn is_quiet(self) -> bool {
+        self.flag() < Flag::KNIGHT_CAPTURE_PROMO
+    }
+
     pub fn as_string(self) -> String {
         if self.is_null() {
             return "NULL".to_owned();
@@ -196,7 +200,7 @@ impl Move {
         }
 
         // if quiet, we need to land on an unoccupied square
-        if !self.is_capture() && to_bb.overlaps(occupied) {
+        if self.is_quiet() && to_bb.overlaps(occupied) {
             return false;
         }
 
