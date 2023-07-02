@@ -4,7 +4,7 @@ use crate::{
     bitloop,
     board_representation::{Board, Color, Piece, Square},
     eval_constants::{BISHOP_PAIR_BONUS, MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST},
-    search::MAX_PLY,
+    search::MAX_PLY, piece_loop_eval::mobility,
 };
 
 pub type Phase = u8;
@@ -120,6 +120,7 @@ pub fn evaluate(board: &Board) -> EvalScore {
     score_tuple += pst_eval(board, us) - pst_eval(board, them);
     score_tuple += bishop_pair(board, us) - bishop_pair(board, them);
     score_tuple += passed_pawns(board, us) - passed_pawns(board, them);
+    score_tuple += mobility(board, us) - mobility(board, them);
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;

@@ -1,8 +1,10 @@
 use engine::{
+    attacks, bitloop,
     board_representation::{
         Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
     },
     evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
+    piece_loop_eval,
 };
 use std::{
     fs::{read_to_string, File},
@@ -10,7 +12,8 @@ use std::{
     io::Write,
 };
 
-const TUNER_VEC_LEN: usize = MaterialPst::LEN + Passer::LEN + PasserBlocker::LEN + BishopPair::LEN;
+const TUNER_VEC_LEN: usize =
+    MaterialPst::LEN + Passer::LEN + PasserBlocker::LEN + BishopPair::LEN + Mobility::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -50,6 +53,18 @@ impl BishopPair {
 
     fn index() -> usize {
         Self::START
+    }
+}
+
+struct Mobility;
+impl Mobility {
+    const START: usize = BishopPair::START + BishopPair::LEN;
+    const PIECE_MOVECOUNTS: [usize; 4] = [9, 14, 15, 28];
+    const PIECE_OFFSETS: [usize; 4] = [0, 9, 9 + 14, 9 + 14 + 15];
+    const LEN: usize = 9 + 14 + 15 + 28;
+
+    fn index(piece: Piece, attack_count: u32) -> usize {
+        Self::START + (attack_count as usize) + Self::PIECE_OFFSETS[piece.as_index()]
     }
 }
 
@@ -127,6 +142,33 @@ impl Entry {
         self.rst_update(blocking_white, blocking_black, PasserBlocker::index);
     }
 
+    fn add_mobility_features(&mut self, board: &Board) {
+        let mut mobility = [0; Mobility::LEN];
+        for color in Color::LIST {
+            let availible = piece_loop_eval::availible(board, color);
+            for &piece in Piece::LIST.iter().take(4) {
+                let mut pieces = board.piece_bb(piece, color);
+                let val = match color {
+                    Color::White => 1,
+                    Color::Black => -1,
+                };
+
+                bitloop!(|sq|, pieces, {
+                    let attacks = attacks::generic(piece, sq, board.occupied(), color) & availible;
+                    mobility[Mobility::index(piece, attacks.popcount()) - Mobility::START] += val;
+                });
+            }
+        }
+
+        for i in 0..Mobility::LEN {
+            let val = mobility[i];
+            if val != 0 {
+                let vec_index = i + Mobility::START;
+                self.feature_vec.push(Feature::new(val, vec_index));
+            }
+        }
+    }
+
     fn new(board: &Board, game_result: f64) -> Self {
         let mut entry = Self {
             feature_vec: vec![],
@@ -136,6 +178,7 @@ impl Entry {
 
         entry.add_pst_features(board);
         entry.add_passer_features(board);
+        entry.add_mobility_features(board);
 
         let bishop_pair_val = i8::from(board.piece_bb(Piece::BISHOP, Color::White).popcount() >= 2)
             - i8::from(board.piece_bb(Piece::BISHOP, Color::Black).popcount() >= 2);
@@ -393,11 +436,34 @@ impl Tuner {
     fn write_bishop_pair(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
-            "pub const BISHOP_PAIR_BONUS: ScoreTuple = s({}, {});",
+            "pub const BISHOP_PAIR_BONUS: ScoreTuple = s({}, {});\n",
             self.weights[MG][BishopPair::index()] as EvalScore,
             self.weights[EG][BishopPair::index()] as EvalScore,
         )
         .unwrap();
+    }
+
+    fn write_mobility(&self, output: &mut BufWriter<File>) {
+        for &piece in Piece::LIST.iter().take(4) {
+            let init_line = format!(
+                "pub const {}_MOBILITY: [ScoreTuple; {}] = [",
+                piece.as_string().unwrap().to_uppercase(),
+                Mobility::PIECE_MOVECOUNTS[piece.as_index()]
+            );
+            writeln!(output, "{}", init_line).unwrap();
+            write!(output, "  ").unwrap();
+
+            for i in 0..Mobility::PIECE_MOVECOUNTS[piece.as_index()] {
+                let index = Mobility::index(piece, i.try_into().unwrap());
+                write!(
+                    output,
+                    "s({}, {}), ",
+                    self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore,
+                )
+                .unwrap();
+            }
+            writeln!(output, "\n];\n").unwrap();
+        }
     }
 
     fn create_output_file(&self) {
@@ -407,5 +473,6 @@ impl Tuner {
         self.write_passer_pst(&mut output);
         self.write_passer_blocker_rst(&mut output);
         self.write_bishop_pair(&mut output);
+        self.write_mobility(&mut output);
     }
 }
