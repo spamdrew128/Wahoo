@@ -1,12 +1,9 @@
 use std::ops::{Add, AddAssign, Sub};
 
 use crate::{
-    attacks, bitloop,
-    board_representation::{Bitboard, Board, Color, Piece, Square},
-    eval_constants::{
-        BISHOP_MOBILITY, BISHOP_PAIR_BONUS, KNIGHT_MOBILITY, MATERIAL_PSTS, PASSER_BLOCKERS_RST,
-        PASSER_PST, QUEEN_MOBILITY, ROOK_MOBILITY,
-    },
+    bitloop,
+    board_representation::{Board, Color, Piece, Square},
+    eval_constants::{BISHOP_PAIR_BONUS, MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST},
     search::MAX_PLY,
 };
 
@@ -128,36 +125,4 @@ pub fn evaluate(board: &Board) -> EvalScore {
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
 
     (score_tuple.mg() * mg_phase + score_tuple.eg() * eg_phase) / i32::from(PHASE_MAX)
-}
-
-struct PieceNum;
-impl PieceNum {
-    const KNIGHT: u8 = 0;
-    const BISHOP: u8 = 1;
-    const ROOK: u8 = 2;
-    const QUEEN: u8 = 3;
-    const PAWN: u8 = 4;
-    const KING: u8 = 5;
-}
-
-fn mobility_score<const PIECE: u8>(board: &Board, sq: Square, availible: Bitboard) -> ScoreTuple {
-    match PIECE {
-        PieceNum::KNIGHT => {
-            let moves = attacks::knight(sq) & availible;
-            KNIGHT_MOBILITY[moves.popcount() as usize]
-        }
-        PieceNum::BISHOP => {
-            let moves = attacks::bishop(sq, board.occupied()) & availible;
-            BISHOP_MOBILITY[moves.popcount() as usize]
-        }
-        PieceNum::ROOK => {
-            let moves = attacks::rook(sq, board.occupied()) & availible;
-            ROOK_MOBILITY[moves.popcount() as usize]
-        }
-        PieceNum::QUEEN => {
-            let moves = attacks::queen(sq, board.occupied()) & availible;
-            QUEEN_MOBILITY[moves.popcount() as usize]
-        }
-        _ => ScoreTuple::new(0, 0),
-    }
 }
