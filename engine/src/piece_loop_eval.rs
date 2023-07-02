@@ -49,7 +49,7 @@ fn piece_loop<const PIECE: u8>(
     score
 }
 
-fn mobility(board: &Board, color: Color) -> ScoreTuple {
+pub fn mobility(board: &Board, color: Color) -> ScoreTuple {
     let knights = board.piece_bb(Piece::KNIGHT, color);
     let bishops = board.piece_bb(Piece::BISHOP, color);
     let rooks = board.piece_bb(Piece::ROOK, color);
