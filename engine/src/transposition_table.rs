@@ -174,6 +174,16 @@ impl TranspositionTable {
         }
     }
 
+    pub fn prefetch(&self, hash: ZobristHash) {
+        let index = self.table_index(hash);
+        let entry = &self.table[index];
+        #[cfg(target_arch = "x86_64")]
+        unsafe {
+            use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
+            _mm_prefetch((entry as *const AtomicU64).cast::<i8>(), _MM_HINT_T0);
+        }
+    }
+
     pub fn hashfull(&self) -> i32 {
         let mut hash_full = 0;
         self.table.iter().take(1000).for_each(|x| {

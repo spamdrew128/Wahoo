@@ -310,6 +310,8 @@ impl<'a> Searcher<'a> {
             self.node_count += 1;
             moves_played += 1;
 
+            self.tt.prefetch(self.zobrist_stack.current_zobrist_hash());
+
             let mut score = 0;
             if moves_played == 1 {
                 score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -beta, -alpha);
