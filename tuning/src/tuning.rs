@@ -160,7 +160,7 @@ impl Entry {
             }
         }
 
-        for i in 0..Mobility::LEN {
+        for i in 1..Mobility::LEN {
             let val = mobility[i];
             if val != 0 {
                 let vec_index = i + Mobility::START;
