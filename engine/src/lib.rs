@@ -24,7 +24,7 @@ mod late_move_reductions;
 mod magic;
 pub mod movegen;
 mod perft;
-mod piece_loop_eval;
+pub mod piece_loop_eval;
 mod pst;
 mod pv_table;
 pub mod search;

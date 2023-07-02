@@ -55,14 +55,19 @@ pub fn mobility(board: &Board, color: Color) -> ScoreTuple {
     let rooks = board.piece_bb(Piece::ROOK, color);
     let queens = board.piece_bb(Piece::QUEEN, color);
 
-    let opp_color = color.flip();
-    let enemy_pawns = board.piece_bb(Piece::PAWN, opp_color);
-    let enemy_pawn_attacks = attacks::pawn_setwise(enemy_pawns, opp_color);
-    let enemy_or_empty = board.all[opp_color.as_index()].union(board.empty());
-    let availible = enemy_or_empty.without(enemy_pawn_attacks);
+    let availible = availible(board, color);
 
     piece_loop::<{ PieceNum::KNIGHT }>(board, availible, knights)
         + piece_loop::<{ PieceNum::BISHOP }>(board, availible, bishops)
         + piece_loop::<{ PieceNum::ROOK }>(board, availible, rooks)
         + piece_loop::<{ PieceNum::QUEEN }>(board, availible, queens)
+}
+
+pub const fn availible(board: &Board, color: Color) -> Bitboard {
+    let opp_color = color.flip();
+    let enemy_pawns = board.piece_bb(Piece::PAWN, opp_color);
+    let enemy_pawn_attacks = attacks::pawn_setwise(enemy_pawns, opp_color);
+    let enemy_or_empty = board.all[opp_color.as_index()].union(board.empty());
+    
+    enemy_or_empty.without(enemy_pawn_attacks)
 }

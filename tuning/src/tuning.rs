@@ -3,7 +3,7 @@ use engine::{
     board_representation::{
         Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
     },
-    evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
+    evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX}, piece_loop_eval,
 };
 use std::{
     fs::{read_to_string, File},
@@ -143,17 +143,20 @@ impl Entry {
 
     fn add_mobility_features(&mut self, board: &Board) {
         let mut mobility = [0; Mobility::LEN];
-        for &piece in Piece::LIST.iter().take(4) {
-            let mut w_pieces = board.piece_bb(piece, Color::White);
-            let mut b_pieces = board.piece_bb(piece, Color::Black);
-            bitloop!(|sq|, w_pieces, {
-                let attacks = attacks::generic(piece, sq, board.occupied(), Color::White);
-                mobility[Mobility::index(piece, attacks.popcount()) - Mobility::START] += 1;
-            });
-            bitloop!(|sq|, b_pieces, {
-                let attacks = attacks::generic(piece, sq, board.occupied(), Color::Black);
-                mobility[Mobility::index(piece, attacks.popcount()) - Mobility::START] -= 1;
-            });
+        for color in Color::LIST {
+            let availible = piece_loop_eval::availible(board, color);
+            for &piece in Piece::LIST.iter().take(4) {
+                let mut pieces = board.piece_bb(piece, color);
+                let val = match color {
+                    Color::White => 1,
+                    Color::Black => -1,
+                };
+
+                bitloop!(|sq|, pieces, {
+                    let attacks = attacks::generic(piece, sq, board.occupied(), color) & availible;
+                    mobility[Mobility::index(piece, attacks.popcount()) - Mobility::START] += val;
+                });
+            }
         }
 
         for i in 0..Mobility::LEN {
