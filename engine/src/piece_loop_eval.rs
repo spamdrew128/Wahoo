@@ -5,8 +5,8 @@ use crate::{
     evaluation::ScoreTuple,
 };
 
-const fn king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
-    let mut king_safety_zones = [[Bitboard::new(0); NUM_SQUARES as usize]; NUM_COLORS as usize];
+const fn enemy_king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
+    let mut enemy_king_zones = [[Bitboard::new(0); NUM_SQUARES as usize]; NUM_COLORS as usize];
     let mut i = 0;
     while i < NUM_SQUARES {
         let sq = Square::new(i);
@@ -26,20 +26,28 @@ const fn king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as u
             .union(bitset.south_one())
             .union(bitset.southeast_one());
 
-        king_safety_zones[Color::White.as_index()][sq.as_index()] = inner_ring
+        let white_zone = inner_ring
             .union(w_shield.shift_north(1))
             .union(w_shield.shift_north(2));
-        king_safety_zones[Color::Black.as_index()][sq.as_index()] = inner_ring
+
+        let black_zone = inner_ring
             .union(b_shield.shift_south(1))
             .union(b_shield.shift_south(2));
 
+        enemy_king_zones[Color::White.as_index()][sq.as_index()] = black_zone;
+        enemy_king_zones[Color::Black.as_index()][sq.as_index()] = white_zone;
         i += 1;
     }
 
-    king_safety_zones
+    enemy_king_zones
 }
 
-pub const KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = king_zones_init();
+const ENEMY_KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] =
+    enemy_king_zones_init();
+
+pub const fn enemy_king_zone(enemy_king_sq: Square, attacking_color: Color) -> Bitboard {
+    ENEMY_KING_ZONES[attacking_color.as_index()][enemy_king_sq.as_index()]
+}
 
 struct PieceNum;
 impl PieceNum {
