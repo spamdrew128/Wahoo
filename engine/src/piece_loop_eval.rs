@@ -12,26 +12,26 @@ const fn king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as u
         let sq = Square::new(i);
         let adjusted_sq = Square::new(i + (i % 8 == 0) as u8 - (i % 8 == 7) as u8);
         let inner_ring = attacks::king(adjusted_sq)
-            .intersection(adjusted_sq.as_bitboard())
+            .union(adjusted_sq.as_bitboard())
             .xor(sq.as_bitboard());
 
         let bitset = adjusted_sq.as_bitboard();
 
         let w_shield = bitset
             .northwest_one()
-            .intersection(bitset.north_one())
-            .intersection(bitset.northeast_one());
+            .union(bitset.north_one())
+            .union(bitset.northeast_one());
         let b_shield = bitset
             .southwest_one()
-            .intersection(bitset.south_one())
-            .intersection(bitset.southeast_one());
+            .union(bitset.south_one())
+            .union(bitset.southeast_one());
 
         king_safety_zones[Color::White.as_index()][sq.as_index()] = inner_ring
-            .intersection(w_shield.shift_north(1))
-            .intersection(w_shield.shift_north(2));
+            .union(w_shield.shift_north(1))
+            .union(w_shield.shift_north(2));
         king_safety_zones[Color::Black.as_index()][sq.as_index()] = inner_ring
-            .intersection(b_shield.shift_south(1))
-            .intersection(b_shield.shift_south(2));
+            .union(b_shield.shift_south(1))
+            .union(b_shield.shift_south(2));
 
         i += 1;
     }
