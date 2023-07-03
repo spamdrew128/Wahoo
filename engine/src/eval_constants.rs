@@ -100,9 +100,9 @@ pub const ISOLATED_PAWNS_RST: Rst = Rst::new([
   s(-4, -59),
   s(4, -36),
   s(-7, -3),
-  s(-12, -12),
-  s(0, 0),
-  s(0, 0),
+  s(-12, -1),
+  s(3, 2),
+  s(4, 5),
 ]);
 
 pub const BISHOP_PAIR_BONUS: ScoreTuple = s(27, 74);
