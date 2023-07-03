@@ -4,7 +4,7 @@ use engine::{
         Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
     },
     evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
-    piece_loop_eval,
+    piece_loop_eval::{self, MoveCounts},
 };
 use std::{
     fs::{read_to_string, File},
@@ -59,12 +59,33 @@ impl BishopPair {
 struct Mobility;
 impl Mobility {
     const START: usize = BishopPair::START + BishopPair::LEN;
-    const PIECE_MOVECOUNTS: [usize; 4] = [9, 14, 15, 28];
-    const PIECE_OFFSETS: [usize; 4] = [0, 9, 9 + 14, 9 + 14 + 15];
-    const LEN: usize = 9 + 14 + 15 + 28;
+    const PIECE_MOVECOUNTS: [usize; 4] = [
+        MoveCounts::KNIGHT,
+        MoveCounts::BISHOP,
+        MoveCounts::ROOK,
+        MoveCounts::QUEEN,
+    ];
+    const PIECE_OFFSETS: [usize; 4] = [
+        0,
+        MoveCounts::KNIGHT,
+        MoveCounts::KNIGHT + MoveCounts::BISHOP,
+        MoveCounts::KNIGHT + MoveCounts::BISHOP + MoveCounts::ROOK,
+    ];
+    const LEN: usize =
+        MoveCounts::KNIGHT + MoveCounts::BISHOP + MoveCounts::ROOK + MoveCounts::QUEEN;
 
     fn index(piece: Piece, attack_count: u32) -> usize {
         Self::START + (attack_count as usize) + Self::PIECE_OFFSETS[piece.as_index()]
+    }
+}
+
+struct Safety;
+impl Safety {
+    const START: usize = Mobility::START + Mobility::LEN;
+    const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 1) as usize);
+
+    fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
+        Self::START + enemy_virt_mobility
     }
 }
 

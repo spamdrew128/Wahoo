@@ -68,6 +68,14 @@ pub fn enemy_virtual_mobility(board: &Board, color: Color) -> usize {
     (attacks::queen(king_sq, virtual_occupied) & attackers_or_empty).popcount() as usize
 }
 
+pub struct MoveCounts;
+impl MoveCounts {
+    pub const KNIGHT: usize = 9;
+    pub const BISHOP: usize = 14;
+    pub const ROOK: usize = 15;
+    pub const QUEEN: usize = 28;
+}
+
 struct PieceNum;
 impl PieceNum {
     const KNIGHT: u8 = 0;
