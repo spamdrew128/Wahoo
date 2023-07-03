@@ -49,6 +49,24 @@ pub const fn enemy_king_zone(enemy_king_sq: Square, attacking_color: Color) -> B
     ENEMY_KING_ZONES[attacking_color.as_index()][enemy_king_sq.as_index()]
 }
 
+pub const fn availible(board: &Board, color: Color) -> Bitboard {
+    let opp_color = color.flip();
+    let enemy_pawns = board.piece_bb(Piece::PAWN, opp_color);
+    let enemy_pawn_attacks = attacks::pawn_setwise(enemy_pawns, opp_color);
+    let enemy_or_empty = board.all[opp_color.as_index()].union(board.empty());
+
+    enemy_or_empty.without(enemy_pawn_attacks)
+}
+
+pub fn enemy_virtual_mobility(board: &Board, king_sq: Square, color: Color) -> usize {
+    let empty = board.empty();
+    let mobile_attacking_pieces = board.all[color.as_index()] ^ board.piece_bb(Piece::PAWN, color);
+    let virtually_empty = empty | mobile_attacking_pieces;
+    let attackers_or_empty = board.all[color.as_index()].union(empty);
+
+    (attacks::queen(king_sq, virtually_empty) & attackers_or_empty).popcount() as usize
+}
+
 struct PieceNum;
 impl PieceNum {
     const KNIGHT: u8 = 0;
@@ -107,11 +125,3 @@ pub fn mobility(board: &Board, color: Color) -> ScoreTuple {
         + piece_loop::<{ PieceNum::QUEEN }>(board, availible, queens)
 }
 
-pub const fn availible(board: &Board, color: Color) -> Bitboard {
-    let opp_color = color.flip();
-    let enemy_pawns = board.piece_bb(Piece::PAWN, opp_color);
-    let enemy_pawn_attacks = attacks::pawn_setwise(enemy_pawns, opp_color);
-    let enemy_or_empty = board.all[opp_color.as_index()].union(board.empty());
-
-    enemy_or_empty.without(enemy_pawn_attacks)
-}
