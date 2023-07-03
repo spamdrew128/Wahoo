@@ -45,7 +45,8 @@ const fn enemy_king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLOR
 const ENEMY_KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] =
     enemy_king_zones_init();
 
-pub const fn enemy_king_zone(enemy_king_sq: Square, attacking_color: Color) -> Bitboard {
+pub const fn enemy_king_zone(board: &Board, attacking_color: Color) -> Bitboard {
+    let enemy_king_sq = board.color_king_sq(attacking_color.flip());
     ENEMY_KING_ZONES[attacking_color.as_index()][enemy_king_sq.as_index()]
 }
 

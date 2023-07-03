@@ -4,7 +4,7 @@ use engine::{
         Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
     },
     evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
-    piece_loop_eval::{self, MoveCounts},
+    piece_loop_eval::{self, MoveCounts, enemy_king_zone, enemy_virtual_mobility},
 };
 use std::{
     fs::{read_to_string, File},
@@ -85,7 +85,7 @@ impl Safety {
     const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 1) as usize);
 
     fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
-        Self::START + enemy_virt_mobility
+        Self::START + MoveCounts::QUEEN * piece.as_index() + enemy_virt_mobility
     }
 }
 
@@ -163,31 +163,52 @@ impl Entry {
         self.rst_update(blocking_white, blocking_black, PasserBlocker::index);
     }
 
-    fn add_mobility_features(&mut self, board: &Board) {
+    fn add_piece_loop_features(&mut self, board: &Board) {
         let mut mobility = [0; Mobility::LEN];
+        let mut safety = [0; Safety::LEN];
+
         for color in Color::LIST {
             let availible = piece_loop_eval::availible(board, color);
+            let enemy_king_virt_mobility = enemy_virtual_mobility(board, color);
+
+            let mult = match color {
+                Color::White => 1,
+                Color::Black => -1,
+            };
+
             for &piece in Piece::LIST.iter().take(4) {
                 let mut pieces = board.piece_bb(piece, color);
-                let val = match color {
-                    Color::White => 1,
-                    Color::Black => -1,
-                };
 
                 bitloop!(|sq|, pieces, {
                     let attacks = attacks::generic(piece, sq, board.occupied(), color) & availible;
                     let count = attacks.popcount();
                     if count > 0 {
-                        mobility[Mobility::index(piece, count) - Mobility::START] += val;
+                        mobility[Mobility::index(piece, count) - Mobility::START] += mult;
                     }
+
+                    let kz_attacks = (attacks & enemy_king_zone(board, color)).popcount() as i8;
+                    safety[Safety::index(piece, enemy_king_virt_mobility) - Safety::START] += kz_attacks * mult;
                 });
             }
+
+            let pawns = board.piece_bb(Piece::PAWN, color);
+            let pawn_attacks = attacks::pawn_setwise(pawns, color);
+            let kz_attacks = (pawn_attacks & enemy_king_zone(board, color)).popcount() as i8;
+            safety[Safety::index(Piece::PAWN, enemy_king_virt_mobility) - Safety::START] += kz_attacks * mult;
         }
 
         for i in 0..Mobility::LEN {
             let val = mobility[i];
             if val != 0 {
                 let vec_index = i + Mobility::START;
+                self.feature_vec.push(Feature::new(val, vec_index));
+            }
+        }
+
+        for i in 0..Safety::LEN {
+            let val = safety[i];
+            if val != 0 {
+                let vec_index = i + Safety::START;
                 self.feature_vec.push(Feature::new(val, vec_index));
             }
         }
@@ -202,7 +223,7 @@ impl Entry {
 
         entry.add_pst_features(board);
         entry.add_passer_features(board);
-        entry.add_mobility_features(board);
+        entry.add_piece_loop_features(board);
 
         let bishop_pair_val = i8::from(board.piece_bb(Piece::BISHOP, Color::White).popcount() >= 2)
             - i8::from(board.piece_bb(Piece::BISHOP, Color::Black).popcount() >= 2);
