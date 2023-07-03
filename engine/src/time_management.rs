@@ -29,8 +29,8 @@ impl TimeManager {
         }
 
         match color {
-            Color::White => (args.w_time / 25 + args.w_inc / 2).saturating_sub(self.overhead),
-            Color::Black => (args.b_time / 25 + args.b_inc / 2).saturating_sub(self.overhead),
+            Color::White => (args.w_time / 20 + args.w_inc / 2).saturating_sub(self.overhead),
+            Color::Black => (args.b_time / 20 + args.b_inc / 2).saturating_sub(self.overhead),
         }
     }
 }
@@ -51,5 +51,9 @@ impl SearchTimer {
 
     pub fn is_expired(&self) -> bool {
         (self.timer.elapsed().as_micros()) > self.search_time
+    }
+
+    pub fn soft_cutoff_is_expired(&self) -> bool {
+        (self.timer.elapsed().as_micros()) > (6 * self.search_time / 10)
     }
 }
