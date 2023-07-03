@@ -4,7 +4,7 @@ use engine::{
         Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
     },
     evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
-    piece_loop_eval,
+    piece_loop_eval::{self, enemy_king_zone, enemy_virtual_mobility, MoveCounts},
 };
 use std::{
     fs::{read_to_string, File},
@@ -12,8 +12,12 @@ use std::{
     io::Write,
 };
 
-const TUNER_VEC_LEN: usize =
-    MaterialPst::LEN + Passer::LEN + PasserBlocker::LEN + BishopPair::LEN + Mobility::LEN;
+const TUNER_VEC_LEN: usize = MaterialPst::LEN
+    + Passer::LEN
+    + PasserBlocker::LEN
+    + BishopPair::LEN
+    + Mobility::LEN
+    + Safety::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -59,12 +63,33 @@ impl BishopPair {
 struct Mobility;
 impl Mobility {
     const START: usize = BishopPair::START + BishopPair::LEN;
-    const PIECE_MOVECOUNTS: [usize; 4] = [9, 14, 15, 28];
-    const PIECE_OFFSETS: [usize; 4] = [0, 9, 9 + 14, 9 + 14 + 15];
-    const LEN: usize = 9 + 14 + 15 + 28;
+    const PIECE_MOVECOUNTS: [usize; 4] = [
+        MoveCounts::KNIGHT,
+        MoveCounts::BISHOP,
+        MoveCounts::ROOK,
+        MoveCounts::QUEEN,
+    ];
+    const PIECE_OFFSETS: [usize; 4] = [
+        0,
+        MoveCounts::KNIGHT,
+        MoveCounts::KNIGHT + MoveCounts::BISHOP,
+        MoveCounts::KNIGHT + MoveCounts::BISHOP + MoveCounts::ROOK,
+    ];
+    const LEN: usize =
+        MoveCounts::KNIGHT + MoveCounts::BISHOP + MoveCounts::ROOK + MoveCounts::QUEEN;
 
     fn index(piece: Piece, attack_count: u32) -> usize {
         Self::START + (attack_count as usize) + Self::PIECE_OFFSETS[piece.as_index()]
+    }
+}
+
+struct Safety;
+impl Safety {
+    const START: usize = Mobility::START + Mobility::LEN;
+    const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 1) as usize);
+
+    fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
+        Self::START + MoveCounts::QUEEN * piece.as_index() + enemy_virt_mobility
     }
 }
 
@@ -142,31 +167,53 @@ impl Entry {
         self.rst_update(blocking_white, blocking_black, PasserBlocker::index);
     }
 
-    fn add_mobility_features(&mut self, board: &Board) {
+    fn add_piece_loop_features(&mut self, board: &Board) {
         let mut mobility = [0; Mobility::LEN];
+        let mut safety = [0; Safety::LEN];
+
         for color in Color::LIST {
             let availible = piece_loop_eval::availible(board, color);
+            let enemy_king_virt_mobility = enemy_virtual_mobility(board, color);
+
+            let mult = match color {
+                Color::White => 1,
+                Color::Black => -1,
+            };
+
             for &piece in Piece::LIST.iter().take(4) {
                 let mut pieces = board.piece_bb(piece, color);
-                let val = match color {
-                    Color::White => 1,
-                    Color::Black => -1,
-                };
 
                 bitloop!(|sq|, pieces, {
                     let attacks = attacks::generic(piece, sq, board.occupied(), color) & availible;
                     let count = attacks.popcount();
                     if count > 0 {
-                        mobility[Mobility::index(piece, count) - Mobility::START] += val;
+                        mobility[Mobility::index(piece, count) - Mobility::START] += mult;
                     }
+
+                    let kz_attacks = (attacks & enemy_king_zone(board, color)).popcount() as i8;
+                    safety[Safety::index(piece, enemy_king_virt_mobility) - Safety::START] += kz_attacks * mult;
                 });
             }
+
+            let pawns = board.piece_bb(Piece::PAWN, color);
+            let pawn_attacks = attacks::pawn_setwise(pawns, color);
+            let kz_attacks = (pawn_attacks & enemy_king_zone(board, color)).popcount() as i8;
+            safety[Safety::index(Piece::PAWN, enemy_king_virt_mobility) - Safety::START] +=
+                kz_attacks * mult;
         }
 
         for i in 0..Mobility::LEN {
             let val = mobility[i];
             if val != 0 {
                 let vec_index = i + Mobility::START;
+                self.feature_vec.push(Feature::new(val, vec_index));
+            }
+        }
+
+        for i in 0..Safety::LEN {
+            let val = safety[i];
+            if val != 0 {
+                let vec_index = i + Safety::START;
                 self.feature_vec.push(Feature::new(val, vec_index));
             }
         }
@@ -181,7 +228,7 @@ impl Entry {
 
         entry.add_pst_features(board);
         entry.add_passer_features(board);
-        entry.add_mobility_features(board);
+        entry.add_piece_loop_features(board);
 
         let bishop_pair_val = i8::from(board.piece_bb(Piece::BISHOP, Color::White).popcount() >= 2)
             - i8::from(board.piece_bb(Piece::BISHOP, Color::Black).popcount() >= 2);
@@ -469,6 +516,30 @@ impl Tuner {
         }
     }
 
+    fn write_safety(&self, output: &mut BufWriter<File>) {
+        writeln!(
+            output,
+            "pub const KING_ZONE_ATTACKS: [[ScoreTuple; 28]; (NUM_PIECES - 1) as usize] = ["
+        )
+        .unwrap();
+        for &piece in Piece::LIST.iter().take(5) {
+            writeln!(output, "// {} attack values", piece.as_string().unwrap()).unwrap();
+            write!(output, "[\n  ").unwrap();
+
+            for i in 0..MoveCounts::QUEEN {
+                let index = Safety::index(piece, i);
+                write!(
+                    output,
+                    "s({}, {}), ",
+                    self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore,
+                )
+                .unwrap();
+            }
+            writeln!(output, "\n],").unwrap();
+        }
+        writeln!(output, "];").unwrap();
+    }
+
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
         self.write_header(&mut output);
@@ -477,5 +548,6 @@ impl Tuner {
         self.write_passer_blocker_rst(&mut output);
         self.write_bishop_pair(&mut output);
         self.write_mobility(&mut output);
+        self.write_safety(&mut output);
     }
 }
