@@ -35,6 +35,10 @@ impl ScoreTuple {
     const fn eg(self) -> EvalScore {
         self.1
     }
+
+    pub const fn mult(self, multiplier: i32) -> Self {
+        Self(self.0 * multiplier, self.1 * multiplier)
+    }
 }
 
 impl Add for ScoreTuple {

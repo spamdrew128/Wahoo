@@ -272,7 +272,7 @@ impl Bitboard {
         }
     }
 
-    const fn xor(self, rhs: Self) -> Self {
+    pub const fn xor(self, rhs: Self) -> Self {
         Self {
             data: self.data ^ rhs.data,
         }
@@ -780,6 +780,10 @@ impl Board {
 
     pub const fn king_sq(&self) -> Square {
         self.piece_bb(Piece::KING, self.color_to_move).lsb()
+    }
+
+    pub const fn color_king_sq(&self, color: Color) -> Square {
+        self.piece_bb(Piece::KING, color).lsb()
     }
 
     pub const fn in_check(&self) -> bool {
