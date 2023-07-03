@@ -210,6 +210,7 @@ impl<'a> Searcher<'a> {
     }
 
     #[rustfmt::skip]
+    #[allow(clippy::cognitive_complexity)] // lol
     fn negamax<const DO_NULL_MOVE: bool>(
         &mut self,
         board: &Board,
@@ -227,8 +228,17 @@ impl<'a> Searcher<'a> {
         let is_drawn =
             self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
 
-        if !is_root && is_drawn {
-            return 0;
+        if !is_root {
+            if is_drawn {
+                return 0;
+            }
+
+            // MATE DISTANCE PRUNING
+            let mate_alpha = alpha.max(i32::from(ply) - MATE_THRESHOLD);
+            let mate_beta = beta.min(MATE_THRESHOLD - (i32::from(ply) + 1));
+            if mate_alpha >= mate_beta {
+                return mate_alpha;
+            }
         }
 
         // CHECK EXTENSION
