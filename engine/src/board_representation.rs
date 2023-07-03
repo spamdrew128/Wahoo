@@ -782,6 +782,10 @@ impl Board {
         self.piece_bb(Piece::KING, self.color_to_move).lsb()
     }
 
+    pub const fn color_king_sq(&self, color: Color) -> Square {
+        self.piece_bb(Piece::KING, color).lsb()
+    }
+
     pub const fn in_check(&self) -> bool {
         self.king_sq().is_attacked(self)
     }

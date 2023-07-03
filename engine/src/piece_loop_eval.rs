@@ -58,13 +58,14 @@ pub const fn availible(board: &Board, color: Color) -> Bitboard {
     enemy_or_empty.without(enemy_pawn_attacks)
 }
 
-pub fn enemy_virtual_mobility(board: &Board, king_sq: Square, color: Color) -> usize {
+pub fn enemy_virtual_mobility(board: &Board, color: Color) -> usize {
+    let king_sq = board.color_king_sq(color.flip());
     let empty = board.empty();
     let mobile_attacking_pieces = board.all[color.as_index()] ^ board.piece_bb(Piece::PAWN, color);
-    let virtually_empty = empty | mobile_attacking_pieces;
+    let virtual_occupied = board.occupied() ^ mobile_attacking_pieces;
     let attackers_or_empty = board.all[color.as_index()].union(empty);
 
-    (attacks::queen(king_sq, virtually_empty) & attackers_or_empty).popcount() as usize
+    (attacks::queen(king_sq, virtual_occupied) & attackers_or_empty).popcount() as usize
 }
 
 struct PieceNum;
@@ -125,3 +126,19 @@ pub fn mobility(board: &Board, color: Color) -> ScoreTuple {
         + piece_loop::<{ PieceNum::QUEEN }>(board, availible, queens)
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::board_representation::{Board, Color};
+
+    use super::enemy_virtual_mobility;
+
+    #[test]
+    fn virtual_mobility() {
+        let board = Board::from_fen("B2r2k1/3p1p2/p4PpB/1p3b2/8/2Nq2PP/PP2R1NK/3R4 b - - 2 23");
+        let w_enemy_virt_mobility = enemy_virtual_mobility(&board, Color::White);
+        let b_enemy_virt_mobility = enemy_virtual_mobility(&board, Color::Black);
+
+        assert_eq!(w_enemy_virt_mobility, 5);
+        assert_eq!(b_enemy_virt_mobility, 2);
+    }
+}
