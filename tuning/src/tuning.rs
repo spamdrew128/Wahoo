@@ -511,6 +511,25 @@ impl Tuner {
         }
     }
 
+    fn write_safety(&self, output: &mut BufWriter<File>) {
+        writeln!(output, "pub const KING_ZONE_ATTACKS: [[ScoreTuple; 28]; (NUM_PIECES - 1) as usize] = [").unwrap();
+        for &piece in Piece::LIST.iter().take(5) {
+            writeln!(output, "// {} attack values", piece.as_string().unwrap()).unwrap();
+            write!(output, "  ").unwrap();
+
+            for i in 0..MoveCounts::QUEEN {
+                let index = Safety::index(piece, i);
+                write!(
+                    output,
+                    "s({}, {}), ",
+                    self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore,
+                )
+                .unwrap();
+            }
+            writeln!(output, "\n];\n").unwrap();
+        }
+    }
+
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
         self.write_header(&mut output);
@@ -519,5 +538,6 @@ impl Tuner {
         self.write_passer_blocker_rst(&mut output);
         self.write_bishop_pair(&mut output);
         self.write_mobility(&mut output);
+        self.write_safety(&mut output);
     }
 }
