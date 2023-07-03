@@ -4,7 +4,7 @@ use engine::{
         Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
     },
     evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
-    piece_loop_eval::{self, MoveCounts, enemy_king_zone, enemy_virtual_mobility},
+    piece_loop_eval::{self, enemy_king_zone, enemy_virtual_mobility, MoveCounts},
 };
 use std::{
     fs::{read_to_string, File},
@@ -12,8 +12,12 @@ use std::{
     io::Write,
 };
 
-const TUNER_VEC_LEN: usize =
-    MaterialPst::LEN + Passer::LEN + PasserBlocker::LEN + BishopPair::LEN + Mobility::LEN;
+const TUNER_VEC_LEN: usize = MaterialPst::LEN
+    + Passer::LEN
+    + PasserBlocker::LEN
+    + BishopPair::LEN
+    + Mobility::LEN
+    + Safety::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -194,7 +198,8 @@ impl Entry {
             let pawns = board.piece_bb(Piece::PAWN, color);
             let pawn_attacks = attacks::pawn_setwise(pawns, color);
             let kz_attacks = (pawn_attacks & enemy_king_zone(board, color)).popcount() as i8;
-            safety[Safety::index(Piece::PAWN, enemy_king_virt_mobility) - Safety::START] += kz_attacks * mult;
+            safety[Safety::index(Piece::PAWN, enemy_king_virt_mobility) - Safety::START] +=
+                kz_attacks * mult;
         }
 
         for i in 0..Mobility::LEN {
@@ -512,10 +517,14 @@ impl Tuner {
     }
 
     fn write_safety(&self, output: &mut BufWriter<File>) {
-        writeln!(output, "pub const KING_ZONE_ATTACKS: [[ScoreTuple; 28]; (NUM_PIECES - 1) as usize] = [").unwrap();
+        writeln!(
+            output,
+            "pub const KING_ZONE_ATTACKS: [[ScoreTuple; 28]; (NUM_PIECES - 1) as usize] = ["
+        )
+        .unwrap();
         for &piece in Piece::LIST.iter().take(5) {
             writeln!(output, "// {} attack values", piece.as_string().unwrap()).unwrap();
-            write!(output, "  ").unwrap();
+            write!(output, "[\n  ").unwrap();
 
             for i in 0..MoveCounts::QUEEN {
                 let index = Safety::index(piece, i);
@@ -526,8 +535,9 @@ impl Tuner {
                 )
                 .unwrap();
             }
-            writeln!(output, "\n];\n").unwrap();
+            writeln!(output, "\n],").unwrap();
         }
+        writeln!(output, "];").unwrap();
     }
 
     fn create_output_file(&self) {
