@@ -1,9 +1,45 @@
 use crate::{
     attacks, bitloop,
-    board_representation::{Bitboard, Board, Color, Piece, Square},
+    board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
     eval_constants::{BISHOP_MOBILITY, KNIGHT_MOBILITY, QUEEN_MOBILITY, ROOK_MOBILITY},
     evaluation::ScoreTuple,
 };
+
+const fn king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
+    let mut king_safety_zones = [[Bitboard::new(0); NUM_SQUARES as usize]; NUM_COLORS as usize];
+    let mut i = 0;
+    while i < NUM_SQUARES {
+        let sq = Square::new(i);
+        let adjusted_sq = Square::new(i + (i % 8 == 0) as u8 - (i % 8 == 7) as u8);
+        let inner_ring = attacks::king(adjusted_sq)
+            .intersection(adjusted_sq.as_bitboard())
+            .xor(sq.as_bitboard());
+
+        let bitset = adjusted_sq.as_bitboard();
+
+        let w_shield = bitset
+            .northwest_one()
+            .intersection(bitset.north_one())
+            .intersection(bitset.northeast_one());
+        let b_shield = bitset
+            .southwest_one()
+            .intersection(bitset.south_one())
+            .intersection(bitset.southeast_one());
+
+        king_safety_zones[Color::White.as_index()][sq.as_index()] = inner_ring
+            .intersection(w_shield.shift_north(1))
+            .intersection(w_shield.shift_north(2));
+        king_safety_zones[Color::Black.as_index()][sq.as_index()] = inner_ring
+            .intersection(b_shield.shift_south(1))
+            .intersection(b_shield.shift_south(2));
+
+        i += 1;
+    }
+
+    king_safety_zones
+}
+
+pub const KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = king_zones_init();
 
 struct PieceNum;
 impl PieceNum {

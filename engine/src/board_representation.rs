@@ -272,7 +272,7 @@ impl Bitboard {
         }
     }
 
-    const fn xor(self, rhs: Self) -> Self {
+    pub const fn xor(self, rhs: Self) -> Self {
         Self {
             data: self.data ^ rhs.data,
         }
