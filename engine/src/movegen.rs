@@ -260,7 +260,11 @@ impl MoveGenerator {
                     }
                 }
                 MoveStage::CAPTURE => {
-                    self.generate_captures(board, &[tt_move]);
+                    if tt_move.is_capture() {
+                        self.generate_captures(board, &[tt_move]);
+                    } else {
+                        self.generate_captures(board, &[]);
+                    };
                     self.score_captures(board);
                 }
                 MoveStage::KILLER => {
@@ -270,7 +274,11 @@ impl MoveGenerator {
                 }
                 MoveStage::QUIET => {
                     if INCLUDE_QUIETS {
-                        self.generate_quiets(board, &[tt_move, killer]);
+                        if !tt_move.is_null() && tt_move.is_quiet() {
+                            self.generate_quiets(board, &[tt_move, killer]);
+                        } else {
+                            self.generate_quiets(board, &[killer]);
+                        };
                         self.score_quiets(board, history);
                     }
                 }
