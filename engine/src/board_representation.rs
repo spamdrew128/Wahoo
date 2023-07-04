@@ -992,6 +992,14 @@ impl Board {
 
         our_pawns.without(opp_blocks)
     }
+
+    pub fn isolated_pawns(&self, color: Color) -> Bitboard {
+        let pawns = self.piece_bb(Piece::PAWN, color);
+        let pawn_files = pawns.file_fill();
+        let neighbors = pawn_files.west_one() | pawn_files.east_one();
+
+        pawns.without(neighbors)
+    }
 }
 
 #[cfg(test)]
@@ -1130,5 +1138,15 @@ mod tests {
 
         assert_eq!(board.passed_pawns(Color::White), w_expected);
         assert_eq!(board.passed_pawns(Color::Black), b_expected);
+    }
+
+    #[test]
+    fn isolated_pawns() {
+        let board = Board::from_fen("8/8/8/K5pp/4P3/kpP2P2/8/8 w - - 0 1");
+        let w_expected = bb_from_squares!(C3);
+        let b_expected = bb_from_squares!(B3);
+
+        assert_eq!(board.isolated_pawns(Color::White), w_expected);
+        assert_eq!(board.isolated_pawns(Color::Black), b_expected);
     }
 }

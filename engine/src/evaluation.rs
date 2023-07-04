@@ -3,7 +3,9 @@ use std::ops::{Add, AddAssign, Sub};
 use crate::{
     bitloop,
     board_representation::{Board, Color, Piece, Square},
-    eval_constants::{BISHOP_PAIR_BONUS, MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST},
+    eval_constants::{
+        BISHOP_PAIR_BONUS, ISOLATED_PAWNS_RST, MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST,
+    },
     piece_loop_eval::mobility,
     search::MAX_PLY,
 };
@@ -20,7 +22,7 @@ pub const INF: EvalScore = (i16::MAX - 10) as i32;
 pub const EVAL_MAX: EvalScore = INF - 1;
 pub const MATE_THRESHOLD: EvalScore = EVAL_MAX - (MAX_PLY as i32);
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ScoreTuple(EvalScore, EvalScore);
 
 impl ScoreTuple {
@@ -117,6 +119,17 @@ fn passed_pawns(board: &Board, color: Color) -> ScoreTuple {
     score
 }
 
+fn isolated_pawns(board: &Board, color: Color) -> ScoreTuple {
+    let mut score = ScoreTuple::new(0, 0);
+
+    let mut isolated = board.isolated_pawns(color);
+    bitloop!(|sq|, isolated, {
+        score += ISOLATED_PAWNS_RST.access(color, sq);
+    });
+
+    score
+}
+
 pub fn evaluate(board: &Board) -> EvalScore {
     let us = board.color_to_move;
     let them = board.color_to_move.flip();
@@ -125,6 +138,7 @@ pub fn evaluate(board: &Board) -> EvalScore {
     score_tuple += pst_eval(board, us) - pst_eval(board, them);
     score_tuple += bishop_pair(board, us) - bishop_pair(board, them);
     score_tuple += passed_pawns(board, us) - passed_pawns(board, them);
+    score_tuple += isolated_pawns(board, us) - isolated_pawns(board, them);
     score_tuple += mobility(board, us) - mobility(board, them);
 
     let mg_phase = i32::from(phase(board));
@@ -132,3 +146,4 @@ pub fn evaluate(board: &Board) -> EvalScore {
 
     (score_tuple.mg() * mg_phase + score_tuple.eg() * eg_phase) / i32::from(PHASE_MAX)
 }
+

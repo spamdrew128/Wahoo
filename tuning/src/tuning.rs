@@ -17,7 +17,8 @@ const TUNER_VEC_LEN: usize = MaterialPst::LEN
     + PasserBlocker::LEN
     + BishopPair::LEN
     + Mobility::LEN
-    + Safety::LEN;
+    + Safety::LEN
+    + IsolatedPawns::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -90,6 +91,16 @@ impl Safety {
 
     fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
         Self::START + MoveCounts::QUEEN * piece.as_index() + enemy_virt_mobility
+    }
+}
+
+struct IsolatedPawns;
+impl IsolatedPawns {
+    const START: usize = Safety::START + Safety::LEN;
+    const LEN: usize = (NUM_RANKS as usize);
+
+    fn index(rank: u8) -> usize {
+        Self::START + rank as usize
     }
 }
 
@@ -167,6 +178,13 @@ impl Entry {
         self.rst_update(blocking_white, blocking_black, PasserBlocker::index);
     }
 
+    fn add_isolated_features(&mut self, board: &Board) {
+        let w_isolated = board.isolated_pawns(Color::White);
+        let b_isolated = board.isolated_pawns(Color::Black);
+
+        self.rst_update(w_isolated, b_isolated, IsolatedPawns::index);
+    }
+
     fn add_piece_loop_features(&mut self, board: &Board) {
         let mut mobility = [0; Mobility::LEN];
         let mut safety = [0; Safety::LEN];
@@ -229,6 +247,7 @@ impl Entry {
         entry.add_pst_features(board);
         entry.add_passer_features(board);
         entry.add_piece_loop_features(board);
+        entry.add_isolated_features(board);
 
         let bishop_pair_val = i8::from(board.piece_bb(Piece::BISHOP, Color::White).popcount() >= 2)
             - i8::from(board.piece_bb(Piece::BISHOP, Color::Black).popcount() >= 2);
@@ -483,6 +502,11 @@ impl Tuner {
         self.write_rst(output, ";\n", PasserBlocker::index);
     }
 
+    fn write_isolated_rst(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const ISOLATED_PAWNS_RST: Rst = ").unwrap();
+        self.write_rst(output, ";\n", IsolatedPawns::index);
+    }
+
     fn write_bishop_pair(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
@@ -546,6 +570,7 @@ impl Tuner {
         self.write_material_psts(&mut output);
         self.write_passer_pst(&mut output);
         self.write_passer_blocker_rst(&mut output);
+        self.write_isolated_rst(&mut output);
         self.write_bishop_pair(&mut output);
         self.write_mobility(&mut output);
         self.write_safety(&mut output);
