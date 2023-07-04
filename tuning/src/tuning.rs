@@ -502,6 +502,11 @@ impl Tuner {
         self.write_rst(output, ";\n", PasserBlocker::index);
     }
 
+    fn write_isolated_rst(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const ISOLATED_PAWNS_RST: Rst = ").unwrap();
+        self.write_rst(output, ";\n", IsolatedPawns::index);
+    }
+
     fn write_bishop_pair(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
@@ -565,6 +570,7 @@ impl Tuner {
         self.write_material_psts(&mut output);
         self.write_passer_pst(&mut output);
         self.write_passer_blocker_rst(&mut output);
+        self.write_isolated_rst(&mut output);
         self.write_bishop_pair(&mut output);
         self.write_mobility(&mut output);
         self.write_safety(&mut output);
