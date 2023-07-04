@@ -146,4 +146,3 @@ pub fn evaluate(board: &Board) -> EvalScore {
 
     (score_tuple.mg() * mg_phase + score_tuple.eg() * eg_phase) / i32::from(PHASE_MAX)
 }
-
