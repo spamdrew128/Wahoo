@@ -105,6 +105,17 @@ pub const ISOLATED_PAWNS_RST: Rst = Rst::new([
   s(0, 0),
 ]);
 
+pub const PHALANX_PAWNS_RST: Rst = Rst::new([
+  s(0, 0),
+  s(32, -23),
+  s(9, -27),
+  s(-5, -29),
+  s(-21, -17),
+  s(-31, -16),
+  s(-20, -15),
+  s(0, 0),
+]);
+
 pub const BISHOP_PAIR_BONUS: ScoreTuple = s(30, 74);
 
 pub const KNIGHT_MOBILITY: [ScoreTuple; 9] = [
