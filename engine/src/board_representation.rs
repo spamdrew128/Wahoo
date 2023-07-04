@@ -996,9 +996,16 @@ impl Board {
     pub fn isolated_pawns(&self, color: Color) -> Bitboard {
         let pawns = self.piece_bb(Piece::PAWN, color);
         let pawn_files = pawns.file_fill();
-        let neighbors = pawn_files.west_one() | pawn_files.east_one();
+        let neighbor_files = pawn_files.west_one() | pawn_files.east_one();
 
-        pawns.without(neighbors)
+        pawns.without(neighbor_files)
+    }
+
+    pub const fn phalanx_pawns(&self, color: Color) -> Bitboard {
+        let pawns = self.piece_bb(Piece::PAWN, color);
+        let neighbor_spaces = pawns.east_one();
+
+        pawns.intersection(neighbor_spaces)
     }
 }
 
@@ -1131,7 +1138,7 @@ mod tests {
     }
 
     #[test]
-    fn passed_pawns() {
+    fn passed_pawns_test() {
         let board = Board::from_fen("5k2/8/p1p4p/P4K2/8/1PP5/3PpP2/8 w - - 0 1");
         let w_expected = bb_from_squares!(F2);
         let b_expected = bb_from_squares!(E2, H6);
@@ -1141,12 +1148,23 @@ mod tests {
     }
 
     #[test]
-    fn isolated_pawns() {
+    fn isolated_pawns_test() {
         let board = Board::from_fen("8/8/8/K5pp/4P3/kpP2P2/8/8 w - - 0 1");
         let w_expected = bb_from_squares!(C3);
         let b_expected = bb_from_squares!(B3);
 
         assert_eq!(board.isolated_pawns(Color::White), w_expected);
         assert_eq!(board.isolated_pawns(Color::Black), b_expected);
+    }
+
+    #[test]
+    fn phalanx_pawns_test() {
+        let board =
+            Board::from_fen("rnbqkbnr/1pppppp1/p6p/8/3PP3/6P1/PPP2P1P/RNBQKBNR b KQkq - 0 3");
+        let w_expected = bb_from_squares!(B2, C2, E4);
+        let b_expected = bb_from_squares!(C7, D7, E7, F7, G7);
+
+        assert_eq!(board.phalanx_pawns(Color::White), w_expected);
+        assert_eq!(board.phalanx_pawns(Color::Black), b_expected);
     }
 }

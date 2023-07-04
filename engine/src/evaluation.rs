@@ -5,6 +5,7 @@ use crate::{
     board_representation::{Board, Color, Piece, Square},
     eval_constants::{
         BISHOP_PAIR_BONUS, ISOLATED_PAWNS_RST, MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST,
+        PHALANX_PAWNS_RST,
     },
     piece_loop_eval::mobility,
     search::MAX_PLY,
@@ -130,6 +131,17 @@ fn isolated_pawns(board: &Board, color: Color) -> ScoreTuple {
     score
 }
 
+fn phalanx_pawns(board: &Board, color: Color) -> ScoreTuple {
+    let mut score = ScoreTuple::new(0, 0);
+
+    let mut phalanx = board.phalanx_pawns(color);
+    bitloop!(|sq|, phalanx, {
+        score += PHALANX_PAWNS_RST.access(color, sq);
+    });
+
+    score
+}
+
 pub fn evaluate(board: &Board) -> EvalScore {
     let us = board.color_to_move;
     let them = board.color_to_move.flip();
@@ -139,6 +151,7 @@ pub fn evaluate(board: &Board) -> EvalScore {
     score_tuple += bishop_pair(board, us) - bishop_pair(board, them);
     score_tuple += passed_pawns(board, us) - passed_pawns(board, them);
     score_tuple += isolated_pawns(board, us) - isolated_pawns(board, them);
+    score_tuple += phalanx_pawns(board, us) - phalanx_pawns(board, them);
     score_tuple += mobility(board, us) - mobility(board, them);
 
     let mg_phase = i32::from(phase(board));
@@ -146,4 +159,3 @@ pub fn evaluate(board: &Board) -> EvalScore {
 
     (score_tuple.mg() * mg_phase + score_tuple.eg() * eg_phase) / i32::from(PHASE_MAX)
 }
-
