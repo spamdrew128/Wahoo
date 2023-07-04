@@ -3,7 +3,9 @@ use std::ops::{Add, AddAssign, Sub};
 use crate::{
     bitloop,
     board_representation::{Board, Color, Piece, Square},
-    eval_constants::{BISHOP_PAIR_BONUS, MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST, ISOLATED_PAWNS_RST},
+    eval_constants::{
+        BISHOP_PAIR_BONUS, ISOLATED_PAWNS_RST, MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST,
+    },
     piece_loop_eval::mobility,
     search::MAX_PLY,
 };
@@ -119,11 +121,8 @@ fn passed_pawns(board: &Board, color: Color) -> ScoreTuple {
 
 fn isolated_pawns(board: &Board, color: Color) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
-    let pawns = board.piece_bb(Piece::PAWN, color);
-    let pawn_files = pawns.file_fill();
-    let neighbors = pawn_files.west_one() | pawn_files.east_one();
 
-    let mut isolated = pawns.without(neighbors);
+    let mut isolated = board.isolated_pawns(color);
     bitloop!(|sq|, isolated, {
         score += ISOLATED_PAWNS_RST.access(color, sq);
     });
@@ -148,17 +147,3 @@ pub fn evaluate(board: &Board) -> EvalScore {
     (score_tuple.mg() * mg_phase + score_tuple.eg() * eg_phase) / i32::from(PHASE_MAX)
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::{board_representation::{Board, Color, Square}, evaluation::isolated_pawns, eval_constants::ISOLATED_PAWNS_RST};
-
-    #[test]
-    fn isolated_pawns_test() {
-        let board = Board::from_fen("8/8/8/K5pp/4P3/kpP2P2/8/8 w - - 0 1");
-        let w_score = isolated_pawns(&board, Color::White);
-        let b_score = isolated_pawns(&board, Color::Black);
-
-        assert_eq!(w_score, ISOLATED_PAWNS_RST.access(Color::White, Square::C3));
-        assert_eq!(b_score, ISOLATED_PAWNS_RST.access(Color::Black, Square::B3));
-    }
-}
