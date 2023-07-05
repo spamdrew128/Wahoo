@@ -726,10 +726,19 @@ impl Tuner {
     }
 
     fn write_checks(&self, output: &mut BufWriter<File>) {
-        write!(output, "\npub const CHECKS: [ScoreTuple; (NUM_PIECES - 1) as usize] = [\n  ").unwrap();
+        write!(
+            output,
+            "\npub const CHECKS: [ScoreTuple; (NUM_PIECES - 1) as usize] = [\n  "
+        )
+        .unwrap();
         for &piece in Piece::LIST.iter().take(5) {
             let index = Checks::index(piece);
-            write!(output, "s({}, {}), ", self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore).unwrap();
+            write!(
+                output,
+                "s({}, {}), ",
+                self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore
+            )
+            .unwrap();
         }
         writeln!(output, "\n];").unwrap();
     }

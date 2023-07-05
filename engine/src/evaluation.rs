@@ -152,7 +152,7 @@ pub fn evaluate(board: &Board) -> EvalScore {
     score_tuple += passed_pawns(board, us) - passed_pawns(board, them);
     score_tuple += isolated_pawns(board, us) - isolated_pawns(board, them);
     score_tuple += phalanx_pawns(board, us) - phalanx_pawns(board, them);
-    score_tuple += mobility(board, us) - mobility(board, them);
+    score_tuple += mobility::<true>(board, us) - mobility::<false>(board, them);
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
