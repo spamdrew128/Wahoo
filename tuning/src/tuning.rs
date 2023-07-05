@@ -19,7 +19,8 @@ const TUNER_VEC_LEN: usize = MaterialPst::LEN
     + Mobility::LEN
     + Safety::LEN
     + IsolatedPawns::LEN
-    + PhalanxPawns::LEN;
+    + PhalanxPawns::LEN
+    + Threats::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -115,6 +116,27 @@ impl PhalanxPawns {
     }
 }
 
+struct Threats;
+impl Threats {
+    const START: usize = PhalanxPawns::START + PhalanxPawns::LEN;
+    const LEN: usize = 11;
+
+    const PAWN_THREAT_ON_KNIGHT: usize = Self::START;
+    const PAWN_THREAT_ON_BISHOP: usize = Self::START + 1;
+    const PAWN_THREAT_ON_ROOK: usize = Self::START + 2;
+    const PAWN_THREAT_ON_QUEEN: usize = Self::START + 3;
+
+    const KNIGHT_THREAT_ON_BISHOP: usize = Self::START + 4;
+    const KNIGHT_THREAT_ON_ROOK: usize = Self::START + 5;
+    const KNIGHT_THREAT_ON_QUEEN: usize = Self::START + 6;
+
+    const BISHOP_THREAT_ON_KNIGHT: usize = Self::START + 7;
+    const BISHOP_THREAT_ON_ROOK: usize = Self::START + 8;
+    const BISHOP_THREAT_ON_QUEEN: usize = Self::START + 9;
+
+    const ROOK_THREAT_ON_QUEEN: usize = Self::START + 10;
+}
+
 struct Feature {
     value: i8,
     index: usize,
@@ -203,9 +225,59 @@ impl Entry {
         self.rst_update(w_phalanx, b_phalanx, PhalanxPawns::index);
     }
 
+    fn add_threat_val(
+        board: &Board,
+        piece: Piece,
+        attacks: Bitboard,
+        threats: &mut [i8; Threats::LEN],
+        color: Color,
+    ) {
+        let sign = if color == Color::White { 1 } else { -1 };
+        let offset = Threats::START;
+
+        let knights = board.piece_bb(Piece::KNIGHT, color.flip());
+        let bishops = board.piece_bb(Piece::BISHOP, color.flip());
+        let rooks = board.piece_bb(Piece::ROOK, color.flip());
+        let queens = board.piece_bb(Piece::QUEEN, color.flip());
+        match piece {
+            Piece::KNIGHT => {
+                threats[Threats::KNIGHT_THREAT_ON_BISHOP - offset] +=
+                    sign * (attacks & bishops).popcount() as i8;
+                threats[Threats::KNIGHT_THREAT_ON_ROOK - offset] +=
+                    sign * (attacks & rooks).popcount() as i8;
+                threats[Threats::KNIGHT_THREAT_ON_QUEEN - offset] +=
+                    sign * (attacks & queens).popcount() as i8;
+            }
+            Piece::BISHOP => {
+                threats[Threats::BISHOP_THREAT_ON_KNIGHT - offset] +=
+                    sign * (attacks & knights).popcount() as i8;
+                threats[Threats::BISHOP_THREAT_ON_ROOK - offset] +=
+                    sign * (attacks & rooks).popcount() as i8;
+                threats[Threats::BISHOP_THREAT_ON_QUEEN - offset] +=
+                    sign * (attacks & queens).popcount() as i8;
+            }
+            Piece::ROOK => {
+                threats[Threats::ROOK_THREAT_ON_QUEEN - offset] +=
+                    sign * (attacks & queens).popcount() as i8;
+            }
+            Piece::PAWN => {
+                threats[Threats::PAWN_THREAT_ON_KNIGHT - offset] +=
+                    sign * (attacks & knights).popcount() as i8;
+                threats[Threats::PAWN_THREAT_ON_BISHOP - offset] +=
+                    sign * (attacks & bishops).popcount() as i8;
+                threats[Threats::PAWN_THREAT_ON_ROOK - offset] +=
+                    sign * (attacks & rooks).popcount() as i8;
+                threats[Threats::PAWN_THREAT_ON_QUEEN - offset] +=
+                    sign * (attacks & queens).popcount() as i8;
+            }
+            _ => (),
+        }
+    }
+
     fn add_piece_loop_features(&mut self, board: &Board) {
         let mut mobility = [0; Mobility::LEN];
         let mut safety = [0; Safety::LEN];
+        let mut threats = [0; Threats::LEN];
 
         for color in Color::LIST {
             let availible = piece_loop_eval::availible(board, color);
@@ -228,6 +300,8 @@ impl Entry {
 
                     let kz_attacks = (attacks & enemy_king_zone(board, color)).popcount() as i8;
                     safety[Safety::index(piece, enemy_king_virt_mobility) - Safety::START] += kz_attacks * mult;
+
+                    Self::add_threat_val(board, piece, attacks, &mut threats, color);
                 });
             }
 
@@ -236,6 +310,8 @@ impl Entry {
             let kz_attacks = (pawn_attacks & enemy_king_zone(board, color)).popcount() as i8;
             safety[Safety::index(Piece::PAWN, enemy_king_virt_mobility) - Safety::START] +=
                 kz_attacks * mult;
+
+            Self::add_threat_val(board, Piece::PAWN, pawn_attacks, &mut threats, color);
         }
 
         for i in 0..Mobility::LEN {
@@ -250,6 +326,14 @@ impl Entry {
             let val = safety[i];
             if val != 0 {
                 let vec_index = i + Safety::START;
+                self.feature_vec.push(Feature::new(val, vec_index));
+            }
+        }
+
+        for i in 0..Threats::LEN {
+            let val = threats[i];
+            if val != 0 {
+                let vec_index = i + Threats::START;
                 self.feature_vec.push(Feature::new(val, vec_index));
             }
         }
@@ -585,7 +669,33 @@ impl Tuner {
             }
             writeln!(output, "\n],").unwrap();
         }
-        writeln!(output, "];").unwrap();
+        writeln!(output, "];\n").unwrap();
+    }
+
+    fn write_threats(&self, output: &mut BufWriter<File>) {
+        let strings = [
+            "PAWN_THREAT_ON_KNIGHT",
+            "PAWN_THREAT_ON_BISHOP",
+            "PAWN_THREAT_ON_ROOK",
+            "PAWN_THREAT_ON_QUEEN",
+            "KNIGHT_THREAT_ON_BISHOP",
+            "KNIGHT_THREAT_ON_ROOK",
+            "KNIGHT_THREAT_ON_QUEEN",
+            "BISHOP_THREAT_ON_KNIGHT",
+            "BISHOP_THREAT_ON_ROOK",
+            "BISHOP_THREAT_ON_QUEEN",
+            "ROOK_THREAT_ON_QUEEN",
+        ];
+
+        for (i, s) in strings.iter().enumerate() {
+            let index = Threats::START + i;
+            writeln!(
+                output,
+                "pub const {}: ScoreTuple = s({}, {});",
+                s, self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore,
+            )
+            .unwrap();
+        }
     }
 
     fn create_output_file(&self) {
@@ -599,5 +709,6 @@ impl Tuner {
         self.write_bishop_pair(&mut output);
         self.write_mobility(&mut output);
         self.write_safety(&mut output);
+        self.write_threats(&mut output);
     }
 }
