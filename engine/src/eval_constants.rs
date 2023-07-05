@@ -156,3 +156,18 @@ pub const KING_ZONE_ATTACKS: [[ScoreTuple; 28]; (NUM_PIECES - 1) as usize] = [
   s(7, 21), s(8, -2), s(8, -10), s(9, -7), s(9, -8), s(7, -9), s(10, -9), s(10, -8), s(8, -8), s(10, -8), s(13, -11), s(12, -11), s(20, -13), s(20, -12), s(18, -13), s(23, -14), s(30, -16), s(30, -16), s(24, -16), s(28, -17), s(41, -19), s(65, -24), s(47, -19), s(31, -19), s(32, -16), s(51, -14), s(57, -11), s(28, -6), 
 ],
 ];
+
+pub const PAWN_THREAT_ON_KNIGHT: ScoreTuple = s(94, 36);
+pub const PAWN_THREAT_ON_BISHOP: ScoreTuple = s(92, 63);
+pub const PAWN_THREAT_ON_ROOK: ScoreTuple = s(145, -7);
+pub const PAWN_THREAT_ON_QUEEN: ScoreTuple = s(104, 7);
+
+pub const KNIGHT_THREAT_ON_BISHOP: ScoreTuple = s(42, 43);
+pub const KNIGHT_THREAT_ON_ROOK: ScoreTuple = s(89, 18);
+pub const KNIGHT_THREAT_ON_QUEEN: ScoreTuple = s(64, -17);
+
+pub const BISHOP_THREAT_ON_KNIGHT: ScoreTuple = s(25, 38);
+pub const BISHOP_THREAT_ON_ROOK: ScoreTuple = s(71, 37);
+pub const BISHOP_THREAT_ON_QUEEN: ScoreTuple = s(84, 54);
+
+pub const ROOK_THREAT_ON_QUEEN: ScoreTuple = s(96, 5);
