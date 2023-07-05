@@ -225,9 +225,59 @@ impl Entry {
         self.rst_update(w_phalanx, b_phalanx, PhalanxPawns::index);
     }
 
+    fn add_threat_val(
+        board: &Board,
+        piece: Piece,
+        attacks: Bitboard,
+        threats: &mut [i8; Threats::LEN],
+        color: Color,
+    ) {
+        let sign = if color == Color::White { 1 } else { -1 };
+        let offset = Threats::START;
+
+        let knights = board.piece_bb(Piece::KNIGHT, color.flip());
+        let bishops = board.piece_bb(Piece::BISHOP, color.flip());
+        let rooks = board.piece_bb(Piece::ROOK, color.flip());
+        let queens = board.piece_bb(Piece::QUEEN, color.flip());
+        match piece {
+            Piece::KNIGHT => {
+                threats[Threats::KNIGHT_THREAT_ON_BISHOP - offset] +=
+                    sign * (attacks & bishops).popcount() as i8;
+                threats[Threats::KNIGHT_THREAT_ON_ROOK - offset] +=
+                    sign * (attacks & rooks).popcount() as i8;
+                threats[Threats::KNIGHT_THREAT_ON_QUEEN - offset] +=
+                    sign * (attacks & queens).popcount() as i8;
+            }
+            Piece::BISHOP => {
+                threats[Threats::BISHOP_THREAT_ON_KNIGHT - offset] +=
+                    sign * (attacks & knights).popcount() as i8;
+                threats[Threats::BISHOP_THREAT_ON_ROOK - offset] +=
+                    sign * (attacks & rooks).popcount() as i8;
+                threats[Threats::BISHOP_THREAT_ON_QUEEN - offset] +=
+                    sign * (attacks & queens).popcount() as i8;
+            }
+            Piece::ROOK => {
+                threats[Threats::ROOK_THREAT_ON_QUEEN - offset] +=
+                    sign * (attacks & queens).popcount() as i8;
+            }
+            Piece::PAWN => {
+                threats[Threats::PAWN_THREAT_ON_KNIGHT - offset] +=
+                    sign * (attacks & knights).popcount() as i8;
+                threats[Threats::PAWN_THREAT_ON_BISHOP - offset] +=
+                    sign * (attacks & bishops).popcount() as i8;
+                threats[Threats::PAWN_THREAT_ON_ROOK - offset] +=
+                    sign * (attacks & rooks).popcount() as i8;
+                threats[Threats::PAWN_THREAT_ON_QUEEN - offset] +=
+                    sign * (attacks & queens).popcount() as i8;
+            }
+            _ => (),
+        }
+    }
+
     fn add_piece_loop_features(&mut self, board: &Board) {
         let mut mobility = [0; Mobility::LEN];
         let mut safety = [0; Safety::LEN];
+        let mut threats = [0; Threats::LEN];
 
         for color in Color::LIST {
             let availible = piece_loop_eval::availible(board, color);
@@ -250,6 +300,8 @@ impl Entry {
 
                     let kz_attacks = (attacks & enemy_king_zone(board, color)).popcount() as i8;
                     safety[Safety::index(piece, enemy_king_virt_mobility) - Safety::START] += kz_attacks * mult;
+
+                    Self::add_threat_val(board, piece, attacks, &mut threats, color);
                 });
             }
 
@@ -272,6 +324,14 @@ impl Entry {
             let val = safety[i];
             if val != 0 {
                 let vec_index = i + Safety::START;
+                self.feature_vec.push(Feature::new(val, vec_index));
+            }
+        }
+
+        for i in 0..Threats::LEN {
+            let val = threats[i];
+            if val != 0 {
+                let vec_index = i + Threats::START;
                 self.feature_vec.push(Feature::new(val, vec_index));
             }
         }
