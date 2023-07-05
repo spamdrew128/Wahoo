@@ -670,6 +670,32 @@ impl Tuner {
         writeln!(output, "];").unwrap();
     }
 
+    fn write_threats(&self, output: &mut BufWriter<File>) {
+        let strings = [
+            "PAWN_THREAT_ON_KNIGHT",
+            "PAWN_THREAT_ON_BISHOP",
+            "PAWN_THREAT_ON_ROOK",
+            "PAWN_THREAT_ON_QUEEN",
+            "KNIGHT_THREAT_ON_BISHOP",
+            "KNIGHT_THREAT_ON_ROOK",
+            "KNIGHT_THREAT_ON_QUEEN",
+            "BISHOP_THREAT_ON_KNIGHT",
+            "BISHOP_THREAT_ON_ROOK",
+            "BISHOP_THREAT_ON_QUEEN",
+            "ROOK_THREAT_ON_QUEEN",
+        ];
+
+        for (i, s) in strings.iter().enumerate() {
+            let index = Threats::START + i;
+            writeln!(
+                output,
+                "pub const {}: ScoreTuple = s({}, {});",
+                s, self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore,
+            )
+            .unwrap();
+        }
+    }
+
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
         self.write_header(&mut output);
@@ -681,5 +707,6 @@ impl Tuner {
         self.write_bishop_pair(&mut output);
         self.write_mobility(&mut output);
         self.write_safety(&mut output);
+        self.write_threats(&mut output);
     }
 }
