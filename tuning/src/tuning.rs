@@ -310,6 +310,8 @@ impl Entry {
             let kz_attacks = (pawn_attacks & enemy_king_zone(board, color)).popcount() as i8;
             safety[Safety::index(Piece::PAWN, enemy_king_virt_mobility) - Safety::START] +=
                 kz_attacks * mult;
+
+            Self::add_threat_val(board, Piece::PAWN, pawn_attacks, &mut threats, color);
         }
 
         for i in 0..Mobility::LEN {
