@@ -669,7 +669,7 @@ impl Tuner {
             }
             writeln!(output, "\n],").unwrap();
         }
-        writeln!(output, "];").unwrap();
+        writeln!(output, "];\n").unwrap();
     }
 
     fn write_threats(&self, output: &mut BufWriter<File>) {
