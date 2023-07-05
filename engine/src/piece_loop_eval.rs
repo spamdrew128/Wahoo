@@ -97,37 +97,44 @@ fn single_score<const PIECE: u8>(
     enemy_king_zone: Bitboard,
     enemy_virt_mobility: usize,
 ) -> ScoreTuple {
+    let mut score = ScoreTuple::new(0, 0);
     match PIECE {
         PieceNum::KNIGHT => {
             let moves = attacks::knight(sq) & availible;
+            score += KNIGHT_MOBILITY[moves.popcount() as usize];
+
             let kz_attacks = moves & enemy_king_zone;
             let attack_weight = KING_ZONE_ATTACKS[Piece::KNIGHT.as_index()][enemy_virt_mobility];
-            KNIGHT_MOBILITY[moves.popcount() as usize]
-                + attack_weight.mult(kz_attacks.popcount() as i32)
+            score += attack_weight.mult(kz_attacks.popcount() as i32);
         }
         PieceNum::BISHOP => {
             let moves = attacks::bishop(sq, board.occupied()) & availible;
+            score += BISHOP_MOBILITY[moves.popcount() as usize];
+
             let kz_attacks = moves & enemy_king_zone;
             let attack_weight = KING_ZONE_ATTACKS[Piece::BISHOP.as_index()][enemy_virt_mobility];
-            BISHOP_MOBILITY[moves.popcount() as usize]
-                + attack_weight.mult(kz_attacks.popcount() as i32)
+            score += attack_weight.mult(kz_attacks.popcount() as i32);
         }
         PieceNum::ROOK => {
             let moves = attacks::rook(sq, board.occupied()) & availible;
+            score += ROOK_MOBILITY[moves.popcount() as usize];
+
             let kz_attacks = moves & enemy_king_zone;
             let attack_weight = KING_ZONE_ATTACKS[Piece::ROOK.as_index()][enemy_virt_mobility];
-            ROOK_MOBILITY[moves.popcount() as usize]
-                + attack_weight.mult(kz_attacks.popcount() as i32)
+            score += attack_weight.mult(kz_attacks.popcount() as i32);
         }
         PieceNum::QUEEN => {
             let moves = attacks::queen(sq, board.occupied()) & availible;
+            score += QUEEN_MOBILITY[moves.popcount() as usize];
+
             let kz_attacks = moves & enemy_king_zone;
             let attack_weight = KING_ZONE_ATTACKS[Piece::QUEEN.as_index()][enemy_virt_mobility];
-            QUEEN_MOBILITY[moves.popcount() as usize]
-                + attack_weight.mult(kz_attacks.popcount() as i32)
+            score += attack_weight.mult(kz_attacks.popcount() as i32);
         }
-        _ => ScoreTuple::new(0, 0),
+        _ => (),
     }
+    
+    score
 }
 
 #[allow(clippy::cast_possible_wrap)]
