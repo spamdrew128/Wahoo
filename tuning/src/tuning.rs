@@ -20,7 +20,8 @@ const TUNER_VEC_LEN: usize = MaterialPst::LEN
     + Safety::LEN
     + IsolatedPawns::LEN
     + PhalanxPawns::LEN
-    + Threats::LEN;
+    + Threats::LEN
+    + Checks::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -288,8 +289,10 @@ impl Entry {
         let mut mobility = [0; Mobility::LEN];
         let mut safety = [0; Safety::LEN];
         let mut threats = [0; Threats::LEN];
+        let mut checks = [0; Checks::LEN];
 
         for color in Color::LIST {
+            let enemy_king_bb = board.color_king_sq(color.flip()).as_bitboard();
             let availible = piece_loop_eval::availible(board, color);
             let enemy_king_virt_mobility = enemy_virtual_mobility(board, color);
 
@@ -312,6 +315,9 @@ impl Entry {
                     safety[Safety::index(piece, enemy_king_virt_mobility) - Safety::START] += kz_attacks * mult;
 
                     Self::add_threat_val(board, piece, attacks, &mut threats, color);
+
+                    let check_count = (attacks & enemy_king_bb).popcount() as i8;
+                    checks[piece.as_index()] += check_count * mult;
                 });
             }
 
@@ -322,6 +328,9 @@ impl Entry {
                 kz_attacks * mult;
 
             Self::add_threat_val(board, Piece::PAWN, pawn_attacks, &mut threats, color);
+
+            let check_count = (pawn_attacks & enemy_king_bb).popcount() as i8;
+            checks[Piece::PAWN.as_index()] += check_count * mult;
         }
 
         for i in 0..Mobility::LEN {
@@ -344,6 +353,14 @@ impl Entry {
             let val = threats[i];
             if val != 0 {
                 let vec_index = i + Threats::START;
+                self.feature_vec.push(Feature::new(val, vec_index));
+            }
+        }
+
+        for i in 0..Checks::LEN {
+            let val = checks[i];
+            if val != 0 {
+                let vec_index = i + Checks::START;
                 self.feature_vec.push(Feature::new(val, vec_index));
             }
         }
@@ -708,6 +725,15 @@ impl Tuner {
         }
     }
 
+    fn write_checks(&self, output: &mut BufWriter<File>) {
+        write!(output, "\npub const CHECKS: [ScoreTuple; (NUM_PIECES - 1) as usize] = [\n  ").unwrap();
+        for &piece in Piece::LIST.iter().take(5) {
+            let index = Checks::index(piece);
+            write!(output, "s({}, {}), ", self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore).unwrap();
+        }
+        writeln!(output, "\n];").unwrap();
+    }
+
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
         self.write_header(&mut output);
@@ -720,5 +746,6 @@ impl Tuner {
         self.write_mobility(&mut output);
         self.write_safety(&mut output);
         self.write_threats(&mut output);
+        self.write_checks(&mut output);
     }
 }
