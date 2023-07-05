@@ -137,6 +137,16 @@ impl Threats {
     const ROOK_THREAT_ON_QUEEN: usize = Self::START + 10;
 }
 
+struct Checks;
+impl Checks {
+    const START: usize = Threats::START + Threats::LEN;
+    const LEN: usize = (NUM_PIECES - 1) as usize;
+
+    fn index(piece: Piece) -> usize {
+        Self::START + piece.as_index()
+    }
+}
+
 struct Feature {
     value: i8,
     index: usize,

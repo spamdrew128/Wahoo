@@ -168,3 +168,7 @@ pub const BISHOP_THREAT_ON_KNIGHT: ScoreTuple = s(20, 37);
 pub const BISHOP_THREAT_ON_ROOK: ScoreTuple = s(46, 0);
 pub const BISHOP_THREAT_ON_QUEEN: ScoreTuple = s(35, 44);
 pub const ROOK_THREAT_ON_QUEEN: ScoreTuple = s(78, -23);
+
+pub const CHECKS: [ScoreTuple; (NUM_PIECES - 1) as usize] = [
+  s(17, 7), s(4, -1), s(16, -11), s(23, -22), s(22, -16),
+];
