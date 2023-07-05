@@ -19,7 +19,8 @@ const TUNER_VEC_LEN: usize = MaterialPst::LEN
     + Mobility::LEN
     + Safety::LEN
     + IsolatedPawns::LEN
-    + PhalanxPawns::LEN;
+    + PhalanxPawns::LEN
+    + Threats::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -113,6 +114,27 @@ impl PhalanxPawns {
     fn index(rank: u8) -> usize {
         Self::START + rank as usize
     }
+}
+
+struct Threats;
+impl Threats {
+    const START: usize = PhalanxPawns::START + PhalanxPawns::LEN;
+    const LEN: usize = 11;
+
+    const PAWN_THREAT_ON_KNIGHT: usize = Self::START;
+    const PAWN_THREAT_ON_BISHOP: usize = Self::START + 1;
+    const PAWN_THREAT_ON_ROOK: usize = Self::START + 2;
+    const PAWN_THREAT_ON_QUEEN: usize = Self::START + 3;
+
+    const KNIGHT_THREAT_ON_BISHOP: usize = Self::START + 4;
+    const KNIGHT_THREAT_ON_ROOK: usize = Self::START + 5;
+    const KNIGHT_THREAT_ON_QUEEN: usize = Self::START + 6;
+
+    const BISHOP_THREAT_ON_KNIGHT: usize = Self::START + 7;
+    const BISHOP_THREAT_ON_ROOK: usize = Self::START + 8;
+    const BISHOP_THREAT_ON_QUEEN: usize = Self::START + 9;
+
+    const ROOK_THREAT_ON_QUEEN: usize = Self::START + 10;
 }
 
 struct Feature {
