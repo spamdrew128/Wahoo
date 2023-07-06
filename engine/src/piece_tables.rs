@@ -3,7 +3,7 @@ use crate::{
     evaluation::ScoreTuple,
 };
 
-pub struct Pst {
+pub struct Pst { // piece square table
     table: [[ScoreTuple; NUM_SQUARES as usize]; NUM_COLORS as usize],
 }
 
@@ -29,7 +29,7 @@ impl Pst {
     }
 }
 
-pub struct Prt {
+pub struct Prt { // piece rank table
     table: [[ScoreTuple; NUM_RANKS as usize]; NUM_COLORS as usize],
 }
 
@@ -51,5 +51,19 @@ impl Prt {
 
     pub const fn access(&self, color: Color, sq: Square) -> ScoreTuple {
         self.table[color.as_index()][sq.rank() as usize]
+    }
+}
+
+pub struct Pft { // piece file table
+    table: [ScoreTuple; NUM_RANKS as usize]
+}
+
+impl Pft {
+    pub const fn new(table: [ScoreTuple; NUM_RANKS as usize]) -> Self {
+        Self { table }
+    }
+
+    pub const fn access(&self, sq: Square) -> ScoreTuple {
+        self.table[sq.file() as usize]
     }
 }
