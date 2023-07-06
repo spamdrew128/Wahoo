@@ -5,7 +5,7 @@ use crate::{
     board_representation::{Board, Color, Piece, Square},
     eval_constants::{
         BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS, PASSER_BLOCKERS_PRT, PASSER_PST,
-        PHALANX_PAWNS_PRT, TEMPO_BONUS,
+        PHALANX_PAWNS_PRT, TEMPO_BONUS, OPEN_ROOK, SEMI_OPEN_ROOK,
     },
     piece_loop_eval::mobility_threats_safety,
     search::MAX_PLY,
@@ -142,8 +142,21 @@ fn phalanx_pawns(board: &Board, color: Color) -> ScoreTuple {
     score
 }
 
-fn open_files(board: &Board) -> ScoreTuple {
+fn open_files(board: &Board, color: Color) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
+    let open = board.open_files();
+    let semi_open = board.semi_open_files(color);
+    let rooks = board.piece_bb(Piece::ROOK, color);
+
+    let mut open_rooks = rooks.intersection(open);
+    bitloop!(|sq| open_rooks, {
+        score += OPEN_ROOK.access(sq);
+    });
+
+    let mut semi_open_rooks = rooks.intersection(semi_open);
+    bitloop!(|sq| semi_open_rooks, {
+        score += SEMI_OPEN_ROOK.access(sq);
+    });
 
     score
 }
@@ -158,6 +171,7 @@ pub fn evaluate(board: &Board) -> EvalScore {
     score_tuple += passed_pawns(board, us) - passed_pawns(board, them);
     score_tuple += isolated_pawns(board, us) - isolated_pawns(board, them);
     score_tuple += phalanx_pawns(board, us) - phalanx_pawns(board, them);
+    score_tuple += open_files(board, us) - open_files(board, them);
     score_tuple += mobility_threats_safety(board, us) - mobility_threats_safety(board, them);
 
     let mg_phase = i32::from(phase(board));
