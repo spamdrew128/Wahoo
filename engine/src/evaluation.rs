@@ -4,10 +4,10 @@ use crate::{
     bitloop,
     board_representation::{Board, Color, Piece, Square},
     eval_constants::{
-        BISHOP_PAIR_BONUS, ISOLATED_PAWNS_RST, MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST,
-        PHALANX_PAWNS_RST,
+        BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS, PASSER_BLOCKERS_PRT, PASSER_PST,
+        PHALANX_PAWNS_PRT,
     },
-    piece_loop_eval::mobility,
+    piece_loop_eval::mobility_threats_safety,
     search::MAX_PLY,
 };
 
@@ -80,7 +80,7 @@ fn pst_eval(board: &Board, color: Color) -> ScoreTuple {
         let mut pieces = board.piece_bb(piece, color);
         let pst = &MATERIAL_PSTS[piece.as_index()];
 
-        bitloop!(|sq|, pieces, {
+        bitloop!(|sq| pieces, {
             score += pst.access(color, sq);
         });
     }
@@ -109,12 +109,12 @@ fn passed_pawns(board: &Board, color: Color) -> ScoreTuple {
             .intersection(board.all[Color::White.as_index()]),
     };
 
-    bitloop!(|sq|, passers, {
+    bitloop!(|sq| passers, {
         score += PASSER_PST.access(color, sq);
     });
 
-    bitloop!(|sq|, blockers, {
-        score += PASSER_BLOCKERS_RST.access(color, sq);
+    bitloop!(|sq| blockers, {
+        score += PASSER_BLOCKERS_PRT.access(color, sq);
     });
 
     score
@@ -124,8 +124,8 @@ fn isolated_pawns(board: &Board, color: Color) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
 
     let mut isolated = board.isolated_pawns(color);
-    bitloop!(|sq|, isolated, {
-        score += ISOLATED_PAWNS_RST.access(color, sq);
+    bitloop!(|sq| isolated, {
+        score += ISOLATED_PAWNS_PRT.access(color, sq);
     });
 
     score
@@ -135,8 +135,8 @@ fn phalanx_pawns(board: &Board, color: Color) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
 
     let mut phalanx = board.phalanx_pawns(color);
-    bitloop!(|sq|, phalanx, {
-        score += PHALANX_PAWNS_RST.access(color, sq);
+    bitloop!(|sq| phalanx, {
+        score += PHALANX_PAWNS_PRT.access(color, sq);
     });
 
     score
@@ -152,7 +152,7 @@ pub fn evaluate(board: &Board) -> EvalScore {
     score_tuple += passed_pawns(board, us) - passed_pawns(board, them);
     score_tuple += isolated_pawns(board, us) - isolated_pawns(board, them);
     score_tuple += phalanx_pawns(board, us) - phalanx_pawns(board, them);
-    score_tuple += mobility(board, us) - mobility(board, them);
+    score_tuple += mobility_threats_safety(board, us) - mobility_threats_safety(board, them);
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;

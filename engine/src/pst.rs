@@ -29,11 +29,11 @@ impl Pst {
     }
 }
 
-pub struct Rst {
+pub struct Prt {
     table: [[ScoreTuple; NUM_RANKS as usize]; NUM_COLORS as usize],
 }
 
-impl Rst {
+impl Prt {
     pub const fn new(before: [ScoreTuple; NUM_RANKS as usize]) -> Self {
         let mut table = [[ScoreTuple::new(0, 0); NUM_RANKS as usize]; NUM_COLORS as usize];
         let mut i = 0;
