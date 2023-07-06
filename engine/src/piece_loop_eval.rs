@@ -104,6 +104,7 @@ struct LoopEvaluator {
 
 macro_rules! score_func {
     ($fn_name:ident, $piece:ident, $mobility_tb:ident, ($sq:ident $(, $occ:ident)?), $attack_fn:expr, $(($threat_constant:ident, $threatened_piece:ident, $target:ident)),*) => {
+        #[inline(always)]
         fn $fn_name(board: &Board, availible: Bitboard, enemy_kz: Bitboard, enemy_virt_mobility: usize, color: Color) -> ScoreTuple {
             let mut score = ScoreTuple::new(0, 0);
             let mut pieces = board.piece_bb(Piece::$piece, color);
@@ -165,91 +166,6 @@ score_func!(queen_score, QUEEN, QUEEN_MOBILITY, (sq, occ), {
     attacks::queen(sq, occ)
 },);
 
-// impl LoopEvaluator {
-//     fn new(board: &Board, color: Color) -> Self {
-//         let availible = availible(board, color);
-//         let enemy_king_zone = enemy_king_zone(board, color);
-//         let enemy_virt_mobility = enemy_virtual_mobility(board, color);
-
-//         let opp_color = color.flip();
-//         let enemy_knights = board.piece_bb(Piece::KNIGHT, opp_color);
-//         let enemy_bishops = board.piece_bb(Piece::BISHOP, opp_color);
-//         let enemy_rooks = board.piece_bb(Piece::ROOK, opp_color);
-//         let enemy_queens = board.piece_bb(Piece::QUEEN, opp_color);
-
-//         Self {
-//             availible,
-//             enemy_king_zone,
-//             enemy_virt_mobility,
-//             enemy_knights,
-//             enemy_bishops,
-//             enemy_rooks,
-//             enemy_queens,
-//         }
-//     }
-
-//     #[allow(clippy::cast_possible_wrap)]
-//     fn single_score<const PIECE: u8>(&self, board: &Board, sq: Square) -> ScoreTuple {
-//         let mut score = ScoreTuple::new(0, 0);
-//         match PIECE {
-//             PieceNum::KNIGHT => {
-//                 let attacks = attacks::knight(sq);
-//                 let moves = attacks & self.availible;
-//                 score += KNIGHT_MOBILITY[moves.popcount() as usize];
-
-//                 let kz_attacks = moves & self.enemy_king_zone;
-//                 let attack_weight =
-//                     KING_ZONE_ATTACKS[Piece::KNIGHT.as_index()][self.enemy_virt_mobility];
-//                 score += attack_weight.mult(kz_attacks.popcount() as i32);
-
-//                 score += KNIGHT_THREAT_ON_BISHOP
-//                     .mult((attacks & self.enemy_bishops).popcount() as i32)
-//                     + KNIGHT_THREAT_ON_ROOK.mult((attacks & self.enemy_rooks).popcount() as i32)
-//                     + KNIGHT_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
-//             }
-//             PieceNum::BISHOP => {
-//                 let attacks = attacks::bishop(sq, board.occupied());
-//                 let moves = attacks & self.availible;
-//                 score += BISHOP_MOBILITY[moves.popcount() as usize];
-
-//                 let kz_attacks = moves & self.enemy_king_zone;
-//                 let attack_weight =
-//                     KING_ZONE_ATTACKS[Piece::BISHOP.as_index()][self.enemy_virt_mobility];
-//                 score += attack_weight.mult(kz_attacks.popcount() as i32);
-
-//                 score += BISHOP_THREAT_ON_KNIGHT
-//                     .mult((attacks & self.enemy_knights).popcount() as i32)
-//                     + BISHOP_THREAT_ON_ROOK.mult((attacks & self.enemy_rooks).popcount() as i32)
-//                     + BISHOP_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
-//             }
-//             PieceNum::ROOK => {
-//                 let attacks = attacks::rook(sq, board.occupied());
-//                 let moves = attacks & self.availible;
-//                 score += ROOK_MOBILITY[moves.popcount() as usize];
-
-//                 let kz_attacks = moves & self.enemy_king_zone;
-//                 let attack_weight =
-//                     KING_ZONE_ATTACKS[Piece::ROOK.as_index()][self.enemy_virt_mobility];
-//                 score += attack_weight.mult(kz_attacks.popcount() as i32);
-
-//                 score += ROOK_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
-//             }
-//             PieceNum::QUEEN => {
-//                 let attacks = attacks::queen(sq, board.occupied());
-//                 let moves = attacks & self.availible;
-//                 score += QUEEN_MOBILITY[moves.popcount() as usize];
-
-//                 let kz_attacks = moves & self.enemy_king_zone;
-//                 let attack_weight =
-//                     KING_ZONE_ATTACKS[Piece::QUEEN.as_index()][self.enemy_virt_mobility];
-//                 score += attack_weight.mult(kz_attacks.popcount() as i32);
-//             }
-//             _ => (),
-//         }
-
-//         score
-//     }
-
 #[allow(clippy::cast_possible_wrap)]
 fn pawn_score(
     board: &Board,
@@ -273,15 +189,6 @@ fn pawn_score(
         + PAWN_THREAT_ON_QUEEN
             .mult((pawn_attacks & board.piece_bb(Piece::QUEEN, opp_color)).popcount() as i32)
 }
-
-//     fn piece_loop<const PIECE: u8>(&self, board: &Board, mut piece_bb: Bitboard) -> ScoreTuple {
-//         let mut score = ScoreTuple::new(0, 0);
-//         bitloop!(|sq|, piece_bb, {
-//             score += self.single_score::<PIECE>(board, sq);
-//         });
-//         score
-//     }
-// }
 
 pub fn mobility_threats_safety(board: &Board, color: Color) -> ScoreTuple {
     let availible = availible(board, color);
