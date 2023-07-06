@@ -269,10 +269,12 @@ impl<'a> Searcher<'a> {
         };
 
         if !is_pv && !in_check {
+            let static_eval = evaluate(board);
+
             // NULL MOVE PRUNING
             const NMP_MIN_DEPTH: Depth = 3;
-            if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH && !board.we_only_have_pawns() {
-                let mut reduction = 3;
+            if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH && !board.we_only_have_pawns() && static_eval >= beta {
+                let mut reduction = 3 + depth / 3 + (3.min((static_eval - beta) / 200) as Depth);
                 reduction = reduction.min(depth);
 
                 let mut nmp_board = board.clone();
@@ -296,7 +298,6 @@ impl<'a> Searcher<'a> {
             const RFP_MAX_DEPTH: Depth = 8;
             const RFP_MARGIN: EvalScore = 120;
 
-            let static_eval = evaluate(board);
             if depth <= RFP_MAX_DEPTH && static_eval >= (beta + RFP_MARGIN * i32::from(depth)) {
                 return static_eval;
             }
