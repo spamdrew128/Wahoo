@@ -5,7 +5,7 @@ use crate::{
     board_representation::{Board, Color, Piece, Square},
     eval_constants::{
         BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS, PASSER_BLOCKERS_PRT, PASSER_PST,
-        PHALANX_PAWNS_PRT,
+        PHALANX_PAWNS_PRT, TEMPO_BONUS,
     },
     piece_loop_eval::mobility_threats_safety,
     search::MAX_PLY,
@@ -146,7 +146,7 @@ pub fn evaluate(board: &Board) -> EvalScore {
     let us = board.color_to_move;
     let them = board.color_to_move.flip();
 
-    let mut score_tuple = ScoreTuple::new(0, 0);
+    let mut score_tuple = TEMPO_BONUS;
     score_tuple += pst_eval(board, us) - pst_eval(board, them);
     score_tuple += bishop_pair(board, us) - bishop_pair(board, them);
     score_tuple += passed_pawns(board, us) - passed_pawns(board, them);
