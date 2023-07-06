@@ -102,6 +102,35 @@ struct LoopEvaluator {
     enemy_queens: Bitboard,
 }
 
+macro_rules! score_func {
+    ($name:ident, $piece: expr, $mobility_tb:ident, $attack_fn:expr, $($threat_constant:ident, $threatened_pieces:ident),*) => {{
+        fn $name(board: &Board, availible: Bitboard: enemy_kz: Bitboard, enemy_virt_mobility: usize, color: Color) -> ScoreTuple {
+            let opp_color = color.flip();
+            let knights = board.piece_bb(Piece::KNIGHT, opp_color);
+            let bishops = board.piece_bb(Piece::BISHOP, opp_color);
+            let rooks = board.piece_bb(Piece::ROOK, opp_color);
+            let queens = board.piece_bb(Piece::QUEEN, opp_color);
+
+            let mut score = ScoreTuple::new(0, 0);
+            let mut pieces = board.piece_bb(Piece::$piece, color);
+            bitloop!(|sq|, pieces, {
+                let attacks = $attack_fn;
+                let moves = attacks & $availible;
+
+                score += $mobility_tb[moves.popcount() as usize];
+
+                let kz_attacks = moves & enemy_kz;
+                let attack_weight =
+                    KING_ZONE_ATTACKS[Piece::$piece.as_index()][enemy_virt_mobility];
+                score += attack_weight.mult(kz_attacks.popcount() as i32);
+
+                $(score += $threat_constant.mult((attacks & $threatened_pieces).popcount() as i32);)*
+            });
+            score
+        }
+    }};
+}
+
 impl LoopEvaluator {
     fn new(board: &Board, color: Color) -> Self {
         let availible = availible(board, color);
