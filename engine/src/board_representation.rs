@@ -232,6 +232,8 @@ pub struct Bitboard {
 
 impl Bitboard {
     pub const A_FILE: Self = Self::new(0x0101010101010101);
+    pub const B_FILE: Self = Self::A_FILE.east_one();
+    pub const C_FILE: Self = Self::B_FILE.east_one();
     pub const H_FILE: Self = Self::new(0x8080808080808080);
 
     pub const RANK_1: Self = Self::new(0x00000000000000ff);
@@ -1007,6 +1009,16 @@ impl Board {
 
         pawns.intersection(neighbor_spaces)
     }
+
+    pub fn open_files(&self) -> Bitboard {
+        self.pieces[Piece::PAWN.as_index()].file_fill().complement()
+    }
+
+    pub fn semi_open_files(&self, color: Color) -> Bitboard {
+        let our_pawn_files = self.piece_bb(Piece::PAWN, color).file_fill();
+        let their_pawn_files = self.piece_bb(Piece::PAWN, color.flip()).file_fill();
+        their_pawn_files.without(our_pawn_files)
+    }
 }
 
 #[cfg(test)]
@@ -1166,5 +1178,26 @@ mod tests {
 
         assert_eq!(board.phalanx_pawns(Color::White), w_expected);
         assert_eq!(board.phalanx_pawns(Color::Black), b_expected);
+    }
+
+    #[test]
+    fn open_files_test() {
+        let board =
+            Board::from_fen("5k2/4ppr1/8/8/8/3P2P1/8/R2K4 w - - 0 1");
+        let expected = Bitboard::A_FILE | Bitboard::B_FILE | Bitboard::C_FILE | Bitboard::H_FILE;
+
+        assert_eq!(board.open_files(), expected);
+    }
+
+    
+    #[test]
+    fn semi_open_files_test() {
+        let board =
+            Board::from_fen("rnbqkbnr/ppppppp1/8/8/8/8/P1PPPPPP/RNBQKBNR w KQkq - 0 1");
+        let w_expected = Bitboard::B_FILE;
+        let b_expected = Bitboard::H_FILE;
+
+        assert_eq!(board.semi_open_files(Color::White), w_expected);
+        assert_eq!(board.semi_open_files(Color::Black), b_expected);
     }
 }

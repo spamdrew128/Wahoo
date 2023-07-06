@@ -142,6 +142,12 @@ fn phalanx_pawns(board: &Board, color: Color) -> ScoreTuple {
     score
 }
 
+fn open_files(board: &Board) -> ScoreTuple {
+    let mut score = ScoreTuple::new(0, 0);
+
+    score
+}
+
 pub fn evaluate(board: &Board) -> EvalScore {
     let us = board.color_to_move;
     let them = board.color_to_move.flip();
