@@ -7,7 +7,7 @@ use crate::{
         BISHOP_PAIR_BONUS, ISOLATED_PAWNS_RST, MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST,
         PHALANX_PAWNS_RST,
     },
-    piece_loop_eval::mobility,
+    piece_loop_eval::mobility_threats_safety,
     search::MAX_PLY,
 };
 
@@ -152,7 +152,7 @@ pub fn evaluate(board: &Board) -> EvalScore {
     score_tuple += passed_pawns(board, us) - passed_pawns(board, them);
     score_tuple += isolated_pawns(board, us) - isolated_pawns(board, them);
     score_tuple += phalanx_pawns(board, us) - phalanx_pawns(board, them);
-    score_tuple += mobility(board, us) - mobility(board, them);
+    score_tuple += mobility_threats_safety(board, us) - mobility_threats_safety(board, them);
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
