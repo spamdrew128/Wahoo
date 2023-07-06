@@ -4,8 +4,8 @@ use crate::{
     bitloop,
     board_representation::{Board, Color, Piece, Square},
     eval_constants::{
-        BISHOP_PAIR_BONUS, ISOLATED_PAWNS_RST, MATERIAL_PSTS, PASSER_BLOCKERS_RST, PASSER_PST,
-        PHALANX_PAWNS_RST,
+        BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS, PASSER_BLOCKERS_PRT, PASSER_PST,
+        PHALANX_PAWNS_PRT,
     },
     piece_loop_eval::mobility_threats_safety,
     search::MAX_PLY,
@@ -114,7 +114,7 @@ fn passed_pawns(board: &Board, color: Color) -> ScoreTuple {
     });
 
     bitloop!(|sq| blockers, {
-        score += PASSER_BLOCKERS_RST.access(color, sq);
+        score += PASSER_BLOCKERS_PRT.access(color, sq);
     });
 
     score
@@ -125,7 +125,7 @@ fn isolated_pawns(board: &Board, color: Color) -> ScoreTuple {
 
     let mut isolated = board.isolated_pawns(color);
     bitloop!(|sq| isolated, {
-        score += ISOLATED_PAWNS_RST.access(color, sq);
+        score += ISOLATED_PAWNS_PRT.access(color, sq);
     });
 
     score
@@ -136,7 +136,7 @@ fn phalanx_pawns(board: &Board, color: Color) -> ScoreTuple {
 
     let mut phalanx = board.phalanx_pawns(color);
     bitloop!(|sq| phalanx, {
-        score += PHALANX_PAWNS_RST.access(color, sq);
+        score += PHALANX_PAWNS_PRT.access(color, sq);
     });
 
     score

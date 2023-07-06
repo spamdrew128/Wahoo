@@ -172,7 +172,7 @@ impl Entry {
         }
     }
 
-    pub fn rst_update<F>(&mut self, w_pieces: Bitboard, b_pieces: Bitboard, index_fn: F)
+    pub fn prt_update<F>(&mut self, w_pieces: Bitboard, b_pieces: Bitboard, index_fn: F)
     where
         F: Fn(u8) -> usize,
     {
@@ -208,21 +208,21 @@ impl Entry {
         let blocking_black = b_passers
             .south_one()
             .intersection(board.all[Color::White.as_index()]);
-        self.rst_update(blocking_white, blocking_black, PasserBlocker::index);
+        self.prt_update(blocking_white, blocking_black, PasserBlocker::index);
     }
 
     fn add_isolated_features(&mut self, board: &Board) {
         let w_isolated = board.isolated_pawns(Color::White);
         let b_isolated = board.isolated_pawns(Color::Black);
 
-        self.rst_update(w_isolated, b_isolated, IsolatedPawns::index);
+        self.prt_update(w_isolated, b_isolated, IsolatedPawns::index);
     }
 
     fn add_phalanx_features(&mut self, board: &Board) {
         let w_phalanx = board.phalanx_pawns(Color::White);
         let b_phalanx = board.phalanx_pawns(Color::Black);
 
-        self.rst_update(w_phalanx, b_phalanx, PhalanxPawns::index);
+        self.prt_update(w_phalanx, b_phalanx, PhalanxPawns::index);
     }
 
     fn add_threat_val(
@@ -531,7 +531,7 @@ impl Tuner {
         writeln!(output, "#![cfg_attr(rustfmt, rustfmt_skip)]").unwrap();
         writeln!(
             output,
-            "use crate::{{evaluation::ScoreTuple, board_representation::NUM_PIECES, pst::{{Pst, Rst}}}};\n"
+            "use crate::{{evaluation::ScoreTuple, board_representation::NUM_PIECES, pst::{{Pst, Prt}}}};\n"
         )
         .unwrap();
 
@@ -563,11 +563,11 @@ impl Tuner {
         writeln!(output, "\n]){closing_str}").unwrap();
     }
 
-    fn write_rst<F>(&self, output: &mut BufWriter<File>, closing_str: &str, index_fn: F)
+    fn write_prt<F>(&self, output: &mut BufWriter<File>, closing_str: &str, index_fn: F)
     where
         F: Fn(u8) -> usize,
     {
-        write!(output, "Rst::new([").unwrap();
+        write!(output, "Prt::new([").unwrap();
         for i in 0..NUM_RANKS {
             write!(
                 output,
@@ -600,19 +600,19 @@ impl Tuner {
         self.write_pst(output, ";\n", Passer::index);
     }
 
-    fn write_passer_blocker_rst(&self, output: &mut BufWriter<File>) {
-        write!(output, "pub const PASSER_BLOCKERS_RST: Rst = ").unwrap();
-        self.write_rst(output, ";\n", PasserBlocker::index);
+    fn write_passer_blocker_prt(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const PASSER_BLOCKERS_PRT: Prt = ").unwrap();
+        self.write_prt(output, ";\n", PasserBlocker::index);
     }
 
-    fn write_isolated_rst(&self, output: &mut BufWriter<File>) {
-        write!(output, "pub const ISOLATED_PAWNS_RST: Rst = ").unwrap();
-        self.write_rst(output, ";\n", IsolatedPawns::index);
+    fn write_isolated_prt(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const ISOLATED_PAWNS_PRT: Prt = ").unwrap();
+        self.write_prt(output, ";\n", IsolatedPawns::index);
     }
 
-    fn write_phalanx_rst(&self, output: &mut BufWriter<File>) {
-        write!(output, "pub const PHALANX_PAWNS_RST: Rst = ").unwrap();
-        self.write_rst(output, ";\n", PhalanxPawns::index);
+    fn write_phalanx_prt(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const PHALANX_PAWNS_PRT: Prt = ").unwrap();
+        self.write_prt(output, ";\n", PhalanxPawns::index);
     }
 
     fn write_bishop_pair(&self, output: &mut BufWriter<File>) {
@@ -703,9 +703,9 @@ impl Tuner {
         self.write_header(&mut output);
         self.write_material_psts(&mut output);
         self.write_passer_pst(&mut output);
-        self.write_passer_blocker_rst(&mut output);
-        self.write_isolated_rst(&mut output);
-        self.write_phalanx_rst(&mut output);
+        self.write_passer_blocker_prt(&mut output);
+        self.write_isolated_prt(&mut output);
+        self.write_phalanx_prt(&mut output);
         self.write_bishop_pair(&mut output);
         self.write_mobility(&mut output);
         self.write_safety(&mut output);
