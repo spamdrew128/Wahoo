@@ -10,9 +10,7 @@ macro_rules! into_moves {
     (|$from:ident|, $piece_bb:ident, |$to:ident|, $moves_bb:expr, $add_move:expr) => {{
         bitloop!(|$from| $piece_bb, {
             let mut moves: Bitboard = $moves_bb;
-            bitloop!(|$to| moves, {
-                $add_move
-            });
+            bitloop!(|$to| moves, { $add_move });
         });
     }};
 }

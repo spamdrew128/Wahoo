@@ -20,7 +20,8 @@ const TUNER_VEC_LEN: usize = MaterialPst::LEN
     + Safety::LEN
     + IsolatedPawns::LEN
     + PhalanxPawns::LEN
-    + Threats::LEN;
+    + Threats::LEN
+    + TempoBonus::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -135,6 +136,16 @@ impl Threats {
     const BISHOP_THREAT_ON_QUEEN: usize = Self::START + 9;
 
     const ROOK_THREAT_ON_QUEEN: usize = Self::START + 10;
+}
+
+struct TempoBonus;
+impl TempoBonus {
+    const START: usize = Threats::START + Threats::LEN;
+    const LEN: usize = (NUM_RANKS as usize);
+
+    fn index() -> usize {
+        Self::START
+    }
 }
 
 struct Feature {
@@ -299,7 +310,8 @@ impl Entry {
                     }
 
                     let kz_attacks = (attacks & enemy_king_zone(board, color)).popcount() as i8;
-                    safety[Safety::index(piece, enemy_king_virt_mobility) - Safety::START] += kz_attacks * mult;
+                    safety[Safety::index(piece, enemy_king_virt_mobility) - Safety::START] +=
+                        kz_attacks * mult;
 
                     Self::add_threat_val(board, piece, attacks, &mut threats, color);
                 });
@@ -357,6 +369,14 @@ impl Entry {
         entry
             .feature_vec
             .push(Feature::new(bishop_pair_val, BishopPair::index()));
+
+        let tempo = match board.color_to_move {
+            Color::White => 1,
+            Color::Black => -1,
+        };
+        entry
+            .feature_vec
+            .push(Feature::new(tempo, TempoBonus::index()));
 
         entry
     }
@@ -698,6 +718,16 @@ impl Tuner {
         }
     }
 
+    fn write_tempo(&self, output: &mut BufWriter<File>) {
+        writeln!(
+            output,
+            "\npub const TEMPO_BONUS: ScoreTuple = s({}, {});",
+            self.weights[MG][TempoBonus::index()] as EvalScore,
+            self.weights[EG][TempoBonus::index()] as EvalScore,
+        )
+        .unwrap();
+    }
+
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
         self.write_header(&mut output);
@@ -710,5 +740,6 @@ impl Tuner {
         self.write_mobility(&mut output);
         self.write_safety(&mut output);
         self.write_threats(&mut output);
+        self.write_tempo(&mut output);
     }
 }
