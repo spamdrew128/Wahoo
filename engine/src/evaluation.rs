@@ -80,7 +80,7 @@ fn pst_eval(board: &Board, color: Color) -> ScoreTuple {
         let mut pieces = board.piece_bb(piece, color);
         let pst = &MATERIAL_PSTS[piece.as_index()];
 
-        bitloop!(|sq|, pieces, {
+        bitloop!(|sq| pieces, {
             score += pst.access(color, sq);
         });
     }
@@ -109,11 +109,11 @@ fn passed_pawns(board: &Board, color: Color) -> ScoreTuple {
             .intersection(board.all[Color::White.as_index()]),
     };
 
-    bitloop!(|sq|, passers, {
+    bitloop!(|sq| passers, {
         score += PASSER_PST.access(color, sq);
     });
 
-    bitloop!(|sq|, blockers, {
+    bitloop!(|sq| blockers, {
         score += PASSER_BLOCKERS_RST.access(color, sq);
     });
 
@@ -124,7 +124,7 @@ fn isolated_pawns(board: &Board, color: Color) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
 
     let mut isolated = board.isolated_pawns(color);
-    bitloop!(|sq|, isolated, {
+    bitloop!(|sq| isolated, {
         score += ISOLATED_PAWNS_RST.access(color, sq);
     });
 
@@ -135,7 +135,7 @@ fn phalanx_pawns(board: &Board, color: Color) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
 
     let mut phalanx = board.phalanx_pawns(color);
-    bitloop!(|sq|, phalanx, {
+    bitloop!(|sq| phalanx, {
         score += PHALANX_PAWNS_RST.access(color, sq);
     });
 

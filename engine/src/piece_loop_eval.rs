@@ -114,7 +114,7 @@ macro_rules! score_func {
                 let $target = board.piece_bb(Piece::$threatened_piece, color.flip());
             )*
 
-            bitloop!(|$sq|, pieces, {
+            bitloop!(|$sq| pieces, {
                 let attacks = $attack_fn;
                 let moves = attacks & availible;
 

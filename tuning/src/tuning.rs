@@ -291,7 +291,7 @@ impl Entry {
             for &piece in Piece::LIST.iter().take(4) {
                 let mut pieces = board.piece_bb(piece, color);
 
-                bitloop!(|sq|, pieces, {
+                bitloop!(|sq| pieces, {
                     let attacks = attacks::generic(piece, sq, board.occupied(), color) & availible;
                     let count = attacks.popcount();
                     if count > 0 {
