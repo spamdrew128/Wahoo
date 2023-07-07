@@ -1,4 +1,5 @@
-use engine::{bench, uci};
+use engine::bench;
+mod uci;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
