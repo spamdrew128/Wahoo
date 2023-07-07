@@ -226,9 +226,8 @@ impl Entry {
     where
         F: Fn(u8) -> usize,
     {
-        let file = Bitboard::A_FILE;
         for i in 0..NUM_FILES {
-            let file = file.shift_east(i);
+            let file = Bitboard::A_FILE.shift_east(i);
 
             let value = (file.intersection(w_pieces).popcount() as i8)
                 - (file.intersection(b_pieces).popcount() as i8);
