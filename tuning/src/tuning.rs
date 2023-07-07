@@ -1,7 +1,7 @@
 use engine::{
     attacks, bitloop,
     board_representation::{
-        Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES, NUM_FILES,
+        Bitboard, Board, Color, Piece, Square, NUM_FILES, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
     },
     evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
     piece_loop_eval::{self, enemy_king_zone, enemy_virtual_mobility, MoveCounts},
@@ -774,6 +774,27 @@ impl Tuner {
         .unwrap();
     }
 
+    fn write_open_files(&self, output: &mut BufWriter<File>) {
+        let strings = ["OPEN_ROOK", "SEMI_OPEN_ROOK"];
+        let fns = [OpenRook::index, SemiOpenRook::index];
+        for item in strings.iter().zip(fns.iter()) {
+            let (s, func) = item;
+            write!(output, "pub const {s}: Pft = Pft::new([\n  ").unwrap();
+
+            for i in 0..NUM_FILES {
+                writeln!(
+                    output,
+                    "s({}, {}) ",
+                    self.weights[MG][func(i)] as EvalScore,
+                    self.weights[EG][func(i)] as EvalScore,
+                )
+                .unwrap();
+            }
+
+            writeln!(output, "]);\n").unwrap();
+        }
+    }
+
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
         self.write_header(&mut output);
@@ -783,6 +804,7 @@ impl Tuner {
         self.write_isolated_prt(&mut output);
         self.write_phalanx_prt(&mut output);
         self.write_bishop_pair(&mut output);
+        self.write_open_files(&mut output);
         self.write_mobility(&mut output);
         self.write_safety(&mut output);
         self.write_threats(&mut output);

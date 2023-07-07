@@ -4,8 +4,8 @@ use crate::{
     bitloop,
     board_representation::{Board, Color, Piece, Square},
     eval_constants::{
-        BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS, PASSER_BLOCKERS_PRT, PASSER_PST,
-        PHALANX_PAWNS_PRT, TEMPO_BONUS, OPEN_ROOK, SEMI_OPEN_ROOK,
+        BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS, OPEN_ROOK, PASSER_BLOCKERS_PRT,
+        PASSER_PST, PHALANX_PAWNS_PRT, SEMI_OPEN_ROOK, TEMPO_BONUS,
     },
     piece_loop_eval::mobility_threats_safety,
     search::MAX_PLY,

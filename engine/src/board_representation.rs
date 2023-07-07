@@ -1182,18 +1182,15 @@ mod tests {
 
     #[test]
     fn open_files_test() {
-        let board =
-            Board::from_fen("5k2/4ppr1/8/8/8/3P2P1/8/R2K4 w - - 0 1");
+        let board = Board::from_fen("5k2/4ppr1/8/8/8/3P2P1/8/R2K4 w - - 0 1");
         let expected = Bitboard::A_FILE | Bitboard::B_FILE | Bitboard::C_FILE | Bitboard::H_FILE;
 
         assert_eq!(board.open_files(), expected);
     }
 
-    
     #[test]
     fn semi_open_files_test() {
-        let board =
-            Board::from_fen("rnbqkbnr/ppppppp1/8/8/8/8/P1PPPPPP/RNBQKBNR w KQkq - 0 1");
+        let board = Board::from_fen("rnbqkbnr/ppppppp1/8/8/8/8/P1PPPPPP/RNBQKBNR w KQkq - 0 1");
         let w_expected = Bitboard::B_FILE;
         let b_expected = Bitboard::H_FILE;
 
