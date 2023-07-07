@@ -24,7 +24,7 @@ mod magic;
 pub mod movegen;
 mod perft;
 pub mod piece_loop_eval;
-mod pst;
+mod piece_tables;
 mod pv_table;
 pub mod search;
 pub mod time_management;
