@@ -782,9 +782,9 @@ impl Tuner {
             write!(output, "pub const {s}: Pft = Pft::new([\n  ").unwrap();
 
             for i in 0..NUM_FILES {
-                writeln!(
+                write!(
                     output,
-                    "s({}, {}) ",
+                    "s({}, {}), ",
                     self.weights[MG][func(i)] as EvalScore,
                     self.weights[EG][func(i)] as EvalScore,
                 )
