@@ -88,8 +88,6 @@ impl ConstPiece {
     const BISHOP: u8 = 1;
     const ROOK: u8 = 2;
     const QUEEN: u8 = 3;
-    const PAWN: u8 = 4;
-    const KING: u8 = 5;
 
     const fn moves<const PIECE: u8>(board: &Board, sq: Square) -> Bitboard {
         match PIECE {

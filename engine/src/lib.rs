@@ -10,7 +10,6 @@
 #![allow(clippy::similar_names)]
 #![allow(clippy::items_after_statements)]
 #![allow(clippy::option_if_let_else)]
-#![allow(dead_code)] // remove later
 
 pub mod attacks;
 pub mod bench;
