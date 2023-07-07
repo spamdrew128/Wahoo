@@ -1,5 +1,5 @@
 use crate::{
-    board_representation::{Color, Square, NUM_COLORS, NUM_RANKS, NUM_SQUARES},
+    board_representation::{Color, Square, NUM_COLORS, NUM_RANKS, NUM_SQUARES, NUM_FILES},
     evaluation::ScoreTuple,
 };
 
@@ -58,11 +58,11 @@ impl Prt {
 
 pub struct Pft {
     // piece file table
-    table: [ScoreTuple; NUM_RANKS as usize],
+    table: [ScoreTuple; NUM_FILES as usize],
 }
 
 impl Pft {
-    pub const fn new(table: [ScoreTuple; NUM_RANKS as usize]) -> Self {
+    pub const fn new(table: [ScoreTuple; NUM_FILES as usize]) -> Self {
         Self { table }
     }
 
