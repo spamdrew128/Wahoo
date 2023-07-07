@@ -795,7 +795,7 @@ impl Tuner {
                 .unwrap();
             }
 
-            writeln!(output, "]);\n").unwrap();
+            writeln!(output, "\n]);\n").unwrap();
         }
     }
 
