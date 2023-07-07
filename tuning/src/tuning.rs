@@ -390,10 +390,14 @@ impl Entry {
     }
 
     fn add_open_file_features(&mut self, board: &Board) {
+        let open = board.open_files();
+        let w_semi = board.semi_open_files(Color::White);
+        let b_semi = board.semi_open_files(Color::Black);
+
         let w_rooks = board.piece_bb(Piece::ROOK, Color::White);
         let b_rooks = board.piece_bb(Piece::ROOK, Color::Black);
-        self.pft_update(w_rooks, b_rooks, OpenRook::index);
-        self.pft_update(w_rooks, b_rooks, SemiOpenRook::index);
+        self.pft_update(w_rooks & open, b_rooks & open, OpenRook::index);
+        self.pft_update(w_rooks & w_semi, b_rooks & b_semi, SemiOpenRook::index);
     }
 
     fn new(board: &Board, game_result: f64) -> Self {
