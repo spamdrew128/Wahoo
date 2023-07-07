@@ -1,7 +1,7 @@
 use engine::{
     attacks, bitloop,
     board_representation::{
-        Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
+        Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES, NUM_FILES,
     },
     evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
     piece_loop_eval::{self, enemy_king_zone, enemy_virtual_mobility, MoveCounts},
@@ -21,7 +21,9 @@ const TUNER_VEC_LEN: usize = MaterialPst::LEN
     + IsolatedPawns::LEN
     + PhalanxPawns::LEN
     + Threats::LEN
-    + TempoBonus::LEN;
+    + TempoBonus::LEN
+    + OpenRook::LEN
+    + SemiOpenRook::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -148,6 +150,26 @@ impl TempoBonus {
     }
 }
 
+struct OpenRook;
+impl OpenRook {
+    const START: usize = TempoBonus::START + TempoBonus::LEN;
+    const LEN: usize = (NUM_FILES as usize);
+
+    fn index(file: u8) -> usize {
+        Self::START + file as usize
+    }
+}
+
+struct SemiOpenRook;
+impl SemiOpenRook {
+    const START: usize = OpenRook::START + OpenRook::LEN;
+    const LEN: usize = (NUM_FILES as usize);
+
+    fn index(file: u8) -> usize {
+        Self::START + file as usize
+    }
+}
+
 struct Feature {
     value: i8,
     index: usize,
@@ -194,6 +216,22 @@ impl Entry {
 
             let value = (w_rank.intersection(w_pieces).popcount() as i8)
                 - (b_rank.intersection(b_pieces).popcount() as i8);
+            if value != 0 {
+                self.feature_vec.push(Feature::new(value, index_fn(i)));
+            }
+        }
+    }
+
+    pub fn pft_update<F>(&mut self, w_pieces: Bitboard, b_pieces: Bitboard, index_fn: F)
+    where
+        F: Fn(u8) -> usize,
+    {
+        let file = Bitboard::A_FILE;
+        for i in 0..NUM_FILES {
+            let file = file.shift_east(i);
+
+            let value = (file.intersection(w_pieces).popcount() as i8)
+                - (file.intersection(b_pieces).popcount() as i8);
             if value != 0 {
                 self.feature_vec.push(Feature::new(value, index_fn(i)));
             }
@@ -351,6 +389,13 @@ impl Entry {
         }
     }
 
+    fn add_open_file_features(&mut self, board: &Board) {
+        let w_rooks = board.piece_bb(Piece::ROOK, Color::White);
+        let b_rooks = board.piece_bb(Piece::ROOK, Color::Black);
+        self.pft_update(w_rooks, b_rooks, OpenRook::index);
+        self.pft_update(w_rooks, b_rooks, SemiOpenRook::index);
+    }
+
     fn new(board: &Board, game_result: f64) -> Self {
         let mut entry = Self {
             feature_vec: vec![],
@@ -363,6 +408,7 @@ impl Entry {
         entry.add_piece_loop_features(board);
         entry.add_isolated_features(board);
         entry.add_phalanx_features(board);
+        entry.add_open_file_features(board);
 
         let bishop_pair_val = i8::from(board.piece_bb(Piece::BISHOP, Color::White).popcount() >= 2)
             - i8::from(board.piece_bb(Piece::BISHOP, Color::Black).popcount() >= 2);
