@@ -88,8 +88,6 @@ impl ConstPiece {
     const BISHOP: u8 = 1;
     const ROOK: u8 = 2;
     const QUEEN: u8 = 3;
-    const PAWN: u8 = 4;
-    const KING: u8 = 5;
 
     const fn moves<const PIECE: u8>(board: &Board, sq: Square) -> Bitboard {
         match PIECE {
@@ -97,6 +95,16 @@ impl ConstPiece {
             Self::BISHOP => attacks::bishop(sq, board.occupied()),
             Self::ROOK => attacks::rook(sq, board.occupied()),
             Self::QUEEN => attacks::queen(sq, board.occupied()),
+            _ => panic!("Unexpected Piece!"),
+        }
+    }
+
+    const fn piece<const PIECE: u8>() -> Piece {
+        match PIECE {
+            Self::KNIGHT => Piece::KNIGHT,
+            Self::BISHOP => Piece::BISHOP,
+            Self::ROOK => Piece::ROOK,
+            Self::QUEEN => Piece::QUEEN,
             _ => panic!("Unexpected Piece!"),
         }
     }
@@ -138,17 +146,17 @@ impl LoopEvaluator {
     #[allow(clippy::cast_possible_wrap)]
     fn single_score<const PIECE: u8>(&self, board: &Board, sq: Square) -> ScoreTuple {
         let mut score = ScoreTuple::new(0, 0);
+        let piece = ConstPiece::piece::<PIECE>();
         let attacks = ConstPiece::moves::<PIECE>(board, sq);
         let moves = attacks & self.availible;
+
         let kz_attacks = moves & self.enemy_king_zone;
+        let attack_weight = KING_ZONE_ATTACKS[piece.as_index()][self.enemy_virt_mobility];
+        score += attack_weight.mult(kz_attacks.popcount() as i32);
 
         match PIECE {
             ConstPiece::KNIGHT => {
                 score += KNIGHT_MOBILITY[moves.popcount() as usize];
-
-                let attack_weight =
-                    KING_ZONE_ATTACKS[Piece::KNIGHT.as_index()][self.enemy_virt_mobility];
-                score += attack_weight.mult(kz_attacks.popcount() as i32);
 
                 score += KNIGHT_THREAT_ON_BISHOP
                     .mult((attacks & self.enemy_bishops).popcount() as i32)
@@ -158,10 +166,6 @@ impl LoopEvaluator {
             ConstPiece::BISHOP => {
                 score += BISHOP_MOBILITY[moves.popcount() as usize];
 
-                let attack_weight =
-                    KING_ZONE_ATTACKS[Piece::BISHOP.as_index()][self.enemy_virt_mobility];
-                score += attack_weight.mult(kz_attacks.popcount() as i32);
-
                 score += BISHOP_THREAT_ON_KNIGHT
                     .mult((attacks & self.enemy_knights).popcount() as i32)
                     + BISHOP_THREAT_ON_ROOK.mult((attacks & self.enemy_rooks).popcount() as i32)
@@ -170,18 +174,10 @@ impl LoopEvaluator {
             ConstPiece::ROOK => {
                 score += ROOK_MOBILITY[moves.popcount() as usize];
 
-                let attack_weight =
-                    KING_ZONE_ATTACKS[Piece::ROOK.as_index()][self.enemy_virt_mobility];
-                score += attack_weight.mult(kz_attacks.popcount() as i32);
-
                 score += ROOK_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
             }
             ConstPiece::QUEEN => {
                 score += QUEEN_MOBILITY[moves.popcount() as usize];
-
-                let attack_weight =
-                    KING_ZONE_ATTACKS[Piece::QUEEN.as_index()][self.enemy_virt_mobility];
-                score += attack_weight.mult(kz_attacks.popcount() as i32);
             }
             _ => (),
         }

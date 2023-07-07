@@ -1,4 +1,4 @@
-use crate::{
+use engine::{
     board_representation::{Board, START_FEN},
     chess_move::Move,
     history_table::History,
@@ -100,6 +100,7 @@ impl UciHandler {
         if let Some(&cmd) = message.first() {
             match cmd {
                 "uci" => self.process_command(UciCommand::Uci),
+                "ucinewgame" => self.process_command(UciCommand::UciNewGame),
                 "isready" => self.process_command(UciCommand::IsReady),
                 "position" => {
                     let mut i = 1;
@@ -154,7 +155,7 @@ impl UciHandler {
     fn process_command(&mut self, command: UciCommand) {
         match command {
             UciCommand::Uci => {
-                println!("id name Wahoo v2.0.1");
+                println!("id name Wahoo v3.0.0");
                 println!("id author Andrew Hockman");
 
                 send_uci_option!(
