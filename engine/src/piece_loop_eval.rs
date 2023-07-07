@@ -3,10 +3,9 @@ use crate::{
     board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
     eval_constants::{
         BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT, BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK,
-        CHECKS, KING_ZONE_ATTACKS, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP,
-        KNIGHT_THREAT_ON_QUEEN, KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP,
-        PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK, QUEEN_MOBILITY,
-        ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
+        KING_ZONE_ATTACKS, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN,
+        KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN,
+        PAWN_THREAT_ON_ROOK, QUEEN_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
     },
     evaluation::ScoreTuple,
 };
@@ -83,19 +82,28 @@ impl MoveCounts {
     pub const QUEEN: usize = 28;
 }
 
-struct PieceNum;
-impl PieceNum {
+struct ConstPiece;
+impl ConstPiece {
     const KNIGHT: u8 = 0;
     const BISHOP: u8 = 1;
     const ROOK: u8 = 2;
     const QUEEN: u8 = 3;
     const PAWN: u8 = 4;
     const KING: u8 = 5;
+
+    const fn moves<const PIECE: u8>(board: &Board, sq: Square) -> Bitboard {
+        match PIECE {
+            Self::KNIGHT => attacks::knight(sq),
+            Self::BISHOP => attacks::bishop(sq, board.occupied()),
+            Self::ROOK => attacks::rook(sq, board.occupied()),
+            Self::QUEEN => attacks::queen(sq, board.occupied()),
+            _ => panic!("Unexpected Piece!"),
+        }
+    }
 }
 
 struct LoopEvaluator {
     availible: Bitboard,
-    enemy_king_bb: Bitboard,
     enemy_king_zone: Bitboard,
     enemy_virt_mobility: usize,
     enemy_knights: Bitboard,
@@ -111,7 +119,6 @@ impl LoopEvaluator {
         let enemy_virt_mobility = enemy_virtual_mobility(board, color);
 
         let opp_color = color.flip();
-        let enemy_king_bb = board.piece_bb(Piece::KING, opp_color);
         let enemy_knights = board.piece_bb(Piece::KNIGHT, opp_color);
         let enemy_bishops = board.piece_bb(Piece::BISHOP, opp_color);
         let enemy_rooks = board.piece_bb(Piece::ROOK, opp_color);
@@ -119,7 +126,6 @@ impl LoopEvaluator {
 
         Self {
             availible,
-            enemy_king_bb,
             enemy_king_zone,
             enemy_virt_mobility,
             enemy_knights,
@@ -130,19 +136,16 @@ impl LoopEvaluator {
     }
 
     #[allow(clippy::cast_possible_wrap)]
-    fn single_score<const PIECE: u8, const IS_STM: bool>(
-        &self,
-        board: &Board,
-        sq: Square,
-    ) -> ScoreTuple {
+    fn single_score<const PIECE: u8>(&self, board: &Board, sq: Square) -> ScoreTuple {
         let mut score = ScoreTuple::new(0, 0);
+        let attacks = ConstPiece::moves::<PIECE>(board, sq);
+        let moves = attacks & self.availible;
+        let kz_attacks = moves & self.enemy_king_zone;
+
         match PIECE {
-            PieceNum::KNIGHT => {
-                let attacks = attacks::knight(sq);
-                let moves = attacks & self.availible;
+            ConstPiece::KNIGHT => {
                 score += KNIGHT_MOBILITY[moves.popcount() as usize];
 
-                let kz_attacks = moves & self.enemy_king_zone;
                 let attack_weight =
                     KING_ZONE_ATTACKS[Piece::KNIGHT.as_index()][self.enemy_virt_mobility];
                 score += attack_weight.mult(kz_attacks.popcount() as i32);
@@ -151,17 +154,10 @@ impl LoopEvaluator {
                     .mult((attacks & self.enemy_bishops).popcount() as i32)
                     + KNIGHT_THREAT_ON_ROOK.mult((attacks & self.enemy_rooks).popcount() as i32)
                     + KNIGHT_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
-
-                if IS_STM && attacks.intersection(self.enemy_king_bb).is_not_empty() {
-                    score += CHECKS[Piece::KNIGHT.as_index()];
-                }
             }
-            PieceNum::BISHOP => {
-                let attacks = attacks::bishop(sq, board.occupied());
-                let moves = attacks & self.availible;
+            ConstPiece::BISHOP => {
                 score += BISHOP_MOBILITY[moves.popcount() as usize];
 
-                let kz_attacks = moves & self.enemy_king_zone;
                 let attack_weight =
                     KING_ZONE_ATTACKS[Piece::BISHOP.as_index()][self.enemy_virt_mobility];
                 score += attack_weight.mult(kz_attacks.popcount() as i32);
@@ -170,40 +166,22 @@ impl LoopEvaluator {
                     .mult((attacks & self.enemy_knights).popcount() as i32)
                     + BISHOP_THREAT_ON_ROOK.mult((attacks & self.enemy_rooks).popcount() as i32)
                     + BISHOP_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
-
-                if IS_STM && attacks.intersection(self.enemy_king_bb).is_not_empty() {
-                    score += CHECKS[Piece::BISHOP.as_index()];
-                }
             }
-            PieceNum::ROOK => {
-                let attacks = attacks::rook(sq, board.occupied());
-                let moves = attacks & self.availible;
+            ConstPiece::ROOK => {
                 score += ROOK_MOBILITY[moves.popcount() as usize];
 
-                let kz_attacks = moves & self.enemy_king_zone;
                 let attack_weight =
                     KING_ZONE_ATTACKS[Piece::ROOK.as_index()][self.enemy_virt_mobility];
                 score += attack_weight.mult(kz_attacks.popcount() as i32);
 
                 score += ROOK_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
-
-                if IS_STM && attacks.intersection(self.enemy_king_bb).is_not_empty() {
-                    score += CHECKS[Piece::ROOK.as_index()];
-                }
             }
-            PieceNum::QUEEN => {
-                let attacks = attacks::queen(sq, board.occupied());
-                let moves = attacks & self.availible;
+            ConstPiece::QUEEN => {
                 score += QUEEN_MOBILITY[moves.popcount() as usize];
 
-                let kz_attacks = moves & self.enemy_king_zone;
                 let attack_weight =
                     KING_ZONE_ATTACKS[Piece::QUEEN.as_index()][self.enemy_virt_mobility];
                 score += attack_weight.mult(kz_attacks.popcount() as i32);
-
-                if IS_STM && attacks.intersection(self.enemy_king_bb).is_not_empty() {
-                    score += CHECKS[Piece::QUEEN.as_index()];
-                }
             }
             _ => (),
         }
@@ -212,37 +190,28 @@ impl LoopEvaluator {
     }
 
     #[allow(clippy::cast_possible_wrap)]
-    fn pawn_score<const IS_STM: bool>(&self, pawns: Bitboard, color: Color) -> ScoreTuple {
+    fn pawn_score(&self, pawns: Bitboard, color: Color) -> ScoreTuple {
         let pawn_attacks = attacks::pawn_setwise(pawns, color);
         let kz_attacks = pawn_attacks & self.enemy_king_zone;
         let attack_weight = KING_ZONE_ATTACKS[Piece::PAWN.as_index()][self.enemy_virt_mobility];
 
-        let mut score = attack_weight.mult(kz_attacks.popcount() as i32)
+        attack_weight.mult(kz_attacks.popcount() as i32)
             + PAWN_THREAT_ON_KNIGHT.mult((pawn_attacks & self.enemy_knights).popcount() as i32)
             + PAWN_THREAT_ON_BISHOP.mult((pawn_attacks & self.enemy_bishops).popcount() as i32)
             + PAWN_THREAT_ON_ROOK.mult((pawn_attacks & self.enemy_rooks).popcount() as i32)
-            + PAWN_THREAT_ON_QUEEN.mult((pawn_attacks & self.enemy_queens).popcount() as i32);
-
-        if IS_STM && pawn_attacks.intersection(self.enemy_king_bb).is_not_empty() {
-            score += CHECKS[Piece::PAWN.as_index()];
-        }
-        score
+            + PAWN_THREAT_ON_QUEEN.mult((pawn_attacks & self.enemy_queens).popcount() as i32)
     }
 
-    fn piece_loop<const PIECE: u8, const IS_STM: bool>(
-        &self,
-        board: &Board,
-        mut piece_bb: Bitboard,
-    ) -> ScoreTuple {
+    fn piece_loop<const PIECE: u8>(&self, board: &Board, mut piece_bb: Bitboard) -> ScoreTuple {
         let mut score = ScoreTuple::new(0, 0);
-        bitloop!(|sq|, piece_bb, {
-            score += self.single_score::<PIECE, IS_STM>(board, sq);
+        bitloop!(|sq| piece_bb, {
+            score += self.single_score::<PIECE>(board, sq);
         });
         score
     }
 }
 
-pub fn mobility<const IS_STM: bool>(board: &Board, color: Color) -> ScoreTuple {
+pub fn mobility_threats_safety(board: &Board, color: Color) -> ScoreTuple {
     let knights = board.piece_bb(Piece::KNIGHT, color);
     let bishops = board.piece_bb(Piece::BISHOP, color);
     let rooks = board.piece_bb(Piece::ROOK, color);
@@ -250,11 +219,11 @@ pub fn mobility<const IS_STM: bool>(board: &Board, color: Color) -> ScoreTuple {
     let pawns = board.piece_bb(Piece::PAWN, color);
 
     let looper = LoopEvaluator::new(board, color);
-    looper.piece_loop::<{ PieceNum::KNIGHT }, IS_STM>(board, knights)
-        + looper.piece_loop::<{ PieceNum::BISHOP }, IS_STM>(board, bishops)
-        + looper.piece_loop::<{ PieceNum::ROOK }, IS_STM>(board, rooks)
-        + looper.piece_loop::<{ PieceNum::QUEEN }, IS_STM>(board, queens)
-        + looper.pawn_score::<IS_STM>(pawns, color)
+    looper.piece_loop::<{ ConstPiece::KNIGHT }>(board, knights)
+        + looper.piece_loop::<{ ConstPiece::BISHOP }>(board, bishops)
+        + looper.piece_loop::<{ ConstPiece::ROOK }>(board, rooks)
+        + looper.piece_loop::<{ ConstPiece::QUEEN }>(board, queens)
+        + looper.pawn_score(pawns, color)
 }
 
 #[cfg(test)]

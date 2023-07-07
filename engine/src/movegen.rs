@@ -8,11 +8,9 @@ use crate::tuple_constants_enum;
 
 macro_rules! into_moves {
     (|$from:ident|, $piece_bb:ident, |$to:ident|, $moves_bb:expr, $add_move:expr) => {{
-        bitloop!(|$from|, $piece_bb, {
+        bitloop!(|$from| $piece_bb, {
             let mut moves: Bitboard = $moves_bb;
-            bitloop!(|$to|, moves, {
-                $add_move
-            });
+            bitloop!(|$to| moves, { $add_move });
         });
     }};
 }
@@ -180,7 +178,7 @@ impl MoveGenerator {
 
         if let Some(to) = board.ep_sq {
             let mut attackers = attacks::pawn(to, color.flip()).intersection(pawns);
-            bitloop!(|from|, attackers, {
+            bitloop!(|from| attackers, {
                 self.add_move(Move::new(to, from, Flag::EP), repeats);
             });
         }
@@ -200,7 +198,7 @@ impl MoveGenerator {
             attacks::pawn_single_push(pawns.without(promotable_pawns), empty, color);
         let mut double_pushs = attacks::pawn_double_push(single_pushs, empty, color);
 
-        bitloop!(|to|, promotions, {
+        bitloop!(|to| promotions, {
             let from = to.retreat(1, color);
             self.add_move(Move::new(to, from, Flag::QUEEN_PROMO), repeats);
             self.add_move(Move::new(to, from, Flag::KNIGHT_PROMO), repeats);
@@ -208,12 +206,12 @@ impl MoveGenerator {
             self.add_move(Move::new(to, from, Flag::BISHOP_PROMO), repeats);
         });
 
-        bitloop!(|to|, single_pushs, {
+        bitloop!(|to| single_pushs, {
             let from = to.retreat(1, color);
             self.add_move(Move::new(to, from, Flag::NONE), repeats);
         });
 
-        bitloop!(|to|, double_pushs, {
+        bitloop!(|to| double_pushs, {
             let from = to.retreat(2, color);
             self.add_move(Move::new(to, from, Flag::DOUBLE_PUSH), repeats);
         });

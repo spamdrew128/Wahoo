@@ -21,7 +21,7 @@ const TUNER_VEC_LEN: usize = MaterialPst::LEN
     + IsolatedPawns::LEN
     + PhalanxPawns::LEN
     + Threats::LEN
-    + Checks::LEN;
+    + TempoBonus::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -138,13 +138,13 @@ impl Threats {
     const ROOK_THREAT_ON_QUEEN: usize = Self::START + 10;
 }
 
-struct Checks;
-impl Checks {
+struct TempoBonus;
+impl TempoBonus {
     const START: usize = Threats::START + Threats::LEN;
-    const LEN: usize = (NUM_PIECES - 1) as usize;
+    const LEN: usize = (NUM_RANKS as usize);
 
-    fn index(piece: Piece) -> usize {
-        Self::START + piece.as_index()
+    fn index() -> usize {
+        Self::START
     }
 }
 
@@ -183,7 +183,7 @@ impl Entry {
         }
     }
 
-    pub fn rst_update<F>(&mut self, w_pieces: Bitboard, b_pieces: Bitboard, index_fn: F)
+    pub fn prt_update<F>(&mut self, w_pieces: Bitboard, b_pieces: Bitboard, index_fn: F)
     where
         F: Fn(u8) -> usize,
     {
@@ -219,21 +219,21 @@ impl Entry {
         let blocking_black = b_passers
             .south_one()
             .intersection(board.all[Color::White.as_index()]);
-        self.rst_update(blocking_white, blocking_black, PasserBlocker::index);
+        self.prt_update(blocking_white, blocking_black, PasserBlocker::index);
     }
 
     fn add_isolated_features(&mut self, board: &Board) {
         let w_isolated = board.isolated_pawns(Color::White);
         let b_isolated = board.isolated_pawns(Color::Black);
 
-        self.rst_update(w_isolated, b_isolated, IsolatedPawns::index);
+        self.prt_update(w_isolated, b_isolated, IsolatedPawns::index);
     }
 
     fn add_phalanx_features(&mut self, board: &Board) {
         let w_phalanx = board.phalanx_pawns(Color::White);
         let b_phalanx = board.phalanx_pawns(Color::Black);
 
-        self.rst_update(w_phalanx, b_phalanx, PhalanxPawns::index);
+        self.prt_update(w_phalanx, b_phalanx, PhalanxPawns::index);
     }
 
     fn add_threat_val(
@@ -289,10 +289,8 @@ impl Entry {
         let mut mobility = [0; Mobility::LEN];
         let mut safety = [0; Safety::LEN];
         let mut threats = [0; Threats::LEN];
-        let mut checks = [0; Checks::LEN];
 
         for color in Color::LIST {
-            let enemy_king_bb = board.color_king_sq(color.flip()).as_bitboard();
             let availible = piece_loop_eval::availible(board, color);
             let enemy_king_virt_mobility = enemy_virtual_mobility(board, color);
 
@@ -304,7 +302,7 @@ impl Entry {
             for &piece in Piece::LIST.iter().take(4) {
                 let mut pieces = board.piece_bb(piece, color);
 
-                bitloop!(|sq|, pieces, {
+                bitloop!(|sq| pieces, {
                     let attacks = attacks::generic(piece, sq, board.occupied(), color) & availible;
                     let count = attacks.popcount();
                     if count > 0 {
@@ -312,12 +310,10 @@ impl Entry {
                     }
 
                     let kz_attacks = (attacks & enemy_king_zone(board, color)).popcount() as i8;
-                    safety[Safety::index(piece, enemy_king_virt_mobility) - Safety::START] += kz_attacks * mult;
+                    safety[Safety::index(piece, enemy_king_virt_mobility) - Safety::START] +=
+                        kz_attacks * mult;
 
                     Self::add_threat_val(board, piece, attacks, &mut threats, color);
-
-                    let check_count = (attacks & enemy_king_bb).popcount() as i8;
-                    checks[piece.as_index()] += check_count * mult;
                 });
             }
 
@@ -328,9 +324,6 @@ impl Entry {
                 kz_attacks * mult;
 
             Self::add_threat_val(board, Piece::PAWN, pawn_attacks, &mut threats, color);
-
-            let check_count = (pawn_attacks & enemy_king_bb).popcount() as i8;
-            checks[Piece::PAWN.as_index()] += check_count * mult;
         }
 
         for i in 0..Mobility::LEN {
@@ -356,14 +349,6 @@ impl Entry {
                 self.feature_vec.push(Feature::new(val, vec_index));
             }
         }
-
-        for i in 0..Checks::LEN {
-            let val = checks[i];
-            if val != 0 {
-                let vec_index = i + Checks::START;
-                self.feature_vec.push(Feature::new(val, vec_index));
-            }
-        }
     }
 
     fn new(board: &Board, game_result: f64) -> Self {
@@ -384,6 +369,14 @@ impl Entry {
         entry
             .feature_vec
             .push(Feature::new(bishop_pair_val, BishopPair::index()));
+
+        let tempo = match board.color_to_move {
+            Color::White => 1,
+            Color::Black => -1,
+        };
+        entry
+            .feature_vec
+            .push(Feature::new(tempo, TempoBonus::index()));
 
         entry
     }
@@ -558,7 +551,7 @@ impl Tuner {
         writeln!(output, "#![cfg_attr(rustfmt, rustfmt_skip)]").unwrap();
         writeln!(
             output,
-            "use crate::{{evaluation::ScoreTuple, board_representation::NUM_PIECES, pst::{{Pst, Rst}}}};\n"
+            "use crate::{{evaluation::ScoreTuple, board_representation::NUM_PIECES, pst::{{Pst, Prt}}}};\n"
         )
         .unwrap();
 
@@ -590,11 +583,11 @@ impl Tuner {
         writeln!(output, "\n]){closing_str}").unwrap();
     }
 
-    fn write_rst<F>(&self, output: &mut BufWriter<File>, closing_str: &str, index_fn: F)
+    fn write_prt<F>(&self, output: &mut BufWriter<File>, closing_str: &str, index_fn: F)
     where
         F: Fn(u8) -> usize,
     {
-        write!(output, "Rst::new([").unwrap();
+        write!(output, "Prt::new([").unwrap();
         for i in 0..NUM_RANKS {
             write!(
                 output,
@@ -627,19 +620,19 @@ impl Tuner {
         self.write_pst(output, ";\n", Passer::index);
     }
 
-    fn write_passer_blocker_rst(&self, output: &mut BufWriter<File>) {
-        write!(output, "pub const PASSER_BLOCKERS_RST: Rst = ").unwrap();
-        self.write_rst(output, ";\n", PasserBlocker::index);
+    fn write_passer_blocker_prt(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const PASSER_BLOCKERS_PRT: Prt = ").unwrap();
+        self.write_prt(output, ";\n", PasserBlocker::index);
     }
 
-    fn write_isolated_rst(&self, output: &mut BufWriter<File>) {
-        write!(output, "pub const ISOLATED_PAWNS_RST: Rst = ").unwrap();
-        self.write_rst(output, ";\n", IsolatedPawns::index);
+    fn write_isolated_prt(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const ISOLATED_PAWNS_PRT: Prt = ").unwrap();
+        self.write_prt(output, ";\n", IsolatedPawns::index);
     }
 
-    fn write_phalanx_rst(&self, output: &mut BufWriter<File>) {
-        write!(output, "pub const PHALANX_PAWNS_RST: Rst = ").unwrap();
-        self.write_rst(output, ";\n", PhalanxPawns::index);
+    fn write_phalanx_prt(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const PHALANX_PAWNS_PRT: Prt = ").unwrap();
+        self.write_prt(output, ";\n", PhalanxPawns::index);
     }
 
     fn write_bishop_pair(&self, output: &mut BufWriter<File>) {
@@ -725,22 +718,14 @@ impl Tuner {
         }
     }
 
-    fn write_checks(&self, output: &mut BufWriter<File>) {
-        write!(
+    fn write_tempo(&self, output: &mut BufWriter<File>) {
+        writeln!(
             output,
-            "\npub const CHECKS: [ScoreTuple; (NUM_PIECES - 1) as usize] = [\n  "
+            "\npub const TEMPO_BONUS: ScoreTuple = s({}, {});",
+            self.weights[MG][TempoBonus::index()] as EvalScore,
+            self.weights[EG][TempoBonus::index()] as EvalScore,
         )
         .unwrap();
-        for &piece in Piece::LIST.iter().take(5) {
-            let index = Checks::index(piece);
-            write!(
-                output,
-                "s({}, {}), ",
-                self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore
-            )
-            .unwrap();
-        }
-        writeln!(output, "\n];").unwrap();
     }
 
     fn create_output_file(&self) {
@@ -748,13 +733,13 @@ impl Tuner {
         self.write_header(&mut output);
         self.write_material_psts(&mut output);
         self.write_passer_pst(&mut output);
-        self.write_passer_blocker_rst(&mut output);
-        self.write_isolated_rst(&mut output);
-        self.write_phalanx_rst(&mut output);
+        self.write_passer_blocker_prt(&mut output);
+        self.write_isolated_prt(&mut output);
+        self.write_phalanx_prt(&mut output);
         self.write_bishop_pair(&mut output);
         self.write_mobility(&mut output);
         self.write_safety(&mut output);
         self.write_threats(&mut output);
-        self.write_checks(&mut output);
+        self.write_tempo(&mut output);
     }
 }
