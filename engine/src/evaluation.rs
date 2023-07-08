@@ -9,7 +9,10 @@ use crate::{
     },
     piece_loop_eval::mobility_threats_safety,
     search::MAX_PLY,
-    trace::{color_adjust, empty_trace, BishopPair, MaterialPst, Trace, Passer, PasserBlocker, IsolatedPawns, PhalanxPawns, TempoBonus},
+    trace::{
+        color_adjust, empty_trace, BishopPair, IsolatedPawns, MaterialPst, Passer, PasserBlocker,
+        PhalanxPawns, TempoBonus, Trace,
+    },
     trace_update,
 };
 

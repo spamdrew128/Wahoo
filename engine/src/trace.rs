@@ -42,6 +42,19 @@ macro_rules! trace_update {
     };
 }
 
+#[macro_export]
+macro_rules! trace_threat_update {
+    ($trace:ident, $index_name:ident, $color:expr, $attacks:expr, $enemy:expr) => {
+        let mult = match $color {
+            Color::White => 1,
+            Color::Black => -1,
+        };
+        let val = ($attacks & $enemy).popcount();
+        $trace[$crate::evaluation::MG][Threats::$index_name] += mult * (val as i8);
+        $trace[$crate::evaluation::EG][Threats::$index_name] += mult * (val as i8);
+    };
+}
+
 pub struct MaterialPst;
 impl MaterialPst {
     pub const START: usize = 0;

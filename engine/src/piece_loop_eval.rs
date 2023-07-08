@@ -10,7 +10,7 @@ use crate::{
         ROOK_THREAT_ON_QUEEN,
     },
     evaluation::ScoreTuple,
-    trace::{Trace, Mobility, ForwardMobility, Safety}, trace_update,
+    trace::{Trace, Mobility, ForwardMobility, Safety, Threats}, trace_update, trace_threat_update,
 };
 
 const fn enemy_king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
@@ -183,6 +183,7 @@ impl LoopEvaluator {
     }
 
     #[allow(clippy::cast_possible_wrap)]
+    #[rustfmt::skip]
     fn single_score<const PIECE: u8, const TRACE: bool>(&self, board: &Board, sq: Square, t: &mut Trace) -> ScoreTuple {
         let mut score = ScoreTuple::new(0, 0);
         let piece = ConstPiece::piece::<PIECE>();
@@ -205,6 +206,12 @@ impl LoopEvaluator {
                     .mult((attacks & self.enemy_bishops).popcount() as i32)
                     + KNIGHT_THREAT_ON_ROOK.mult((attacks & self.enemy_rooks).popcount() as i32)
                     + KNIGHT_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
+
+                if TRACE {
+                    trace_threat_update!(t, KNIGHT_THREAT_ON_BISHOP, self.color, attacks, self.enemy_bishops);
+                    trace_threat_update!(t, KNIGHT_THREAT_ON_ROOK, self.color, attacks, self.enemy_rooks);
+                    trace_threat_update!(t, KNIGHT_THREAT_ON_QUEEN, self.color, attacks, self.enemy_queens);
+                }
             }
             ConstPiece::BISHOP => {
                 score += BISHOP_MOBILITY[mobility];
@@ -214,12 +221,22 @@ impl LoopEvaluator {
                     .mult((attacks & self.enemy_knights).popcount() as i32)
                     + BISHOP_THREAT_ON_ROOK.mult((attacks & self.enemy_rooks).popcount() as i32)
                     + BISHOP_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
+
+                    if TRACE {
+                        trace_threat_update!(t, BISHOP_THREAT_ON_KNIGHT, self.color, attacks, self.enemy_knights);
+                        trace_threat_update!(t, BISHOP_THREAT_ON_ROOK, self.color, attacks, self.enemy_rooks);
+                        trace_threat_update!(t, BISHOP_THREAT_ON_QUEEN, self.color, attacks, self.enemy_queens);
+                    }
             }
             ConstPiece::ROOK => {
                 score += ROOK_MOBILITY[mobility];
                 score += ROOK_FORWARD_MOBILITY[forward_mobility];
 
                 score += ROOK_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
+
+                if TRACE {
+                    trace_threat_update!(t, ROOK_THREAT_ON_QUEEN, self.color, attacks, self.enemy_queens);
+                }
             }
             ConstPiece::QUEEN => {
                 score += QUEEN_MOBILITY[mobility];
