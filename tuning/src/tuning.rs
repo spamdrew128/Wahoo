@@ -24,7 +24,8 @@ const TUNER_VEC_LEN: usize = MaterialPst::LEN
     + PhalanxPawns::LEN
     + Threats::LEN
     + TempoBonus::LEN
-    + ForwardMobility::LEN;
+    + ForwardMobility::LEN
+    + CheckBonus::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -173,6 +174,16 @@ impl ForwardMobility {
 
     fn index(piece: Piece, f_mobility: usize) -> usize {
         Self::START + f_mobility + Self::PIECE_OFFSETS[piece.as_index()]
+    }
+}
+
+struct CheckBonus;
+impl CheckBonus {
+    const START: usize = ForwardMobility::START + ForwardMobility::LEN;
+    const LEN: usize = (NUM_PIECES - 1) as usize;
+
+    fn index(piece: Piece) -> usize {
+        Self::START + piece.as_index()
     }
 }
 
