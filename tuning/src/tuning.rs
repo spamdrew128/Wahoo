@@ -21,7 +21,8 @@ const TUNER_VEC_LEN: usize = MaterialPst::LEN
     + IsolatedPawns::LEN
     + PhalanxPawns::LEN
     + Threats::LEN
-    + TempoBonus::LEN;
+    + TempoBonus::LEN
+    + ForwardMobility::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -145,6 +146,31 @@ impl TempoBonus {
 
     fn index() -> usize {
         Self::START
+    }
+}
+
+struct ForwardMobility;
+impl ForwardMobility {
+    const START: usize = TempoBonus::START + TempoBonus::LEN;
+    const PIECE_MOVECOUNTS: [usize; 4] = [
+        MoveCounts::FORWARD_KNIGHT,
+        MoveCounts::FORWARD_BISHOP,
+        MoveCounts::FORWARD_ROOK,
+        MoveCounts::FORWARD_QUEEN,
+    ];
+    const PIECE_OFFSETS: [usize; 4] = [
+        0,
+        MoveCounts::FORWARD_KNIGHT,
+        MoveCounts::FORWARD_KNIGHT + MoveCounts::FORWARD_BISHOP,
+        MoveCounts::FORWARD_KNIGHT + MoveCounts::FORWARD_BISHOP + MoveCounts::FORWARD_ROOK,
+    ];
+    const LEN: usize = MoveCounts::FORWARD_KNIGHT
+        + MoveCounts::FORWARD_BISHOP
+        + MoveCounts::FORWARD_ROOK
+        + MoveCounts::FORWARD_QUEEN;
+
+    fn index(piece: Piece, attack_count: u32) -> usize {
+        Self::START + (attack_count as usize) + Self::PIECE_OFFSETS[piece.as_index()]
     }
 }
 

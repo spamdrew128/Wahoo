@@ -2,10 +2,12 @@ use crate::{
     attacks, bitloop,
     board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
     eval_constants::{
-        BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT, BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK,
-        KING_ZONE_ATTACKS, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN,
-        KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN,
-        PAWN_THREAT_ON_ROOK, QUEEN_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN, KNIGHT_FORWARD_MOBILITY, ROOK_FORWARD_MOBILITY, QUEEN_FORWARD_MOBILITY, BISHOP_FORWARD_MOBILITY,
+        BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT, BISHOP_THREAT_ON_QUEEN,
+        BISHOP_THREAT_ON_ROOK, KING_ZONE_ATTACKS, KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY,
+        KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN, KNIGHT_THREAT_ON_ROOK,
+        PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK,
+        QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY,
+        ROOK_THREAT_ON_QUEEN,
     },
     evaluation::ScoreTuple,
 };
@@ -79,7 +81,9 @@ pub const fn enemy_king_zone(board: &Board, attacking_color: Color) -> Bitboard 
 }
 
 pub const fn forward_mobility(moves: Bitboard, sq: Square, color: Color) -> usize {
-    moves.intersection(FORWARD_MASKS[color.as_index()][sq.as_index()]).popcount() as usize
+    moves
+        .intersection(FORWARD_MASKS[color.as_index()][sq.as_index()])
+        .popcount() as usize
 }
 
 pub const fn availible(board: &Board, color: Color) -> Bitboard {
@@ -107,6 +111,11 @@ impl MoveCounts {
     pub const BISHOP: usize = 14;
     pub const ROOK: usize = 15;
     pub const QUEEN: usize = 28;
+
+    pub const FORWARD_KNIGHT: usize = 9;
+    pub const FORWARD_BISHOP: usize = 14;
+    pub const FORWARD_ROOK: usize = 15;
+    pub const FORWARD_QUEEN: usize = 28;
 }
 
 struct ConstPiece;
@@ -258,7 +267,11 @@ pub fn mobility_threats_safety(board: &Board, color: Color) -> ScoreTuple {
 
 #[cfg(test)]
 mod tests {
-    use crate::{board_representation::{Board, Color, Square}, attacks, piece_loop_eval::forward_mobility};
+    use crate::{
+        attacks,
+        board_representation::{Board, Color, Square},
+        piece_loop_eval::forward_mobility,
+    };
 
     use super::enemy_virtual_mobility;
 
