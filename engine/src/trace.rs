@@ -37,8 +37,8 @@ macro_rules! trace_update {
             Color::Black => -1,
         };
         let index = $name::index($($arg,)*);
-        $trace[MG][index] += mult * ($val as i8);
-        $trace[EG][index] += mult * ($val as i8);
+        $trace[$crate::evaluation::MG][index] += mult * ($val as i8);
+        $trace[$crate::evaluation::EG][index] += mult * ($val as i8);
     };
 }
 
@@ -82,7 +82,7 @@ impl BishopPair {
     }
 }
 
-struct Mobility;
+pub struct Mobility;
 impl Mobility {
     pub const START: usize = BishopPair::START + BishopPair::LEN;
     pub const PIECE_MOVECOUNTS: [usize; 4] = [
@@ -100,8 +100,8 @@ impl Mobility {
     pub const LEN: usize =
         MoveCounts::KNIGHT + MoveCounts::BISHOP + MoveCounts::ROOK + MoveCounts::QUEEN;
 
-    pub const fn index(piece: Piece, attack_count: u32) -> usize {
-        Self::START + (attack_count as usize) + Self::PIECE_OFFSETS[piece.as_index()]
+    pub const fn index(piece: Piece, attack_count: usize) -> usize {
+        Self::START + attack_count + Self::PIECE_OFFSETS[piece.as_index()]
     }
 }
 

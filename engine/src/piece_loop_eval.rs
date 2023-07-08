@@ -10,7 +10,7 @@ use crate::{
         ROOK_THREAT_ON_QUEEN,
     },
     evaluation::ScoreTuple,
-    trace::Trace,
+    trace::{Trace, Mobility, ForwardMobility}, trace_update,
 };
 
 const fn enemy_king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
@@ -183,20 +183,22 @@ impl LoopEvaluator {
     }
 
     #[allow(clippy::cast_possible_wrap)]
-    fn single_score<const PIECE: u8, const TRACE: bool>(&self, board: &Board, sq: Square) -> ScoreTuple {
+    fn single_score<const PIECE: u8, const TRACE: bool>(&self, board: &Board, sq: Square, t: &mut Trace) -> ScoreTuple {
         let mut score = ScoreTuple::new(0, 0);
         let piece = ConstPiece::piece::<PIECE>();
         let attacks = ConstPiece::moves::<PIECE>(board, sq);
         let moves = attacks & self.availible;
+
+        let mobility = moves.popcount() as usize;
         let forward_mobility = forward_mobility(moves, sq, self.color);
 
-        let kz_attacks = moves & self.enemy_king_zone;
+        let kz_attacks = self.enemy_king_zone.intersection(moves).popcount() as i32;
         let attack_weight = KING_ZONE_ATTACKS[piece.as_index()][self.enemy_virt_mobility];
-        score += attack_weight.mult(kz_attacks.popcount() as i32);
+        score += attack_weight.mult(kz_attacks);
 
         match PIECE {
             ConstPiece::KNIGHT => {
-                score += KNIGHT_MOBILITY[moves.popcount() as usize];
+                score += KNIGHT_MOBILITY[mobility];
                 score += KNIGHT_FORWARD_MOBILITY[forward_mobility];
 
                 score += KNIGHT_THREAT_ON_BISHOP
@@ -205,7 +207,7 @@ impl LoopEvaluator {
                     + KNIGHT_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
             }
             ConstPiece::BISHOP => {
-                score += BISHOP_MOBILITY[moves.popcount() as usize];
+                score += BISHOP_MOBILITY[mobility];
                 score += BISHOP_FORWARD_MOBILITY[forward_mobility];
 
                 score += BISHOP_THREAT_ON_KNIGHT
@@ -214,27 +216,28 @@ impl LoopEvaluator {
                     + BISHOP_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
             }
             ConstPiece::ROOK => {
-                score += ROOK_MOBILITY[moves.popcount() as usize];
+                score += ROOK_MOBILITY[mobility];
                 score += ROOK_FORWARD_MOBILITY[forward_mobility];
 
                 score += ROOK_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
             }
             ConstPiece::QUEEN => {
-                score += QUEEN_MOBILITY[moves.popcount() as usize];
+                score += QUEEN_MOBILITY[mobility];
                 score += QUEEN_FORWARD_MOBILITY[forward_mobility];
             }
             _ => (),
         }
 
         if TRACE {
-            
+            trace_update!(t, Mobility, (piece, mobility), self.color, 1);
+            trace_update!(t, ForwardMobility, (piece, forward_mobility), self.color, 1);
         }
 
         score
     }
 
     #[allow(clippy::cast_possible_wrap)]
-    fn pawn_score<const TRACE: bool>(&self, pawns: Bitboard, color: Color) -> ScoreTuple {
+    fn pawn_score<const TRACE: bool>(&self, pawns: Bitboard, color: Color, t: &mut Trace) -> ScoreTuple {
         let pawn_attacks = attacks::pawn_setwise(pawns, color);
         let kz_attacks = pawn_attacks & self.enemy_king_zone;
         let attack_weight = KING_ZONE_ATTACKS[Piece::PAWN.as_index()][self.enemy_virt_mobility];
@@ -246,10 +249,10 @@ impl LoopEvaluator {
             + PAWN_THREAT_ON_QUEEN.mult((pawn_attacks & self.enemy_queens).popcount() as i32)
     }
 
-    fn piece_loop<const PIECE: u8, const TRACE: bool>(&self, board: &Board, mut piece_bb: Bitboard) -> ScoreTuple {
+    fn piece_loop<const PIECE: u8, const TRACE: bool>(&self, board: &Board, mut piece_bb: Bitboard, t: &mut Trace) -> ScoreTuple {
         let mut score = ScoreTuple::new(0, 0);
         bitloop!(|sq| piece_bb, {
-            score += self.single_score::<PIECE, TRACE>(board, sq);
+            score += self.single_score::<PIECE, TRACE>(board, sq, t);
         });
         score
     }
@@ -267,11 +270,11 @@ pub fn mobility_threats_safety<const TRACE: bool>(
     let pawns = board.piece_bb(Piece::PAWN, color);
 
     let looper = LoopEvaluator::new(board, color);
-    looper.piece_loop::<{ ConstPiece::KNIGHT }, TRACE>(board, knights)
-        + looper.piece_loop::<{ ConstPiece::BISHOP }, TRACE>(board, bishops)
-        + looper.piece_loop::<{ ConstPiece::ROOK }, TRACE>(board, rooks)
-        + looper.piece_loop::<{ ConstPiece::QUEEN }, TRACE>(board, queens)
-        + looper.pawn_score::<TRACE>(pawns, color)
+    looper.piece_loop::<{ ConstPiece::KNIGHT }, TRACE>(board, knights, t)
+        + looper.piece_loop::<{ ConstPiece::BISHOP }, TRACE>(board, bishops, t)
+        + looper.piece_loop::<{ ConstPiece::ROOK }, TRACE>(board, rooks, t)
+        + looper.piece_loop::<{ ConstPiece::QUEEN }, TRACE>(board, queens, t)
+        + looper.pawn_score::<TRACE>(pawns, color, t)
 }
 
 #[cfg(test)]
