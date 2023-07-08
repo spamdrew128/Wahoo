@@ -186,3 +186,7 @@ pub const BISHOP_THREAT_ON_QUEEN: ScoreTuple = s(84, 53);
 pub const ROOK_THREAT_ON_QUEEN: ScoreTuple = s(114, 0);
 
 pub const TEMPO_BONUS: ScoreTuple = s(41, 29);
+
+pub const BISHOP_COLOR_BONUS: [ScoreTuple; 9] = [
+  s(0, 0), s(4, 2), s(7, 12), s(14, 15), s(22, 19), s(19, 29), s(31, 29), s(35, 36), s(35, 36),
+];

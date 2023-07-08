@@ -2,10 +2,10 @@ use std::ops::{Add, AddAssign, Sub};
 
 use crate::{
     bitloop,
-    board_representation::{Board, Color, Piece, Square},
+    board_representation::{Bitboard, Board, Color, Piece, Square},
     eval_constants::{
-        BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS, PASSER_BLOCKERS_PRT, PASSER_PST,
-        PHALANX_PAWNS_PRT, TEMPO_BONUS,
+        BISHOP_COLOR_BONUS, BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS,
+        PASSER_BLOCKERS_PRT, PASSER_PST, PHALANX_PAWNS_PRT, TEMPO_BONUS,
     },
     piece_loop_eval::mobility_threats_safety,
     search::MAX_PLY,
@@ -142,6 +142,19 @@ fn phalanx_pawns(board: &Board, color: Color) -> ScoreTuple {
     score
 }
 
+fn bishop_color_complex(board: &Board, color: Color) -> ScoreTuple {
+    let bishops = board.piece_bb(Piece::BISHOP, color);
+    let our_pawns = board.piece_bb(Piece::PAWN, color);
+
+    let light_bishops = bishops.intersection(Bitboard::LIGHT_SQ).popcount() as i32;
+    let light_pawns = our_pawns.intersection(Bitboard::LIGHT_SQ).popcount() as usize;
+    let dark_bishops = bishops.intersection(Bitboard::DARK_SQ).popcount() as i32;
+    let dark_pawns = our_pawns.intersection(Bitboard::DARK_SQ).popcount() as usize;
+
+    BISHOP_COLOR_BONUS[light_pawns].mult(light_bishops)
+        + BISHOP_COLOR_BONUS[dark_pawns].mult(dark_bishops)
+}
+
 pub fn evaluate(board: &Board) -> EvalScore {
     let us = board.color_to_move;
     let them = board.color_to_move.flip();
@@ -152,6 +165,7 @@ pub fn evaluate(board: &Board) -> EvalScore {
     score_tuple += passed_pawns(board, us) - passed_pawns(board, them);
     score_tuple += isolated_pawns(board, us) - isolated_pawns(board, them);
     score_tuple += phalanx_pawns(board, us) - phalanx_pawns(board, them);
+    score_tuple += bishop_color_complex(board, us) - bishop_color_complex(board, them);
     score_tuple += mobility_threats_safety(board, us) - mobility_threats_safety(board, them);
 
     let mg_phase = i32::from(phase(board));
