@@ -149,7 +149,7 @@ struct MagicEntry {
 impl MagicEntry {
     const fn new() -> Self {
         Self {
-            mask: Bitboard::new(0),
+            mask: Bitboard::EMPTY,
             magic: 0,
             shift: 0,
             offset: 0,
@@ -183,7 +183,7 @@ impl MagicLookupBuilder {
         Self {
             rook_entries: [MagicEntry::new(); NUM_SQUARES as usize],
             bishop_entries: [MagicEntry::new(); NUM_SQUARES as usize],
-            hash_table: vec![Bitboard::new(0); NUM_HASH_ENTRIES].into_boxed_slice(),
+            hash_table: vec![Bitboard::EMPTY; NUM_HASH_ENTRIES].into_boxed_slice(),
         }
     }
 
@@ -272,7 +272,7 @@ fn fill_single_entry(
         largest_index = max(largest_index, index);
 
         assert!(
-            (table[index + *offset] == Bitboard::new(0)) || (table[index + *offset] == attack_set)
+            (table[index + *offset] == Bitboard::EMPTY) || (table[index + *offset] == attack_set)
         );
 
         table[index + *offset] = attack_set;

@@ -11,7 +11,7 @@ use crate::{
 };
 
 const fn enemy_king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
-    let mut enemy_king_zones = [[Bitboard::new(0); NUM_SQUARES as usize]; NUM_COLORS as usize];
+    let mut enemy_king_zones = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
     let mut i = 0;
     while i < NUM_SQUARES {
         let sq = Square::new(i);
@@ -47,8 +47,31 @@ const fn enemy_king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLOR
     enemy_king_zones
 }
 
+const fn forward_masks_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
+    let mut result = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
+
+    let mut i = 0;
+    while i < NUM_SQUARES {
+        let sq = Square::new(i);
+        let rank_bb = Bitboard::RANK_1.shift_north(sq.rank());
+
+        let w_backwards = rank_bb.fill(Color::Black);
+        let b_backwards = rank_bb.fill(Color::White);
+
+        let moves = attacks::knight(sq).union(attacks::queen(sq, Bitboard::EMPTY));
+        result[Color::White.as_index()][sq.as_index()] = moves.without(w_backwards);
+        result[Color::Black.as_index()][sq.as_index()] = moves.without(b_backwards);
+
+        i += 1;
+    }
+
+    result
+}
+
 const ENEMY_KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] =
     enemy_king_zones_init();
+
+const FORWARD_MASKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = forward_masks_init();
 
 pub const fn enemy_king_zone(board: &Board, attacking_color: Color) -> Bitboard {
     let enemy_king_sq = board.color_king_sq(attacking_color.flip());
