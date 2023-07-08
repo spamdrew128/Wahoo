@@ -9,6 +9,7 @@ use crate::{
     },
     piece_loop_eval::mobility_threats_safety,
     search::MAX_PLY,
+    trace,
 };
 
 pub type Phase = u8;
@@ -74,7 +75,7 @@ pub fn phase(board: &Board) -> Phase {
     phase.min(PHASE_MAX)
 }
 
-fn pst_eval(board: &Board, color: Color) -> ScoreTuple {
+fn pst_eval(board: &Board, color: Color, trace: Option<&Trace>) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
     for piece in Piece::LIST {
         let mut pieces = board.piece_bb(piece, color);
