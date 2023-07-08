@@ -249,8 +249,14 @@ impl LoopEvaluator {
         if TRACE {
             let enemy_virt_mobility = self.enemy_virt_mobility;
             trace_update!(t, Safety, (piece, enemy_virt_mobility), self.color, kz_attacks);
-            trace_update!(t, Mobility, (piece, mobility), self.color, 1);
-            trace_update!(t, ForwardMobility, (piece, forward_mobility), self.color, 1);
+
+            // we fix 0 mobility at 0 for eval constants readability
+            if mobility > 0 {
+                trace_update!(t, Mobility, (piece, mobility), self.color, 1);
+            }
+            if forward_mobility > 0 {
+                trace_update!(t, ForwardMobility, (piece, forward_mobility), self.color, 1);
+            }
         }
 
         score
