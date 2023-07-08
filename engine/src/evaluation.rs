@@ -9,7 +9,7 @@ use crate::{
     },
     piece_loop_eval::mobility_threats_safety,
     search::MAX_PLY,
-    trace::{self, Trace},
+    trace::{Trace, empty_trace},
 };
 
 pub type Phase = u8;
@@ -88,7 +88,7 @@ fn pst_eval<const TRACE: bool>(board: &Board, color: Color, trace: &mut Trace) -
     score
 }
 
-const fn bishop_pair<const TRACE: bool>(board: &Board, color: Color, trace: &mut Trace) -> ScoreTuple {
+fn bishop_pair<const TRACE: bool>(board: &Board, color: Color, trace: &mut Trace) -> ScoreTuple {
     let bishops = board.piece_bb(Piece::BISHOP, color);
     if bishops.popcount() >= 2 {
         BISHOP_PAIR_BONUS
@@ -143,7 +143,7 @@ fn phalanx_pawns<const TRACE: bool>(board: &Board, color: Color, trace: &mut Tra
     score
 }
 
-pub fn evaluate<const TRACE: bool>(board: &Board, trace: &mut Trace) -> EvalScore {
+pub fn eval_or_trace<const TRACE: bool>(board: &Board, trace: &mut Trace) -> EvalScore {
     let us = board.color_to_move;
     let them = board.color_to_move.flip();
 
@@ -159,4 +159,12 @@ pub fn evaluate<const TRACE: bool>(board: &Board, trace: &mut Trace) -> EvalScor
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
 
     (score_tuple.mg() * mg_phase + score_tuple.eg() * eg_phase) / i32::from(PHASE_MAX)
+}
+
+pub fn evaluate(board: &Board) -> EvalScore {
+    eval_or_trace::<false>(board, &mut empty_trace())
+}
+
+pub fn trace(board: &Board, trace: &mut Trace) -> EvalScore {
+    eval_or_trace::<true>(board, trace)
 }

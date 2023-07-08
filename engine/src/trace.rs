@@ -15,7 +15,12 @@ const TRACE_LEN: usize = MaterialPst::LEN
     + Threats::LEN
     + TempoBonus::LEN
     + ForwardMobility::LEN;
-pub type Trace = [[f64; TRACE_LEN]; NUM_PHASES];
+
+pub type Trace = [[i8; TRACE_LEN]; NUM_PHASES];
+
+pub fn empty_trace() -> Trace {
+    [[0; TRACE_LEN]; NUM_PHASES]
+}
 
 pub struct MaterialPst;
 impl MaterialPst {
