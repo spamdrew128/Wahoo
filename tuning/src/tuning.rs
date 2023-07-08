@@ -277,22 +277,13 @@ impl Entry {
 
     fn add_bishop_color_bonus_features(&mut self, board: &Board) {
         let mut bonuses = [0; 9];
-        let bishops = [
-            board.piece_bb(Piece::BISHOP, Color::White),
-            board.piece_bb(Piece::BISHOP, Color::Black),
-        ];
-        let pawns = [
-            board.piece_bb(Piece::PAWN, Color::White),
-            board.piece_bb(Piece::PAWN, Color::Black),
-        ];
-
         for color in Color::LIST {
             let mult = match color {
                 Color::White => 1,
                 Color::Black => -1,
             };
-            let bishops = bishops[color.as_index()];
-            let our_pawns = pawns[color.as_index()];
+            let bishops = board.piece_bb(Piece::BISHOP, color);
+            let our_pawns = board.piece_bb(Piece::PAWN, color);
 
             let light_bishops = bishops.intersection(Bitboard::LIGHT_SQ).popcount() as i8;
             let light_pawns = our_pawns.intersection(Bitboard::LIGHT_SQ).popcount() as usize;
