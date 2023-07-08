@@ -112,10 +112,10 @@ impl MoveCounts {
     pub const ROOK: usize = 15;
     pub const QUEEN: usize = 28;
 
-    pub const FORWARD_KNIGHT: usize = 9;
-    pub const FORWARD_BISHOP: usize = 14;
-    pub const FORWARD_ROOK: usize = 15;
-    pub const FORWARD_QUEEN: usize = 28;
+    pub const FORWARD_KNIGHT: usize = 5;
+    pub const FORWARD_BISHOP: usize = 8;
+    pub const FORWARD_ROOK: usize = 8;
+    pub const FORWARD_QUEEN: usize = 15;
 }
 
 struct ConstPiece;
