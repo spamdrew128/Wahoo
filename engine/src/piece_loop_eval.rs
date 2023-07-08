@@ -245,7 +245,7 @@ impl LoopEvaluator {
             + PAWN_THREAT_ON_ROOK.mult((pawn_attacks & self.enemy_rooks).popcount() as i32)
             + PAWN_THREAT_ON_QUEEN.mult((pawn_attacks & self.enemy_queens).popcount() as i32)
             + CHECK_BONUS[Piece::PAWN.as_index()]
-                .mult((pawn_attacks & self.enemy_king).popcount() as i32);
+                .mult((pawn_attacks & self.enemy_king).popcount() as i32)
     }
 
     fn piece_loop<const PIECE: u8>(&self, board: &Board, mut piece_bb: Bitboard) -> ScoreTuple {
