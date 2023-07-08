@@ -24,7 +24,8 @@ const TUNER_VEC_LEN: usize = MaterialPst::LEN
     + PhalanxPawns::LEN
     + Threats::LEN
     + TempoBonus::LEN
-    + ForwardMobility::LEN;
+    + ForwardMobility::LEN
+    + BishopColorBonus::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -176,6 +177,16 @@ impl ForwardMobility {
     }
 }
 
+struct BishopColorBonus;
+impl BishopColorBonus {
+    const START: usize = ForwardMobility::START + ForwardMobility::LEN;
+    const LEN: usize = 9;
+
+    fn index(pawn_count: usize) -> usize {
+        Self::START + pawn_count
+    }
+}
+
 struct Feature {
     value: i8,
     index: usize,
@@ -262,6 +273,43 @@ impl Entry {
         let b_phalanx = board.phalanx_pawns(Color::Black);
 
         self.prt_update(w_phalanx, b_phalanx, PhalanxPawns::index);
+    }
+
+    fn add_bishop_color_bonus_features(&mut self, board: &Board) {
+        let mut bonuses = [0; 9];
+        let bishops = [
+            board.piece_bb(Piece::BISHOP, Color::White),
+            board.piece_bb(Piece::BISHOP, Color::Black),
+        ];
+        let pawns = [
+            board.piece_bb(Piece::PAWN, Color::White),
+            board.piece_bb(Piece::PAWN, Color::Black),
+        ];
+
+        for color in Color::LIST {
+            let mult = match color {
+                Color::White => 1,
+                Color::Black => -1,
+            };
+            let bishops = bishops[color.as_index()];
+            let our_pawns = pawns[color.as_index()];
+
+            let light_bishops = bishops.intersection(Bitboard::LIGHT_SQ).popcount() as i8;
+            let light_pawns = our_pawns.intersection(Bitboard::LIGHT_SQ).popcount() as usize;
+            let dark_bishops = bishops.intersection(Bitboard::DARK_SQ).popcount() as i8;
+            let dark_pawns = our_pawns.intersection(Bitboard::DARK_SQ).popcount() as usize;
+
+            bonuses[light_pawns] += light_bishops * mult;
+            bonuses[dark_pawns] += dark_bishops * mult;
+        }
+
+        for i in 0..BishopColorBonus::LEN {
+            let val = bonuses[i];
+            if val != 0 {
+                let vec_index = i + BishopColorBonus::START;
+                self.feature_vec.push(Feature::new(val, vec_index));
+            }
+        }
     }
 
     fn add_threat_val(
@@ -408,6 +456,7 @@ impl Entry {
         entry.add_piece_loop_features(board);
         entry.add_isolated_features(board);
         entry.add_phalanx_features(board);
+        entry.add_bishop_color_bonus_features(board);
 
         let bishop_pair_val = i8::from(board.piece_bb(Piece::BISHOP, Color::White).popcount() >= 2)
             - i8::from(board.piece_bb(Piece::BISHOP, Color::Black).popcount() >= 2);
@@ -796,6 +845,24 @@ impl Tuner {
         .unwrap();
     }
 
+    fn write_bishop_color_bonus(&self, output: &mut BufWriter<File>) {
+         write!(output,
+            "pub const BISHOP_COLOR_BONUS: [ScoreTuple; {}] = [\n  ",
+            BishopColorBonus::LEN,
+        ).unwrap();
+
+        for i in 0..BishopColorBonus::LEN {
+            let index = BishopColorBonus::index(i);
+            write!(
+                output,
+                "s({}, {}), ",
+                self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore,
+            )
+            .unwrap();
+        }
+        writeln!(output, "\n];\n").unwrap();
+    }
+
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
         self.write_header(&mut output);
@@ -810,5 +877,6 @@ impl Tuner {
         self.write_safety(&mut output);
         self.write_threats(&mut output);
         self.write_tempo(&mut output);
+        self.write_bishop_color_bonus(&mut output);
     }
 }
