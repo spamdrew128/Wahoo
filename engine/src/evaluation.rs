@@ -9,7 +9,8 @@ use crate::{
     },
     piece_loop_eval::mobility_threats_safety,
     search::MAX_PLY,
-    trace::{Trace, empty_trace, MaterialPst, color_adjust}, trace_update,
+    trace::{color_adjust, empty_trace, BishopPair, MaterialPst, Trace, Passer, PasserBlocker, IsolatedPawns, PhalanxPawns},
+    trace_update,
 };
 
 pub type Phase = u8;
@@ -96,6 +97,10 @@ fn pst_eval<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) -> Sc
 fn bishop_pair<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) -> ScoreTuple {
     let bishops = board.piece_bb(Piece::BISHOP, color);
     if bishops.popcount() >= 2 {
+        if TRACE {
+            trace_update!(t, BishopPair, (), color, 1);
+        }
+
         BISHOP_PAIR_BONUS
     } else {
         ScoreTuple::new(0, 0)
@@ -117,10 +122,20 @@ fn passed_pawns<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) -
 
     bitloop!(|sq| passers, {
         score += PASSER_PST.access(color, sq);
+
+        if TRACE {
+            let sq = color_adjust(sq, color);
+            trace_update!(t, Passer, (sq), color, 1);
+        }
     });
 
     bitloop!(|sq| blockers, {
         score += PASSER_BLOCKERS_PRT.access(color, sq);
+
+        if TRACE {
+            let rank = color_adjust(sq, color).rank();
+            trace_update!(t, PasserBlocker, (rank), color, 1);
+        }
     });
 
     score
@@ -132,6 +147,11 @@ fn isolated_pawns<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace)
     let mut isolated = board.isolated_pawns(color);
     bitloop!(|sq| isolated, {
         score += ISOLATED_PAWNS_PRT.access(color, sq);
+
+        if TRACE {
+            let rank = color_adjust(sq, color).rank();
+            trace_update!(t, IsolatedPawns, (rank), color, 1);
+        }
     });
 
     score
@@ -143,6 +163,11 @@ fn phalanx_pawns<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) 
     let mut phalanx = board.phalanx_pawns(color);
     bitloop!(|sq| phalanx, {
         score += PHALANX_PAWNS_PRT.access(color, sq);
+
+        if TRACE {
+            let rank = color_adjust(sq, color).rank();
+            trace_update!(t, PhalanxPawns, (rank), color, 1);
+        }
     });
 
     score
@@ -158,7 +183,8 @@ pub fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalSco
     score_tuple += passed_pawns::<TRACE>(board, us, t) - passed_pawns::<TRACE>(board, them, t);
     score_tuple += isolated_pawns::<TRACE>(board, us, t) - isolated_pawns::<TRACE>(board, them, t);
     score_tuple += phalanx_pawns::<TRACE>(board, us, t) - phalanx_pawns::<TRACE>(board, them, t);
-    score_tuple += mobility_threats_safety::<TRACE>(board, us, t) - mobility_threats_safety::<TRACE>(board, them, t);
+    score_tuple += mobility_threats_safety::<TRACE>(board, us, t)
+        - mobility_threats_safety::<TRACE>(board, them, t);
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;

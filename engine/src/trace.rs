@@ -1,5 +1,5 @@
 use crate::{
-    board_representation::{Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES, Color},
+    board_representation::{Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES},
     evaluation::NUM_PHASES,
     piece_loop_eval::MoveCounts,
 };
@@ -57,7 +57,7 @@ impl Passer {
     pub const START: usize = MaterialPst::START + MaterialPst::LEN;
     pub const LEN: usize = (NUM_SQUARES as usize);
 
-    pub fn index(sq: Square) -> usize {
+    pub const fn index(sq: Square) -> usize {
         Self::START + sq.as_index()
     }
 }
@@ -67,7 +67,7 @@ impl PasserBlocker {
     pub const START: usize = Passer::START + Passer::LEN;
     pub const LEN: usize = (NUM_RANKS as usize);
 
-    pub fn index(rank: u8) -> usize {
+    pub const fn index(rank: u8) -> usize {
         Self::START + rank as usize
     }
 }
@@ -77,7 +77,7 @@ impl BishopPair {
     pub const START: usize = PasserBlocker::START + PasserBlocker::LEN;
     pub const LEN: usize = 1;
 
-    pub fn index() -> usize {
+    pub const fn index() -> usize {
         Self::START
     }
 }
@@ -100,7 +100,7 @@ impl Mobility {
     pub const LEN: usize =
         MoveCounts::KNIGHT + MoveCounts::BISHOP + MoveCounts::ROOK + MoveCounts::QUEEN;
 
-    pub fn index(piece: Piece, attack_count: u32) -> usize {
+    pub const fn index(piece: Piece, attack_count: u32) -> usize {
         Self::START + (attack_count as usize) + Self::PIECE_OFFSETS[piece.as_index()]
     }
 }
@@ -110,7 +110,7 @@ impl Safety {
     const START: usize = Mobility::START + Mobility::LEN;
     const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 1) as usize);
 
-    fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
+    pub const fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
         Self::START + MoveCounts::QUEEN * piece.as_index() + enemy_virt_mobility
     }
 }
@@ -120,7 +120,7 @@ impl IsolatedPawns {
     pub const START: usize = Safety::START + Safety::LEN;
     pub const LEN: usize = (NUM_RANKS as usize);
 
-    pub fn index(rank: u8) -> usize {
+    pub const fn index(rank: u8) -> usize {
         Self::START + rank as usize
     }
 }
@@ -130,7 +130,7 @@ impl PhalanxPawns {
     pub const START: usize = IsolatedPawns::START + IsolatedPawns::LEN;
     pub const LEN: usize = (NUM_RANKS as usize);
 
-    pub fn index(rank: u8) -> usize {
+    pub const fn index(rank: u8) -> usize {
         Self::START + rank as usize
     }
 }
@@ -161,7 +161,7 @@ impl TempoBonus {
     pub const START: usize = Threats::START + Threats::LEN;
     pub const LEN: usize = (NUM_RANKS as usize);
 
-    pub fn index() -> usize {
+    pub const fn index() -> usize {
         Self::START
     }
 }
@@ -186,7 +186,7 @@ impl ForwardMobility {
         + MoveCounts::FORWARD_ROOK
         + MoveCounts::FORWARD_QUEEN;
 
-    pub fn index(piece: Piece, f_mobility: usize) -> usize {
+    pub const fn index(piece: Piece, f_mobility: usize) -> usize {
         Self::START + f_mobility + Self::PIECE_OFFSETS[piece.as_index()]
     }
 }
