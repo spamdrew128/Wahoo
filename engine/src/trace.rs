@@ -1,6 +1,5 @@
 use crate::{
     board_representation::{Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES},
-    evaluation::NUM_PHASES,
     piece_loop_eval::MoveCounts,
 };
 
@@ -16,10 +15,10 @@ const TRACE_LEN: usize = MaterialPst::LEN
     + TempoBonus::LEN
     + ForwardMobility::LEN;
 
-pub type Trace = [[i8; TRACE_LEN]; NUM_PHASES];
+pub type Trace = [i8; TRACE_LEN];
 
 pub const fn empty_trace() -> Trace {
-    [[0; TRACE_LEN]; NUM_PHASES]
+    [0; TRACE_LEN]
 }
 
 pub const fn color_adjust(sq: Square, color: Color) -> Square {
@@ -37,8 +36,7 @@ macro_rules! trace_update {
             Color::Black => -1,
         };
         let index = $name::index($($arg,)*);
-        $trace[$crate::evaluation::MG][index] += mult * ($val as i8);
-        $trace[$crate::evaluation::EG][index] += mult * ($val as i8);
+        $trace[index] += mult * ($val as i8);
     };
 }
 
@@ -50,8 +48,7 @@ macro_rules! trace_threat_update {
             Color::Black => -1,
         };
         let val = ($attacks & $enemy).popcount();
-        $trace[$crate::evaluation::MG][Threats::$index_name] += mult * (val as i8);
-        $trace[$crate::evaluation::EG][Threats::$index_name] += mult * (val as i8);
+        $trace[Threats::$index_name] += mult * (val as i8);
     };
 }
 

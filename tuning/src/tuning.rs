@@ -3,10 +3,10 @@ use engine::{
     board_representation::{
         Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
     },
-    evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
+    evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX, trace_of_position},
     piece_loop_eval::{
         self, enemy_king_zone, enemy_virtual_mobility, forward_mobility, MoveCounts,
-    },
+    }, trace::{Trace, empty_trace},
 };
 use std::{
     fs::{read_to_string, File},
@@ -394,6 +394,17 @@ impl Entry {
                 self.feature_vec.push(Feature::new(val, vec_index));
             }
         }
+    }
+
+    fn feature_vec_from_trace(board: &Board) -> Vec<Feature> {
+        let trace = trace_of_position(board);
+        let mut feature_vec: Vec<Feature> = vec![];
+        for (i, &value) in trace.iter().enumerate() {
+            if value != 0 {
+                feature_vec.push(Feature::new(value, i));
+            }
+        }
+        feature_vec
     }
 
     fn new(board: &Board, game_result: f64) -> Self {

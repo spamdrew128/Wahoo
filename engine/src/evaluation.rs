@@ -204,6 +204,8 @@ pub fn evaluate(board: &Board) -> EvalScore {
     eval_or_trace::<false>(board, &mut empty_trace())
 }
 
-pub fn trace(board: &Board, t: &mut Trace) -> EvalScore {
-    eval_or_trace::<true>(board, t)
+pub fn trace_of_position(board: &Board) -> Trace {
+    let mut trace = empty_trace();
+    eval_or_trace::<true>(board, &mut trace);
+    trace
 }
