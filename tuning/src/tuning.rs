@@ -329,10 +329,12 @@ impl Entry {
         let mut f_mobility = [0; ForwardMobility::LEN];
         let mut safety = [0; Safety::LEN];
         let mut threats = [0; Threats::LEN];
+        let mut checks = [0; Threats::LEN];
 
         for color in Color::LIST {
             let availible = piece_loop_eval::availible(board, color);
             let enemy_king_virt_mobility = enemy_virtual_mobility(board, color);
+            let enemy_king_bb = board.piece_bb(Piece::KING, color.flip());
 
             let mult = match color {
                 Color::White => 1,
@@ -361,6 +363,8 @@ impl Entry {
                         kz_attacks * mult;
 
                     Self::add_threat_val(board, piece, attacks, &mut threats, color);
+
+                    checks[piece.as_index()] += ((attacks & enemy_king_bb).popcount() as i8) * mult;
                 });
             }
 
@@ -371,6 +375,9 @@ impl Entry {
                 kz_attacks * mult;
 
             Self::add_threat_val(board, Piece::PAWN, pawn_attacks, &mut threats, color);
+
+            checks[Piece::PAWN.as_index()] +=
+                ((pawn_attacks & enemy_king_bb).popcount() as i8) * mult;
         }
 
         for i in 0..Mobility::LEN {
@@ -402,6 +409,14 @@ impl Entry {
             let val = threats[i];
             if val != 0 {
                 let vec_index = i + Threats::START;
+                self.feature_vec.push(Feature::new(val, vec_index));
+            }
+        }
+
+        for i in 0..CheckBonus::LEN {
+            let val = checks[i];
+            if val != 0 {
+                let vec_index = i + CheckBonus::START;
                 self.feature_vec.push(Feature::new(val, vec_index));
             }
         }
@@ -797,6 +812,26 @@ impl Tuner {
         }
     }
 
+    fn write_checks(&self, output: &mut BufWriter<File>) {
+        write!(
+            output,
+            "\npub const CHECK_BONUS: [ScoreTuple; (NUM_PIECES - 1) as usize] = [\n  ",
+        )
+        .unwrap();
+
+        for &piece in Piece::LIST.iter().take(5) {
+            let index = CheckBonus::index(piece);
+            write!(
+                output,
+                "s({}, {}), ",
+                self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore,
+            )
+            .unwrap();
+        }
+
+        writeln!(output, "\n];",).unwrap();
+    }
+
     fn write_tempo(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
@@ -820,6 +855,7 @@ impl Tuner {
         self.write_forward_mobility(&mut output);
         self.write_safety(&mut output);
         self.write_threats(&mut output);
+        self.write_checks(&mut output);
         self.write_tempo(&mut output);
     }
 }
