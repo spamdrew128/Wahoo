@@ -78,6 +78,10 @@ pub const fn enemy_king_zone(board: &Board, attacking_color: Color) -> Bitboard 
     ENEMY_KING_ZONES[attacking_color.as_index()][enemy_king_sq.as_index()]
 }
 
+pub const fn forward_mobility(moves: Bitboard, sq: Square, color: Color) -> usize {
+    moves.intersection(FORWARD_MASKS[color.as_index()][sq.as_index()]).popcount() as usize
+}
+
 pub const fn availible(board: &Board, color: Color) -> Bitboard {
     let opp_color = color.flip();
     let enemy_pawns = board.piece_bb(Piece::PAWN, opp_color);
@@ -247,17 +251,27 @@ pub fn mobility_threats_safety(board: &Board, color: Color) -> ScoreTuple {
 
 #[cfg(test)]
 mod tests {
-    use crate::board_representation::{Board, Color};
+    use crate::{board_representation::{Board, Color, Square}, attacks, piece_loop_eval::forward_mobility};
 
     use super::enemy_virtual_mobility;
 
     #[test]
-    fn virtual_mobility() {
+    fn virtual_mobility_test() {
         let board = Board::from_fen("B2r2k1/3p1p2/p4PpB/1p3b2/8/2Nq2PP/PP2R1NK/3R4 b - - 2 23");
         let w_enemy_virt_mobility = enemy_virtual_mobility(&board, Color::White);
         let b_enemy_virt_mobility = enemy_virtual_mobility(&board, Color::Black);
 
         assert_eq!(w_enemy_virt_mobility, 5);
         assert_eq!(b_enemy_virt_mobility, 2);
+    }
+
+    #[test]
+    fn forward_mobility_test() {
+        let board = Board::from_fen("B2r2k1/3p1p2/p4PpB/1p3b2/8/2Nq2PP/PP2R1NK/3R4 b - - 2 23");
+        let sq = Square::D3;
+        let moves = attacks::queen(sq, board.occupied());
+        let f_mobility = forward_mobility(moves, sq, Color::Black);
+
+        assert_eq!(f_mobility, 5);
     }
 }
