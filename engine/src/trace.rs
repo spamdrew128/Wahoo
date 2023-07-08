@@ -1,5 +1,5 @@
 use crate::{
-    board_representation::{Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES},
+    board_representation::{Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES, Color},
     evaluation::NUM_PHASES,
     piece_loop_eval::MoveCounts,
 };
@@ -18,8 +18,27 @@ const TRACE_LEN: usize = MaterialPst::LEN
 
 pub type Trace = [[i8; TRACE_LEN]; NUM_PHASES];
 
-pub fn empty_trace() -> Trace {
+pub const fn empty_trace() -> Trace {
     [[0; TRACE_LEN]; NUM_PHASES]
+}
+
+pub const fn color_adjust(sq: Square, color: Color) -> Square {
+    match color {
+        Color::White => sq.flip(),
+        Color::Black => sq,
+    }
+}
+
+#[macro_export]
+macro_rules! trace_update {
+    ($name:ident, ($($arg:ident),*), $color:expr, $val:expr) => {
+        let mult = match color {
+            Color::White => 1,
+            Color::Black => -1,
+        };
+        let index = $name::index($($arg,)*);
+        trace[index] += mult * $val;
+    };
 }
 
 pub struct MaterialPst;

@@ -9,7 +9,7 @@ use crate::{
     },
     piece_loop_eval::mobility_threats_safety,
     search::MAX_PLY,
-    trace::{Trace, empty_trace},
+    trace::{Trace, empty_trace, MaterialPst, color_adjust}, trace_update,
 };
 
 pub type Phase = u8;
@@ -83,6 +83,10 @@ fn pst_eval<const TRACE: bool>(board: &Board, color: Color, trace: &mut Trace) -
 
         bitloop!(|sq| pieces, {
             score += pst.access(color, sq);
+
+            if TRACE {
+                trace_update!(MaterialPst, (piece, ))
+            }
         });
     }
     score
