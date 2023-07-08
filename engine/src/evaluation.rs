@@ -142,6 +142,7 @@ fn phalanx_pawns(board: &Board, color: Color) -> ScoreTuple {
     score
 }
 
+#[allow(clippy::cast_possible_wrap)]
 fn bishop_color_complex(board: &Board, color: Color) -> ScoreTuple {
     let bishops = board.piece_bb(Piece::BISHOP, color);
     let our_pawns = board.piece_bb(Piece::PAWN, color);
