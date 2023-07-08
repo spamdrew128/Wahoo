@@ -37,7 +37,8 @@ macro_rules! trace_update {
             Color::Black => -1,
         };
         let index = $name::index($($arg,)*);
-        $trace[index] += mult * ($val as i8);
+        $trace[MG][index] += mult * ($val as i8);
+        $trace[EG][index] += mult * ($val as i8);
     };
 }
 
