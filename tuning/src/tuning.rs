@@ -4,7 +4,7 @@ use engine::{
         Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
     },
     evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
-    piece_loop_eval::{self, enemy_king_zone, enemy_virtual_mobility, MoveCounts},
+    piece_loop_eval::{self, enemy_king_zone, enemy_virtual_mobility, MoveCounts, forward_mobility},
 };
 use std::{
     fs::{read_to_string, File},
@@ -169,8 +169,8 @@ impl ForwardMobility {
         + MoveCounts::FORWARD_ROOK
         + MoveCounts::FORWARD_QUEEN;
 
-    fn index(piece: Piece, attack_count: u32) -> usize {
-        Self::START + (attack_count as usize) + Self::PIECE_OFFSETS[piece.as_index()]
+    fn index(piece: Piece, f_mobility: usize) -> usize {
+        Self::START + f_mobility + Self::PIECE_OFFSETS[piece.as_index()]
     }
 }
 
@@ -313,6 +313,7 @@ impl Entry {
 
     fn add_piece_loop_features(&mut self, board: &Board) {
         let mut mobility = [0; Mobility::LEN];
+        let mut f_mobility = [0; ForwardMobility::LEN];
         let mut safety = [0; Safety::LEN];
         let mut threats = [0; Threats::LEN];
 
@@ -333,6 +334,11 @@ impl Entry {
                     let count = attacks.popcount();
                     if count > 0 {
                         mobility[Mobility::index(piece, count) - Mobility::START] += mult;
+                    }
+
+                    let forward_count = forward_mobility(attacks, sq, color);
+                    if forward_count > 0 {
+                        f_mobility[ForwardMobility::index(piece, forward_count) - ForwardMobility::START] += mult;
                     }
 
                     let kz_attacks = (attacks & enemy_king_zone(board, color)).popcount() as i8;
@@ -356,6 +362,15 @@ impl Entry {
             let val = mobility[i];
             if val != 0 {
                 let vec_index = i + Mobility::START;
+                self.feature_vec.push(Feature::new(val, vec_index));
+            }
+        }
+
+        // todo: make all these a macro :p
+        for i in 0..ForwardMobility::LEN {
+            let val = f_mobility[i];
+            if val != 0 {
+                let vec_index = i + ForwardMobility::START;
                 self.feature_vec.push(Feature::new(val, vec_index));
             }
         }
