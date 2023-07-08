@@ -4,7 +4,7 @@ use crate::magic::{MagicEntry, MagicLookup};
 macro_rules! init_lookup {
     (|$sq_bb:ident|, $body:expr) => {{
         let mut i = 0;
-        let mut table = [Bitboard::new(0); NUM_SQUARES as usize];
+        let mut table = [Bitboard::EMPTY; NUM_SQUARES as usize];
         while i < NUM_SQUARES {
             let $sq_bb = Square::new(i).as_bitboard();
             table[i as usize] = $body;

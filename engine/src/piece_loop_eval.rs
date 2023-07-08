@@ -2,16 +2,18 @@ use crate::{
     attacks, bitloop,
     board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
     eval_constants::{
-        BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT, BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK,
-        KING_ZONE_ATTACKS, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN,
-        KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN,
-        PAWN_THREAT_ON_ROOK, QUEEN_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
+        BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT, BISHOP_THREAT_ON_QUEEN,
+        BISHOP_THREAT_ON_ROOK, KING_ZONE_ATTACKS, KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY,
+        KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN, KNIGHT_THREAT_ON_ROOK,
+        PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK,
+        QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY,
+        ROOK_THREAT_ON_QUEEN,
     },
     evaluation::ScoreTuple,
 };
 
 const fn enemy_king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
-    let mut enemy_king_zones = [[Bitboard::new(0); NUM_SQUARES as usize]; NUM_COLORS as usize];
+    let mut enemy_king_zones = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
     let mut i = 0;
     while i < NUM_SQUARES {
         let sq = Square::new(i);
@@ -47,12 +49,41 @@ const fn enemy_king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLOR
     enemy_king_zones
 }
 
+const fn forward_masks_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
+    let mut result = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
+
+    let mut i = 0;
+    while i < NUM_SQUARES {
+        let sq = Square::new(i);
+        let rank_bb = Bitboard::RANK_1.shift_north(sq.rank());
+
+        let w_backwards = rank_bb.fill(Color::Black);
+        let b_backwards = rank_bb.fill(Color::White);
+
+        let moves = attacks::knight(sq).union(attacks::queen(sq, Bitboard::EMPTY));
+        result[Color::White.as_index()][sq.as_index()] = moves.without(w_backwards);
+        result[Color::Black.as_index()][sq.as_index()] = moves.without(b_backwards);
+
+        i += 1;
+    }
+
+    result
+}
+
 const ENEMY_KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] =
     enemy_king_zones_init();
+
+const FORWARD_MASKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = forward_masks_init();
 
 pub const fn enemy_king_zone(board: &Board, attacking_color: Color) -> Bitboard {
     let enemy_king_sq = board.color_king_sq(attacking_color.flip());
     ENEMY_KING_ZONES[attacking_color.as_index()][enemy_king_sq.as_index()]
+}
+
+pub const fn forward_mobility(moves: Bitboard, sq: Square, color: Color) -> usize {
+    moves
+        .intersection(FORWARD_MASKS[color.as_index()][sq.as_index()])
+        .popcount() as usize
 }
 
 pub const fn availible(board: &Board, color: Color) -> Bitboard {
@@ -80,6 +111,11 @@ impl MoveCounts {
     pub const BISHOP: usize = 14;
     pub const ROOK: usize = 15;
     pub const QUEEN: usize = 28;
+
+    pub const FORWARD_KNIGHT: usize = 5;
+    pub const FORWARD_BISHOP: usize = 8;
+    pub const FORWARD_ROOK: usize = 8;
+    pub const FORWARD_QUEEN: usize = 15;
 }
 
 struct ConstPiece;
@@ -111,6 +147,7 @@ impl ConstPiece {
 }
 
 struct LoopEvaluator {
+    color: Color,
     availible: Bitboard,
     enemy_king_zone: Bitboard,
     enemy_virt_mobility: usize,
@@ -133,6 +170,7 @@ impl LoopEvaluator {
         let enemy_queens = board.piece_bb(Piece::QUEEN, opp_color);
 
         Self {
+            color,
             availible,
             enemy_king_zone,
             enemy_virt_mobility,
@@ -149,6 +187,7 @@ impl LoopEvaluator {
         let piece = ConstPiece::piece::<PIECE>();
         let attacks = ConstPiece::moves::<PIECE>(board, sq);
         let moves = attacks & self.availible;
+        let forward_mobility = forward_mobility(moves, sq, self.color);
 
         let kz_attacks = moves & self.enemy_king_zone;
         let attack_weight = KING_ZONE_ATTACKS[piece.as_index()][self.enemy_virt_mobility];
@@ -157,6 +196,7 @@ impl LoopEvaluator {
         match PIECE {
             ConstPiece::KNIGHT => {
                 score += KNIGHT_MOBILITY[moves.popcount() as usize];
+                score += KNIGHT_FORWARD_MOBILITY[forward_mobility];
 
                 score += KNIGHT_THREAT_ON_BISHOP
                     .mult((attacks & self.enemy_bishops).popcount() as i32)
@@ -165,6 +205,7 @@ impl LoopEvaluator {
             }
             ConstPiece::BISHOP => {
                 score += BISHOP_MOBILITY[moves.popcount() as usize];
+                score += BISHOP_FORWARD_MOBILITY[forward_mobility];
 
                 score += BISHOP_THREAT_ON_KNIGHT
                     .mult((attacks & self.enemy_knights).popcount() as i32)
@@ -173,11 +214,13 @@ impl LoopEvaluator {
             }
             ConstPiece::ROOK => {
                 score += ROOK_MOBILITY[moves.popcount() as usize];
+                score += ROOK_FORWARD_MOBILITY[forward_mobility];
 
                 score += ROOK_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
             }
             ConstPiece::QUEEN => {
                 score += QUEEN_MOBILITY[moves.popcount() as usize];
+                score += QUEEN_FORWARD_MOBILITY[forward_mobility];
             }
             _ => (),
         }
@@ -224,17 +267,31 @@ pub fn mobility_threats_safety(board: &Board, color: Color) -> ScoreTuple {
 
 #[cfg(test)]
 mod tests {
-    use crate::board_representation::{Board, Color};
+    use crate::{
+        attacks,
+        board_representation::{Board, Color, Square},
+        piece_loop_eval::forward_mobility,
+    };
 
     use super::enemy_virtual_mobility;
 
     #[test]
-    fn virtual_mobility() {
+    fn virtual_mobility_test() {
         let board = Board::from_fen("B2r2k1/3p1p2/p4PpB/1p3b2/8/2Nq2PP/PP2R1NK/3R4 b - - 2 23");
         let w_enemy_virt_mobility = enemy_virtual_mobility(&board, Color::White);
         let b_enemy_virt_mobility = enemy_virtual_mobility(&board, Color::Black);
 
         assert_eq!(w_enemy_virt_mobility, 5);
         assert_eq!(b_enemy_virt_mobility, 2);
+    }
+
+    #[test]
+    fn forward_mobility_test() {
+        let board = Board::from_fen("B2r2k1/3p1p2/p4PpB/1p3b2/8/2Nq2PP/PP2R1NK/3R4 b - - 2 23");
+        let sq = Square::D3;
+        let moves = attacks::queen(sq, board.occupied());
+        let f_mobility = forward_mobility(moves, sq, Color::Black);
+
+        assert_eq!(f_mobility, 5);
     }
 }

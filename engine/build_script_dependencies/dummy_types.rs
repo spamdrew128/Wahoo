@@ -23,6 +23,7 @@ pub struct Bitboard {
 }
 
 impl Bitboard {
+    pub const EMPTY: Self = Self::new(0);
     pub const A_FILE: Self = Self::new(0x0101010101010101);
     pub const H_FILE: Self = Self::new(0x8080808080808080);
 

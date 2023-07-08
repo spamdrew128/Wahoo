@@ -231,6 +231,7 @@ pub struct Bitboard {
 }
 
 impl Bitboard {
+    pub const EMPTY: Self = Self::new(0);
     pub const A_FILE: Self = Self::new(0x0101010101010101);
     pub const H_FILE: Self = Self::new(0x8080808080808080);
 
@@ -389,23 +390,23 @@ impl Bitboard {
         result
     }
 
-    pub fn fill(self, color: Color) -> Self {
+    pub const fn fill(self, color: Color) -> Self {
         let mut r = self;
         match color {
             Color::White => {
-                r |= r.shift_north(1);
-                r |= r.shift_north(2);
-                r | r.shift_north(4)
+                r = r.shift_north(1).union(r);
+                r = r.shift_north(2).union(r);
+                r.shift_north(4).union(r)
             }
             Color::Black => {
-                r |= r.shift_south(1);
-                r |= r.shift_south(2);
-                r | r.shift_south(4)
+                r = r.shift_south(1).union(r);
+                r = r.shift_south(2).union(r);
+                r.shift_south(4).union(r)
             }
         }
     }
 
-    pub fn file_fill(self) -> Self {
+    pub const fn file_fill(self) -> Self {
         self.fill(Color::White).fill(Color::Black)
     }
 
@@ -419,7 +420,7 @@ impl Bitboard {
         r | r.shift_west(4)
     }
 
-    pub fn forward_fill(self, color: Color) -> Self {
+    pub const fn forward_fill(self, color: Color) -> Self {
         let fill = self.fill(color);
         match color {
             Color::White => fill.north_one(),

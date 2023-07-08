@@ -4,7 +4,9 @@ use engine::{
         Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
     },
     evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
-    piece_loop_eval::{self, enemy_king_zone, enemy_virtual_mobility, MoveCounts},
+    piece_loop_eval::{
+        self, enemy_king_zone, enemy_virtual_mobility, forward_mobility, MoveCounts,
+    },
 };
 use std::{
     fs::{read_to_string, File},
@@ -21,7 +23,8 @@ const TUNER_VEC_LEN: usize = MaterialPst::LEN
     + IsolatedPawns::LEN
     + PhalanxPawns::LEN
     + Threats::LEN
-    + TempoBonus::LEN;
+    + TempoBonus::LEN
+    + ForwardMobility::LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct MaterialPst;
@@ -145,6 +148,31 @@ impl TempoBonus {
 
     fn index() -> usize {
         Self::START
+    }
+}
+
+struct ForwardMobility;
+impl ForwardMobility {
+    const START: usize = TempoBonus::START + TempoBonus::LEN;
+    const PIECE_MOVECOUNTS: [usize; 4] = [
+        MoveCounts::FORWARD_KNIGHT,
+        MoveCounts::FORWARD_BISHOP,
+        MoveCounts::FORWARD_ROOK,
+        MoveCounts::FORWARD_QUEEN,
+    ];
+    const PIECE_OFFSETS: [usize; 4] = [
+        0,
+        MoveCounts::FORWARD_KNIGHT,
+        MoveCounts::FORWARD_KNIGHT + MoveCounts::FORWARD_BISHOP,
+        MoveCounts::FORWARD_KNIGHT + MoveCounts::FORWARD_BISHOP + MoveCounts::FORWARD_ROOK,
+    ];
+    const LEN: usize = MoveCounts::FORWARD_KNIGHT
+        + MoveCounts::FORWARD_BISHOP
+        + MoveCounts::FORWARD_ROOK
+        + MoveCounts::FORWARD_QUEEN;
+
+    fn index(piece: Piece, f_mobility: usize) -> usize {
+        Self::START + f_mobility + Self::PIECE_OFFSETS[piece.as_index()]
     }
 }
 
@@ -287,6 +315,7 @@ impl Entry {
 
     fn add_piece_loop_features(&mut self, board: &Board) {
         let mut mobility = [0; Mobility::LEN];
+        let mut f_mobility = [0; ForwardMobility::LEN];
         let mut safety = [0; Safety::LEN];
         let mut threats = [0; Threats::LEN];
 
@@ -307,6 +336,12 @@ impl Entry {
                     let count = attacks.popcount();
                     if count > 0 {
                         mobility[Mobility::index(piece, count) - Mobility::START] += mult;
+                    }
+
+                    let forward_count = forward_mobility(attacks, sq, color);
+                    if forward_count > 0 {
+                        f_mobility[ForwardMobility::index(piece, forward_count)
+                            - ForwardMobility::START] += mult;
                     }
 
                     let kz_attacks = (attacks & enemy_king_zone(board, color)).popcount() as i8;
@@ -330,6 +365,15 @@ impl Entry {
             let val = mobility[i];
             if val != 0 {
                 let vec_index = i + Mobility::START;
+                self.feature_vec.push(Feature::new(val, vec_index));
+            }
+        }
+
+        // todo: make all these a macro :p
+        for i in 0..ForwardMobility::LEN {
+            let val = f_mobility[i];
+            if val != 0 {
+                let vec_index = i + ForwardMobility::START;
                 self.feature_vec.push(Feature::new(val, vec_index));
             }
         }
@@ -551,7 +595,7 @@ impl Tuner {
         writeln!(output, "#![cfg_attr(rustfmt, rustfmt_skip)]").unwrap();
         writeln!(
             output,
-            "use crate::{{evaluation::ScoreTuple, board_representation::NUM_PIECES, pst::{{Pst, Prt}}}};\n"
+            "use crate::{{evaluation::ScoreTuple, board_representation::NUM_PIECES, piece_tables::{{Pst, Prt}}}};\n"
         )
         .unwrap();
 
@@ -668,6 +712,29 @@ impl Tuner {
         }
     }
 
+    fn write_forward_mobility(&self, output: &mut BufWriter<File>) {
+        for &piece in Piece::LIST.iter().take(4) {
+            let init_line = format!(
+                "pub const {}_FORWARD_MOBILITY: [ScoreTuple; {}] = [",
+                piece.as_string().unwrap().to_uppercase(),
+                ForwardMobility::PIECE_MOVECOUNTS[piece.as_index()]
+            );
+            writeln!(output, "{}", init_line).unwrap();
+            write!(output, "  ").unwrap();
+
+            for i in 0..ForwardMobility::PIECE_MOVECOUNTS[piece.as_index()] {
+                let index = ForwardMobility::index(piece, i);
+                write!(
+                    output,
+                    "s({}, {}), ",
+                    self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore,
+                )
+                .unwrap();
+            }
+            writeln!(output, "\n];\n").unwrap();
+        }
+    }
+
     fn write_safety(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
@@ -738,6 +805,7 @@ impl Tuner {
         self.write_phalanx_prt(&mut output);
         self.write_bishop_pair(&mut output);
         self.write_mobility(&mut output);
+        self.write_forward_mobility(&mut output);
         self.write_safety(&mut output);
         self.write_threats(&mut output);
         self.write_tempo(&mut output);
