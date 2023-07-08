@@ -343,19 +343,20 @@ impl Entry {
                 let mut pieces = board.piece_bb(piece, color);
 
                 bitloop!(|sq| pieces, {
-                    let attacks = attacks::generic(piece, sq, board.occupied(), color) & availible;
-                    let count = attacks.popcount();
+                    let attacks = attacks::generic(piece, sq, board.occupied());
+                    let moves = attacks & availible;
+                    let count = moves.popcount();
                     if count > 0 {
                         mobility[Mobility::index(piece, count) - Mobility::START] += mult;
                     }
 
-                    let forward_count = forward_mobility(attacks, sq, color);
+                    let forward_count = forward_mobility(moves, sq, color);
                     if forward_count > 0 {
                         f_mobility[ForwardMobility::index(piece, forward_count)
                             - ForwardMobility::START] += mult;
                     }
 
-                    let kz_attacks = (attacks & enemy_king_zone(board, color)).popcount() as i8;
+                    let kz_attacks = (moves & enemy_king_zone(board, color)).popcount() as i8;
                     safety[Safety::index(piece, enemy_king_virt_mobility) - Safety::START] +=
                         kz_attacks * mult;
 
