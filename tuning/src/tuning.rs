@@ -847,7 +847,7 @@ impl Tuner {
 
     fn write_bishop_color_bonus(&self, output: &mut BufWriter<File>) {
          write!(output,
-            "pub const BISHOP_COLOR_BONUS: [ScoreTuple; {}] = [\n  ",
+            "\npub const BISHOP_COLOR_BONUS: [ScoreTuple; {}] = [\n  ",
             BishopColorBonus::LEN,
         ).unwrap();
 
