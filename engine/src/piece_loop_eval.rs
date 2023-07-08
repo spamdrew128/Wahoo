@@ -5,7 +5,7 @@ use crate::{
         BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT, BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK,
         KING_ZONE_ATTACKS, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN,
         KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN,
-        PAWN_THREAT_ON_ROOK, QUEEN_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
+        PAWN_THREAT_ON_ROOK, QUEEN_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN, KNIGHT_FORWARD_MOBILITY, ROOK_FORWARD_MOBILITY, QUEEN_FORWARD_MOBILITY, BISHOP_FORWARD_MOBILITY,
     },
     evaluation::ScoreTuple,
 };
@@ -138,6 +138,7 @@ impl ConstPiece {
 }
 
 struct LoopEvaluator {
+    color: Color,
     availible: Bitboard,
     enemy_king_zone: Bitboard,
     enemy_virt_mobility: usize,
@@ -160,6 +161,7 @@ impl LoopEvaluator {
         let enemy_queens = board.piece_bb(Piece::QUEEN, opp_color);
 
         Self {
+            color,
             availible,
             enemy_king_zone,
             enemy_virt_mobility,
@@ -176,6 +178,7 @@ impl LoopEvaluator {
         let piece = ConstPiece::piece::<PIECE>();
         let attacks = ConstPiece::moves::<PIECE>(board, sq);
         let moves = attacks & self.availible;
+        let forward_mobility = forward_mobility(moves, sq, self.color);
 
         let kz_attacks = moves & self.enemy_king_zone;
         let attack_weight = KING_ZONE_ATTACKS[piece.as_index()][self.enemy_virt_mobility];
@@ -184,6 +187,7 @@ impl LoopEvaluator {
         match PIECE {
             ConstPiece::KNIGHT => {
                 score += KNIGHT_MOBILITY[moves.popcount() as usize];
+                score += KNIGHT_FORWARD_MOBILITY[forward_mobility];
 
                 score += KNIGHT_THREAT_ON_BISHOP
                     .mult((attacks & self.enemy_bishops).popcount() as i32)
@@ -192,6 +196,7 @@ impl LoopEvaluator {
             }
             ConstPiece::BISHOP => {
                 score += BISHOP_MOBILITY[moves.popcount() as usize];
+                score += BISHOP_FORWARD_MOBILITY[forward_mobility];
 
                 score += BISHOP_THREAT_ON_KNIGHT
                     .mult((attacks & self.enemy_knights).popcount() as i32)
@@ -200,11 +205,13 @@ impl LoopEvaluator {
             }
             ConstPiece::ROOK => {
                 score += ROOK_MOBILITY[moves.popcount() as usize];
+                score += ROOK_FORWARD_MOBILITY[forward_mobility];
 
                 score += ROOK_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
             }
             ConstPiece::QUEEN => {
                 score += QUEEN_MOBILITY[moves.popcount() as usize];
+                score += QUEEN_FORWARD_MOBILITY[forward_mobility];
             }
             _ => (),
         }
