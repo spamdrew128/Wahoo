@@ -10,7 +10,8 @@ use crate::{
         ROOK_THREAT_ON_QUEEN,
     },
     evaluation::ScoreTuple,
-    trace::{Trace, Mobility, ForwardMobility, Safety, Threats}, trace_update, trace_threat_update,
+    trace::{ForwardMobility, Mobility, Safety, Threats, Trace},
+    trace_threat_update, trace_update,
 };
 
 const fn enemy_king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
@@ -246,29 +247,46 @@ impl LoopEvaluator {
         }
 
         if TRACE {
-            trace_update!(t, Mobility, (piece, mobility), self.color, 1);
-            trace_update!(t, ForwardMobility, (piece, forward_mobility), self.color, 1);
             let enemy_virt_mobility = self.enemy_virt_mobility;
             trace_update!(t, Safety, (piece, enemy_virt_mobility), self.color, kz_attacks);
+            trace_update!(t, Mobility, (piece, mobility), self.color, 1);
+            trace_update!(t, ForwardMobility, (piece, forward_mobility), self.color, 1);
         }
 
         score
     }
 
     #[allow(clippy::cast_possible_wrap)]
+    #[rustfmt::skip]
     fn pawn_score<const TRACE: bool>(&self, pawns: Bitboard, color: Color, t: &mut Trace) -> ScoreTuple {
+        let piece = Piece::PAWN;
         let pawn_attacks = attacks::pawn_setwise(pawns, color);
-        let kz_attacks = pawn_attacks & self.enemy_king_zone;
-        let attack_weight = KING_ZONE_ATTACKS[Piece::PAWN.as_index()][self.enemy_virt_mobility];
+        let kz_attacks = self.enemy_king_zone.intersection(pawn_attacks).popcount() as i32;
+        let attack_weight = KING_ZONE_ATTACKS[piece.as_index()][self.enemy_virt_mobility];
 
-        attack_weight.mult(kz_attacks.popcount() as i32)
+        if TRACE {
+            let enemy_virt_mobility = self.enemy_virt_mobility;
+            trace_update!(t, Safety, (piece, enemy_virt_mobility), self.color, kz_attacks);
+
+            trace_threat_update!(t, PAWN_THREAT_ON_KNIGHT, self.color, pawn_attacks, self.enemy_knights);
+            trace_threat_update!(t, PAWN_THREAT_ON_BISHOP, self.color, pawn_attacks, self.enemy_bishops);
+            trace_threat_update!(t, PAWN_THREAT_ON_ROOK, self.color, pawn_attacks, self.enemy_rooks);
+            trace_threat_update!(t, PAWN_THREAT_ON_QUEEN, self.color, pawn_attacks, self.enemy_queens);
+        }
+
+        attack_weight.mult(kz_attacks)
             + PAWN_THREAT_ON_KNIGHT.mult((pawn_attacks & self.enemy_knights).popcount() as i32)
             + PAWN_THREAT_ON_BISHOP.mult((pawn_attacks & self.enemy_bishops).popcount() as i32)
             + PAWN_THREAT_ON_ROOK.mult((pawn_attacks & self.enemy_rooks).popcount() as i32)
             + PAWN_THREAT_ON_QUEEN.mult((pawn_attacks & self.enemy_queens).popcount() as i32)
     }
 
-    fn piece_loop<const PIECE: u8, const TRACE: bool>(&self, board: &Board, mut piece_bb: Bitboard, t: &mut Trace) -> ScoreTuple {
+    fn piece_loop<const PIECE: u8, const TRACE: bool>(
+        &self,
+        board: &Board,
+        mut piece_bb: Bitboard,
+        t: &mut Trace,
+    ) -> ScoreTuple {
         let mut score = ScoreTuple::new(0, 0);
         bitloop!(|sq| piece_bb, {
             score += self.single_score::<PIECE, TRACE>(board, sq, t);
