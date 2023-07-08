@@ -183,7 +183,7 @@ impl LoopEvaluator {
     }
 
     #[allow(clippy::cast_possible_wrap)]
-    fn single_score<const PIECE: u8>(&self, board: &Board, sq: Square) -> ScoreTuple {
+    fn single_score<const PIECE: u8, const TRACE: bool>(&self, board: &Board, sq: Square) -> ScoreTuple {
         let mut score = ScoreTuple::new(0, 0);
         let piece = ConstPiece::piece::<PIECE>();
         let attacks = ConstPiece::moves::<PIECE>(board, sq);
@@ -226,11 +226,15 @@ impl LoopEvaluator {
             _ => (),
         }
 
+        if TRACE {
+            
+        }
+
         score
     }
 
     #[allow(clippy::cast_possible_wrap)]
-    fn pawn_score(&self, pawns: Bitboard, color: Color) -> ScoreTuple {
+    fn pawn_score<const TRACE: bool>(&self, pawns: Bitboard, color: Color) -> ScoreTuple {
         let pawn_attacks = attacks::pawn_setwise(pawns, color);
         let kz_attacks = pawn_attacks & self.enemy_king_zone;
         let attack_weight = KING_ZONE_ATTACKS[Piece::PAWN.as_index()][self.enemy_virt_mobility];
@@ -242,10 +246,10 @@ impl LoopEvaluator {
             + PAWN_THREAT_ON_QUEEN.mult((pawn_attacks & self.enemy_queens).popcount() as i32)
     }
 
-    fn piece_loop<const PIECE: u8>(&self, board: &Board, mut piece_bb: Bitboard) -> ScoreTuple {
+    fn piece_loop<const PIECE: u8, const TRACE: bool>(&self, board: &Board, mut piece_bb: Bitboard) -> ScoreTuple {
         let mut score = ScoreTuple::new(0, 0);
         bitloop!(|sq| piece_bb, {
-            score += self.single_score::<PIECE>(board, sq);
+            score += self.single_score::<PIECE, TRACE>(board, sq);
         });
         score
     }
@@ -263,11 +267,11 @@ pub fn mobility_threats_safety<const TRACE: bool>(
     let pawns = board.piece_bb(Piece::PAWN, color);
 
     let looper = LoopEvaluator::new(board, color);
-    looper.piece_loop::<{ ConstPiece::KNIGHT }>(board, knights)
-        + looper.piece_loop::<{ ConstPiece::BISHOP }>(board, bishops)
-        + looper.piece_loop::<{ ConstPiece::ROOK }>(board, rooks)
-        + looper.piece_loop::<{ ConstPiece::QUEEN }>(board, queens)
-        + looper.pawn_score(pawns, color)
+    looper.piece_loop::<{ ConstPiece::KNIGHT }, TRACE>(board, knights)
+        + looper.piece_loop::<{ ConstPiece::BISHOP }, TRACE>(board, bishops)
+        + looper.piece_loop::<{ ConstPiece::ROOK }, TRACE>(board, rooks)
+        + looper.piece_loop::<{ ConstPiece::QUEEN }, TRACE>(board, queens)
+        + looper.pawn_score::<TRACE>(pawns, color)
 }
 
 #[cfg(test)]
