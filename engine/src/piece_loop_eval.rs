@@ -250,7 +250,7 @@ impl LoopEvaluator {
     }
 }
 
-pub fn mobility_threats_safety<const TRACE: bool>(board: &Board, color: Color, trace: &mut Trace) -> ScoreTuple {
+pub fn mobility_threats_safety<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) -> ScoreTuple {
     let knights = board.piece_bb(Piece::KNIGHT, color);
     let bishops = board.piece_bb(Piece::BISHOP, color);
     let rooks = board.piece_bb(Piece::ROOK, color);

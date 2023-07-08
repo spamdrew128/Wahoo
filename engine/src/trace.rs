@@ -31,13 +31,13 @@ pub const fn color_adjust(sq: Square, color: Color) -> Square {
 
 #[macro_export]
 macro_rules! trace_update {
-    ($name:ident, ($($arg:ident),*), $color:expr, $val:expr) => {
-        let mult = match color {
+    ($trace:ident, $name:ident, ($($arg:ident),*), $color:expr, $val:expr) => {
+        let mult = match $color {
             Color::White => 1,
             Color::Black => -1,
         };
         let index = $name::index($($arg,)*);
-        trace[index] += mult * $val;
+        $trace[index] += mult * ($val as i8);
     };
 }
 
