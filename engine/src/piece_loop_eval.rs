@@ -9,7 +9,7 @@ use crate::{
         QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY,
         ROOK_THREAT_ON_QUEEN,
     },
-    evaluation::ScoreTuple,
+    evaluation::ScoreTuple, trace::Trace,
 };
 
 const fn enemy_king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
@@ -250,7 +250,7 @@ impl LoopEvaluator {
     }
 }
 
-pub fn mobility_threats_safety(board: &Board, color: Color) -> ScoreTuple {
+pub fn mobility_threats_safety<const TRACE: bool>(board: &Board, color: Color, trace: &mut Trace) -> ScoreTuple {
     let knights = board.piece_bb(Piece::KNIGHT, color);
     let bishops = board.piece_bb(Piece::BISHOP, color);
     let rooks = board.piece_bb(Piece::ROOK, color);
