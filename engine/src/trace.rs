@@ -3,7 +3,7 @@ use crate::{
     piece_loop_eval::MoveCounts,
 };
 
-const TRACE_LEN: usize = MaterialPst::LEN
+pub const TRACE_LEN: usize = MaterialPst::LEN
     + Passer::LEN
     + PasserBlocker::LEN
     + BishopPair::LEN
