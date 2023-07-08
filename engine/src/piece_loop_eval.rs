@@ -7,7 +7,7 @@ use crate::{
         KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN, KNIGHT_THREAT_ON_ROOK,
         PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK,
         QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY,
-        ROOK_THREAT_ON_QUEEN,
+        ROOK_THREAT_ON_QUEEN, CHECK_BONUS,
     },
     evaluation::ScoreTuple,
 };
@@ -149,6 +149,7 @@ impl ConstPiece {
 struct LoopEvaluator {
     color: Color,
     availible: Bitboard,
+    enemy_king: Bitboard,
     enemy_king_zone: Bitboard,
     enemy_virt_mobility: usize,
     enemy_knights: Bitboard,
@@ -168,10 +169,12 @@ impl LoopEvaluator {
         let enemy_bishops = board.piece_bb(Piece::BISHOP, opp_color);
         let enemy_rooks = board.piece_bb(Piece::ROOK, opp_color);
         let enemy_queens = board.piece_bb(Piece::QUEEN, opp_color);
+        let enemy_king = board.piece_bb(Piece::KING, opp_color);
 
         Self {
             color,
             availible,
+            enemy_king,
             enemy_king_zone,
             enemy_virt_mobility,
             enemy_knights,
@@ -192,6 +195,8 @@ impl LoopEvaluator {
         let kz_attacks = moves & self.enemy_king_zone;
         let attack_weight = KING_ZONE_ATTACKS[piece.as_index()][self.enemy_virt_mobility];
         score += attack_weight.mult(kz_attacks.popcount() as i32);
+
+        score += CHECK_BONUS[piece.as_index()].mult((attacks & self.enemy_king).popcount() as i32);
 
         match PIECE {
             ConstPiece::KNIGHT => {
