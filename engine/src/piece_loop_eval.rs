@@ -10,7 +10,7 @@ use crate::{
         ROOK_THREAT_ON_QUEEN,
     },
     evaluation::ScoreTuple,
-    trace::{Trace, Mobility, ForwardMobility}, trace_update,
+    trace::{Trace, Mobility, ForwardMobility, Safety}, trace_update,
 };
 
 const fn enemy_king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
@@ -231,6 +231,8 @@ impl LoopEvaluator {
         if TRACE {
             trace_update!(t, Mobility, (piece, mobility), self.color, 1);
             trace_update!(t, ForwardMobility, (piece, forward_mobility), self.color, 1);
+            let enemy_virt_mobility = self.enemy_virt_mobility;
+            trace_update!(t, Safety, (piece, enemy_virt_mobility), self.color, kz_attacks);
         }
 
         score

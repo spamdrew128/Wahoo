@@ -173,7 +173,7 @@ fn phalanx_pawns<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) 
     score
 }
 
-pub fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
+fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
     let us = board.color_to_move;
     let them = board.color_to_move.flip();
 
