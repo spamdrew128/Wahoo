@@ -93,13 +93,12 @@ pub const fn pawn_double_push(single_pushes: Bitboard, empty: Bitboard, color: C
     }
 }
 
-pub fn generic(piece: Piece, sq: Square, occupied: Bitboard, color: Color) -> Bitboard {
+pub fn generic(piece: Piece, sq: Square, occupied: Bitboard) -> Bitboard {
     match piece {
         Piece::KNIGHT => knight(sq),
         Piece::BISHOP => bishop(sq, occupied),
         Piece::ROOK => rook(sq, occupied),
         Piece::QUEEN => queen(sq, occupied),
-        Piece::PAWN => pawn(sq, color),
         Piece::KING => king(sq),
         _ => panic!(),
     }
