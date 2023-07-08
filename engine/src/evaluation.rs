@@ -9,7 +9,7 @@ use crate::{
     },
     piece_loop_eval::mobility_threats_safety,
     search::MAX_PLY,
-    trace::{color_adjust, empty_trace, BishopPair, MaterialPst, Trace, Passer, PasserBlocker, IsolatedPawns, PhalanxPawns},
+    trace::{color_adjust, empty_trace, BishopPair, MaterialPst, Trace, Passer, PasserBlocker, IsolatedPawns, PhalanxPawns, TempoBonus},
     trace_update,
 };
 
@@ -176,6 +176,11 @@ fn phalanx_pawns<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) 
 pub fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
     let us = board.color_to_move;
     let them = board.color_to_move.flip();
+
+    if TRACE {
+        let color = board.color_to_move;
+        trace_update!(t, TempoBonus, (), color, 1);
+    }
 
     let mut score_tuple = TEMPO_BONUS;
     score_tuple += pst_eval::<TRACE>(board, us, t) - pst_eval::<TRACE>(board, them, t);
