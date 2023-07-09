@@ -176,6 +176,7 @@ impl TranspositionTable {
         self.table
             .iter_mut()
             .for_each(|x| *x = AtomicU64::default());
+        self.age = 0;
     }
 
     fn table_index(&self, hash: ZobristHash) -> usize {
