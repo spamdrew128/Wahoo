@@ -39,7 +39,7 @@ impl TTFlag {
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 struct AgeAndFlag(u8);
 impl AgeAndFlag {
-    const AGE_BITFIELD: u8 =  0b00111111;
+    const AGE_BITFIELD: u8 = 0b00111111;
     const FLAG_BITFIELD: u8 = 0b11000000;
 
     const fn new(age: u8, flag: TTFlag) -> Self {
@@ -58,19 +58,20 @@ impl AgeAndFlag {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub struct TTEntry {
-    flag: TTFlag,        // 1 byte
-    depth: Depth,        // 1 byte
-    pub best_move: Move, // 2 byte
-    score: i16,          // 2 byte
-    key: u16,            // 2 byte
+    age_and_flag: AgeAndFlag, // 1 byte
+    depth: Depth,             // 1 byte
+    pub best_move: Move,      // 2 byte
+    score: i16,               // 2 byte
+    key: u16,                 // 2 byte
 }
 
 impl TTEntry {
     const BYTES: usize = 8;
 
-    const fn new(flag: TTFlag, depth: Depth, best_move: Move, score: i16, key: u16) -> Self {
+    const fn new(age: u8, flag: TTFlag, depth: Depth, best_move: Move, score: i16, key: u16) -> Self {
+        let age_and_flag = AgeAndFlag::new(age, flag);
         Self {
-            flag,
+            age_and_flag,
             depth,
             best_move,
             score,
@@ -116,7 +117,7 @@ impl TTEntry {
         }
 
         let score = i32::from(self.score);
-        match self.flag {
+        match self.age_and_flag.flag() {
             TTFlag::EXACT => true,
             TTFlag::LOWER_BOUND => score >= beta,
             TTFlag::UPPER_BOUND => score <= alpha,
@@ -179,7 +180,7 @@ impl TranspositionTable {
     ) {
         let score = TTEntry::score_to_tt(best_score, ply);
         let key = TTEntry::key_from_hash(hash);
-        let entry = TTEntry::new(flag, depth, best_move, score, key);
+        let entry = TTEntry::new(self.age, flag, depth, best_move, score, key);
 
         self.table[self.table_index(hash)].store(entry.into(), Ordering::Relaxed);
     }
@@ -189,7 +190,7 @@ impl TranspositionTable {
         let key = TTEntry::key_from_hash(hash);
         let entry = TTEntry::from(self.table[index].load(Ordering::Relaxed));
 
-        if (entry.key == key) && (entry.flag != TTFlag::UNINITIALIZED) {
+        if (entry.key == key) && (entry.age_and_flag.flag() != TTFlag::UNINITIALIZED) {
             Some(entry)
         } else {
             None
@@ -200,14 +201,14 @@ impl TranspositionTable {
         let mut hash_full = 0;
         self.table.iter().take(1000).for_each(|x| {
             let entry = TTEntry::from(x.load(Ordering::Relaxed));
-            if entry.flag != TTFlag::UNINITIALIZED {
+            if entry.age_and_flag.flag() != TTFlag::UNINITIALIZED {
                 hash_full += 1;
             }
         });
 
         hash_full
     }
-    
+
     pub fn age_table(&mut self) {
         self.age += 1;
         self.age = self.age.min(63); // dont want it to overflow when it gets packed
@@ -222,11 +223,12 @@ mod tests {
         zobrist::ZobristHash,
     };
 
-    use super::{TTEntry, TTFlag, TranspositionTable, AgeAndFlag};
+    use super::{AgeAndFlag, TTEntry, TTFlag, TranspositionTable};
 
     #[test]
     fn probe_works() {
-        let tt = TranspositionTable::new(16);
+        let mut tt = TranspositionTable::new(16);
+        tt.age_table();
         let board = Board::from_fen(START_FEN);
         let best_score = 16;
         let flag = TTFlag::EXACT;
@@ -236,6 +238,7 @@ mod tests {
 
         let entry = tt.probe(hash).unwrap();
         let expected = TTEntry::new(
+            1,
             flag,
             4,
             mv,
