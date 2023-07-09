@@ -442,7 +442,7 @@ impl Tuner {
 
     fn create_weights_file(&self) {
         let mut output = BufWriter::new(File::create("prev_weights.rs").unwrap());
-        writeln!(output, "pub const PREV_WEIGHTS: TunerVec = [",).unwrap();
+        writeln!(output, "pub const PREV_WEIGHTS: [[f64; {TUNER_VEC_LEN}]; {NUM_PHASES}] = [",).unwrap();
         for phase in PHASES {
             writeln!(output, "[",).unwrap();
             for w in self.weights[phase] {
