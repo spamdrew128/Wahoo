@@ -1,6 +1,7 @@
 #![allow(clippy::needless_range_loop)]
 
 mod tuning;
+mod prev_weights;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
