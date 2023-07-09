@@ -5,8 +5,9 @@ use engine::{
     },
     piece_loop_eval::MoveCounts,
     trace::{
-        BishopPair, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer, PasserBlocker,
-        PhalanxPawns, Safety, TempoBonus, Threats,
+        BishopPair, EnemyBishopColorComplex, ForwardMobility, FriendlyBishopColorComplex,
+        IsolatedPawns, MaterialPst, Mobility, Passer, PasserBlocker, PhalanxPawns, Safety,
+        TempoBonus, Threats,
     },
 };
 use std::{
@@ -421,6 +422,28 @@ impl Tuner {
         .unwrap();
     }
 
+    fn write_bishop_color_bonus<F>(&self, output: &mut BufWriter<File>, prefix: &str, index_fn: F)
+    where
+        F: Fn(usize) -> usize,
+    {
+        write!(
+            output,
+            "\npub const {prefix}_BISHOP_PAWN_COMPLEX: [ScoreTuple; 9] = [\n  ",
+        )
+        .unwrap();
+
+        for i in 0..9 {
+            let index = index_fn(i);
+            write!(
+                output,
+                "s({}, {}), ",
+                self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore,
+            )
+            .unwrap();
+        }
+        writeln!(output, "\n];").unwrap();
+    }
+
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
         self.write_header(&mut output);
@@ -435,6 +458,8 @@ impl Tuner {
         self.write_safety(&mut output);
         self.write_threats(&mut output);
         self.write_tempo(&mut output);
+        self.write_bishop_color_bonus(&mut output, "FRIENDLY", FriendlyBishopColorComplex::index);
+        self.write_bishop_color_bonus(&mut output, "ENEMY", EnemyBishopColorComplex::index);
     }
 
     fn create_weights_file(&self) {

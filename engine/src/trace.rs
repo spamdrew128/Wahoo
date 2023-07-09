@@ -13,7 +13,9 @@ pub const TRACE_LEN: usize = MaterialPst::LEN
     + PhalanxPawns::LEN
     + Threats::LEN
     + TempoBonus::LEN
-    + ForwardMobility::LEN;
+    + ForwardMobility::LEN
+    + FriendlyBishopColorComplex::LEN
+    + EnemyBishopColorComplex::LEN;
 
 pub type Trace = [i8; TRACE_LEN];
 
