@@ -124,6 +124,13 @@ impl TTEntry {
             _ => false,
         }
     }
+
+    #[warn(clippy::cast_sign_loss)]
+    const fn quality(self) -> u32{
+        let age = self.age_and_flag.age() as u32;
+        let depth = self.depth as u32;
+        age * 2 + depth
+    }
 }
 
 impl From<u64> for TTEntry {
