@@ -450,6 +450,6 @@ impl Tuner {
             }
             writeln!(output, "],",).unwrap();
         }
-        writeln!(output, "\n];",).unwrap();
+        writeln!(output, "];",).unwrap();
     }
 }
