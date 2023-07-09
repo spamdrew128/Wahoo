@@ -186,3 +186,11 @@ pub const BISHOP_THREAT_ON_QUEEN: ScoreTuple = s(84, 53);
 pub const ROOK_THREAT_ON_QUEEN: ScoreTuple = s(114, 0);
 
 pub const TEMPO_BONUS: ScoreTuple = s(41, 29);
+
+pub const FRIENDLY_BISHOP_PAWN_COMPLEX: [ScoreTuple; 9] = [
+  s(0, 0), s(6, 11), s(14, 15), s(21, 19), s(25, 20), s(26, 21), s(30, 18), s(33, 27), s(33, 27),
+];
+
+pub const ENEMY_BISHOP_PAWN_COMPLEX: [ScoreTuple; 9] = [
+  s(0, 0), s(6, 11), s(14, 15), s(21, 19), s(25, 20), s(26, 21), s(30, 18), s(33, 27), s(33, 27),
+];

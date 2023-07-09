@@ -2,16 +2,17 @@ use std::ops::{Add, AddAssign, Sub};
 
 use crate::{
     bitloop,
-    board_representation::{Board, Color, Piece, Square},
+    board_representation::{Bitboard, Board, Color, Piece, Square},
     eval_constants::{
-        BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS, PASSER_BLOCKERS_PRT, PASSER_PST,
-        PHALANX_PAWNS_PRT, TEMPO_BONUS,
+        BISHOP_PAIR_BONUS, ENEMY_BISHOP_PAWN_COMPLEX, FRIENDLY_BISHOP_PAWN_COMPLEX,
+        ISOLATED_PAWNS_PRT, MATERIAL_PSTS, PASSER_BLOCKERS_PRT, PASSER_PST, PHALANX_PAWNS_PRT,
+        TEMPO_BONUS,
     },
     piece_loop_eval::mobility_threats_safety,
     search::MAX_PLY,
     trace::{
-        color_adjust, empty_trace, BishopPair, IsolatedPawns, MaterialPst, Passer, PasserBlocker,
-        PhalanxPawns, TempoBonus, Trace,
+        color_adjust, empty_trace, BishopPair, EnemyBishopColorComplex, FriendlyBishopColorComplex,
+        IsolatedPawns, MaterialPst, Passer, PasserBlocker, PhalanxPawns, TempoBonus, Trace,
     },
     trace_update,
 };
@@ -176,6 +177,37 @@ fn phalanx_pawns<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) 
     score
 }
 
+#[allow(clippy::cast_possible_wrap)]
+#[rustfmt::skip]
+fn bishop_color_complex<const TRACE: bool>(
+    board: &Board,
+    color: Color,
+    t: &mut Trace,
+) -> ScoreTuple {
+    let bishops = board.piece_bb(Piece::BISHOP, color);
+    let our_pawns = board.piece_bb(Piece::PAWN, color);
+    let their_pawns = board.piece_bb(Piece::PAWN, color.flip());
+
+    let light_bishop_count = bishops.intersection(Bitboard::LIGHT_SQ).popcount() as i32;
+    let dark_bishop_count = bishops.intersection(Bitboard::DARK_SQ).popcount() as i32;
+
+    let our_light_pawn_count = our_pawns.intersection(Bitboard::LIGHT_SQ).popcount() as usize;
+    let our_dark_pawn_count = our_pawns.intersection(Bitboard::DARK_SQ).popcount() as usize;
+    let their_light_pawn_count = their_pawns.intersection(Bitboard::LIGHT_SQ).popcount() as usize;
+    let their_dark_pawn_count = their_pawns.intersection(Bitboard::DARK_SQ).popcount() as usize;
+
+    if TRACE {
+        trace_update!(t, FriendlyBishopColorComplex, (our_light_pawn_count), color, light_bishop_count);
+        trace_update!(t, FriendlyBishopColorComplex, (our_dark_pawn_count), color, dark_bishop_count);
+
+        trace_update!(t, EnemyBishopColorComplex, (their_light_pawn_count), color, light_bishop_count);
+        trace_update!(t, EnemyBishopColorComplex, (their_dark_pawn_count), color, dark_bishop_count);
+    }
+
+    (FRIENDLY_BISHOP_PAWN_COMPLEX[our_light_pawn_count] + ENEMY_BISHOP_PAWN_COMPLEX[their_light_pawn_count]).mult(light_bishop_count) +
+    (FRIENDLY_BISHOP_PAWN_COMPLEX[our_dark_pawn_count] + ENEMY_BISHOP_PAWN_COMPLEX[their_dark_pawn_count]).mult(dark_bishop_count)
+}
+
 fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
     let us = board.color_to_move;
     let them = board.color_to_move.flip();
@@ -191,6 +223,8 @@ fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
     score_tuple += passed_pawns::<TRACE>(board, us, t) - passed_pawns::<TRACE>(board, them, t);
     score_tuple += isolated_pawns::<TRACE>(board, us, t) - isolated_pawns::<TRACE>(board, them, t);
     score_tuple += phalanx_pawns::<TRACE>(board, us, t) - phalanx_pawns::<TRACE>(board, them, t);
+    score_tuple +=
+        bishop_color_complex::<TRACE>(board, us, t) - bishop_color_complex::<TRACE>(board, them, t);
     score_tuple += mobility_threats_safety::<TRACE>(board, us, t)
         - mobility_threats_safety::<TRACE>(board, them, t);
 

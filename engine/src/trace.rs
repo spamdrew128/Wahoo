@@ -200,3 +200,23 @@ impl ForwardMobility {
         Self::START + f_mobility + Self::PIECE_OFFSETS[piece.as_index()]
     }
 }
+
+pub struct FriendlyBishopColorComplex;
+impl FriendlyBishopColorComplex {
+    pub const START: usize = ForwardMobility::START + ForwardMobility::LEN;
+    pub const LEN: usize = 9;
+
+    pub const fn index(pawn_count: usize) -> usize {
+        Self::START + pawn_count
+    }
+}
+
+pub struct EnemyBishopColorComplex;
+impl EnemyBishopColorComplex {
+    pub const START: usize = FriendlyBishopColorComplex::START + FriendlyBishopColorComplex::LEN;
+    pub const LEN: usize = 9;
+
+    pub const fn index(pawn_count: usize) -> usize {
+        Self::START + pawn_count
+    }
+}
