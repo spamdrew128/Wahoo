@@ -1,5 +1,5 @@
 use engine::{
-    board_representation::{Board, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES},
+    board_representation::{Board, Piece, Square, NUM_RANKS, NUM_SQUARES},
     evaluation::{
         phase, trace_of_position, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX,
     },
@@ -14,6 +14,8 @@ use std::{
     io::BufWriter,
     io::Write,
 };
+
+use crate::prev_weights::PREV_WEIGHTS;
 
 const TUNER_VEC_LEN: usize = engine::trace::TRACE_LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
@@ -89,29 +91,24 @@ impl Tuner {
     const MAX_EPOCHS: u32 = 20000;
     const LEARN_RATE: f64 = 0.12;
 
-    fn new_weights(from_zero: bool) -> TunerVec {
-        if from_zero {
-            return [[0.0; TUNER_VEC_LEN]; NUM_PHASES];
-        }
-
-        let scores: [EvalScore; NUM_PIECES as usize] = [300, 320, 500, 900, 100, 0];
+    fn new_weights(from_previous: bool) -> TunerVec {
         let mut result = [[0.0; TUNER_VEC_LEN]; NUM_PHASES];
-
-        for piece in Piece::LIST {
-            for i in 0..NUM_SQUARES {
-                let index = MaterialPst::index(piece, Square::new(i));
-                result[MG][index] = scores[piece.as_index()] as f64;
-                result[EG][index] = scores[piece.as_index()] as f64;
+        if from_previous {
+            for phase in PHASES {
+                for (i, &w) in PREV_WEIGHTS[phase].iter().enumerate() {
+                    result[phase][i] = w;
+                }
             }
         }
+
         result
     }
 
-    pub fn new(from_zero: bool) -> Self {
+    pub fn new(from_previous: bool) -> Self {
         Self {
             entries: vec![],
             gradient: [[0.0; TUNER_VEC_LEN]; NUM_PHASES],
-            weights: Self::new_weights(from_zero),
+            weights: Self::new_weights(from_previous),
             momentum: [[0.0; TUNER_VEC_LEN]; NUM_PHASES],
             velocity: [[0.0; TUNER_VEC_LEN]; NUM_PHASES],
         }
