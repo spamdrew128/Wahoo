@@ -209,6 +209,7 @@ impl Tuner {
                 println!("MSE change since previous: {delta_mse}\n");
 
                 self.create_output_file();
+                self.create_weights_file();
 
                 if delta_mse < Self::CONVERGENCE_DELTA {
                     return;
@@ -437,5 +438,18 @@ impl Tuner {
         self.write_safety(&mut output);
         self.write_threats(&mut output);
         self.write_tempo(&mut output);
+    }
+
+    fn create_weights_file(&self) {
+        let mut output = BufWriter::new(File::create("prev_weights.rs").unwrap());
+        writeln!(output, "pub const PREV_WEIGHTS: TunerVec = [",).unwrap();
+        for phase in PHASES {
+            writeln!(output, "[",).unwrap();
+            for w in self.weights[phase] {
+                write!(output, "{:.2}, ", w).unwrap();
+            }
+            writeln!(output, "],",).unwrap();
+        }
+        writeln!(output, "\n];",).unwrap();
     }
 }
