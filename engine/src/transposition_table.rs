@@ -68,7 +68,14 @@ pub struct TTEntry {
 impl TTEntry {
     const BYTES: usize = 8;
 
-    const fn new(age: u8, flag: TTFlag, depth: Depth, best_move: Move, score: i16, key: u16) -> Self {
+    const fn new(
+        age: u8,
+        flag: TTFlag,
+        depth: Depth,
+        best_move: Move,
+        score: i16,
+        key: u16,
+    ) -> Self {
         let age_and_flag = AgeAndFlag::new(age, flag);
         Self {
             age_and_flag,
