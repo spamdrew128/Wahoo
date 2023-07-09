@@ -284,6 +284,8 @@ impl UciHandler {
 
                     Self::handle_stop_and_quit(&mut self.stored_message);
                 });
+
+                self.tt.age_table();
             }
             UciCommand::SetOptionOverhead(overhead) => {
                 self.time_manager =

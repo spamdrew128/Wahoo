@@ -4,7 +4,6 @@ use crate::{
     chess_move::Move,
     evaluation::{EvalScore, MATE_THRESHOLD},
     search::{Depth, Ply},
-    tuple_constants_enum,
     zobrist::ZobristHash,
 };
 
@@ -12,7 +11,10 @@ use crate::{
 pub struct TTFlag(u8);
 
 impl TTFlag {
-    tuple_constants_enum!(Self, UNINITIALIZED, LOWER_BOUND, EXACT, UPPER_BOUND);
+    pub const UNINITIALIZED: Self = Self(0b000000);
+    pub const LOWER_BOUND: Self = Self(0b010000);
+    pub const EXACT: Self = Self(0b100000);
+    pub const UPPER_BOUND: Self = Self(0b110000);
 
     const fn new(data: u8) -> Self {
         Self(data)
@@ -31,6 +33,24 @@ impl TTFlag {
         } else {
             Self::UPPER_BOUND
         }
+    }
+}
+
+struct AgeAndFlag(u8);
+impl AgeAndFlag {
+    const AGE_BITFIELD: u8 = 0b001111;
+    const FLAG_BITFIELD: u8 = 0b110000;
+
+    const fn new(age: u8, flag: TTFlag) -> Self {
+        Self(age | (flag.0 << 4))
+    }
+
+    const fn flag(self) -> TTFlag {
+        TTFlag::new(self.0 & Self::FLAG_BITFIELD)
+    }
+
+    const fn age(self) -> u8 {
+        self.0 & Self::AGE_BITFIELD
     }
 }
 
@@ -121,6 +141,7 @@ impl From<TTEntry> for u64 {
 #[derive(Debug)]
 pub struct TranspositionTable {
     table: Vec<AtomicU64>,
+    age: u8,
 }
 
 impl TranspositionTable {
@@ -132,7 +153,7 @@ impl TranspositionTable {
         let mut table = vec![];
         table.resize_with(entries, AtomicU64::default);
 
-        Self { table }
+        Self { table, age: 0 }
     }
 
     pub fn reset(&mut self) {
@@ -184,6 +205,11 @@ impl TranspositionTable {
         });
 
         hash_full
+    }
+    
+    pub fn age_table(&mut self) {
+        self.age += 1;
+        self.age = self.age.min(63); // dont want it to overflow when it gets packed
     }
 }
 
