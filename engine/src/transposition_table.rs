@@ -125,10 +125,10 @@ impl TTEntry {
         }
     }
 
-    #[warn(clippy::cast_sign_loss)]
-    const fn quality(self) -> u32{
-        let age = self.age_and_flag.age() as u32;
-        let depth = self.depth as u32;
+    #[allow(clippy::cast_sign_loss)]
+    const fn quality(self) -> u16 {
+        let age = self.age_and_flag.age() as u16;
+        let depth = self.depth as u16;
         age * 2 + depth
     }
 }
@@ -187,9 +187,14 @@ impl TranspositionTable {
     ) {
         let score = TTEntry::score_to_tt(best_score, ply);
         let key = TTEntry::key_from_hash(hash);
-        let entry = TTEntry::new(self.age, flag, depth, best_move, score, key);
+        let new_entry = TTEntry::new(self.age, flag, depth, best_move, score, key);
 
-        self.table[self.table_index(hash)].store(entry.into(), Ordering::Relaxed);
+        let index = self.table_index(hash);
+        let old_entry: TTEntry = self.table[index].load(Ordering::Relaxed).into();
+
+        if new_entry.quality() >= old_entry.quality() {
+            self.table[index].store(new_entry.into(), Ordering::Relaxed);
+        }
     }
 
     pub fn probe(&self, hash: ZobristHash) -> Option<TTEntry> {
