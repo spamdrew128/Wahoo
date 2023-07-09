@@ -11,10 +11,10 @@ use crate::{
 pub struct TTFlag(u8);
 
 impl TTFlag {
-    pub const UNINITIALIZED: Self = Self(0b000000);
-    pub const LOWER_BOUND: Self = Self(0b010000);
-    pub const EXACT: Self = Self(0b100000);
-    pub const UPPER_BOUND: Self = Self(0b110000);
+    pub const UNINITIALIZED: Self = Self(0b00 << 6);
+    pub const LOWER_BOUND: Self = Self(0b01 << 6);
+    pub const EXACT: Self = Self(0b10 << 6);
+    pub const UPPER_BOUND: Self = Self(0b11 << 6);
 
     const fn new(data: u8) -> Self {
         Self(data)
@@ -36,13 +36,14 @@ impl TTFlag {
     }
 }
 
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 struct AgeAndFlag(u8);
 impl AgeAndFlag {
-    const AGE_BITFIELD: u8 = 0b001111;
-    const FLAG_BITFIELD: u8 = 0b110000;
+    const AGE_BITFIELD: u8 =  0b00111111;
+    const FLAG_BITFIELD: u8 = 0b11000000;
 
     const fn new(age: u8, flag: TTFlag) -> Self {
-        Self(age | (flag.0 << 4))
+        Self(age | flag.0)
     }
 
     const fn flag(self) -> TTFlag {
@@ -221,7 +222,7 @@ mod tests {
         zobrist::ZobristHash,
     };
 
-    use super::{TTEntry, TTFlag, TranspositionTable};
+    use super::{TTEntry, TTFlag, TranspositionTable, AgeAndFlag};
 
     #[test]
     fn probe_works() {
@@ -247,5 +248,14 @@ mod tests {
             Board::from_fen("r3k2r/ppp2ppp/2n1bn2/8/2P1N3/1P4P1/P3PPBP/bNBR2K1 w kq - 0 12");
         let other_hash = ZobristHash::complete(&other_board);
         assert_eq!(tt.probe(other_hash), None);
+    }
+
+    #[test]
+    fn flag_packing() {
+        let age = 43;
+        let flag = TTFlag::EXACT;
+        let packed = AgeAndFlag::new(age, flag);
+        assert_eq!(packed.age(), age);
+        assert_eq!(packed.flag(), flag);
     }
 }
