@@ -10,6 +10,8 @@ use crate::{
         ROOK_THREAT_ON_QUEEN,
     },
     evaluation::ScoreTuple,
+    trace::{ForwardMobility, Mobility, Safety, Threats, Trace},
+    trace_threat_update, trace_update,
 };
 
 const fn enemy_king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
@@ -182,75 +184,128 @@ impl LoopEvaluator {
     }
 
     #[allow(clippy::cast_possible_wrap)]
-    fn single_score<const PIECE: u8>(&self, board: &Board, sq: Square) -> ScoreTuple {
+    #[rustfmt::skip]
+    fn single_score<const PIECE: u8, const TRACE: bool>(&self, board: &Board, sq: Square, t: &mut Trace) -> ScoreTuple {
         let mut score = ScoreTuple::new(0, 0);
         let piece = ConstPiece::piece::<PIECE>();
         let attacks = ConstPiece::moves::<PIECE>(board, sq);
         let moves = attacks & self.availible;
+
+        let mobility = moves.popcount() as usize;
         let forward_mobility = forward_mobility(moves, sq, self.color);
 
-        let kz_attacks = moves & self.enemy_king_zone;
+        let kz_attacks = self.enemy_king_zone.intersection(moves).popcount() as i32;
         let attack_weight = KING_ZONE_ATTACKS[piece.as_index()][self.enemy_virt_mobility];
-        score += attack_weight.mult(kz_attacks.popcount() as i32);
+        score += attack_weight.mult(kz_attacks);
 
         match PIECE {
             ConstPiece::KNIGHT => {
-                score += KNIGHT_MOBILITY[moves.popcount() as usize];
+                score += KNIGHT_MOBILITY[mobility];
                 score += KNIGHT_FORWARD_MOBILITY[forward_mobility];
 
                 score += KNIGHT_THREAT_ON_BISHOP
                     .mult((attacks & self.enemy_bishops).popcount() as i32)
                     + KNIGHT_THREAT_ON_ROOK.mult((attacks & self.enemy_rooks).popcount() as i32)
                     + KNIGHT_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
+
+                if TRACE {
+                    trace_threat_update!(t, KNIGHT_THREAT_ON_BISHOP, self.color, attacks, self.enemy_bishops);
+                    trace_threat_update!(t, KNIGHT_THREAT_ON_ROOK, self.color, attacks, self.enemy_rooks);
+                    trace_threat_update!(t, KNIGHT_THREAT_ON_QUEEN, self.color, attacks, self.enemy_queens);
+                }
             }
             ConstPiece::BISHOP => {
-                score += BISHOP_MOBILITY[moves.popcount() as usize];
+                score += BISHOP_MOBILITY[mobility];
                 score += BISHOP_FORWARD_MOBILITY[forward_mobility];
 
                 score += BISHOP_THREAT_ON_KNIGHT
                     .mult((attacks & self.enemy_knights).popcount() as i32)
                     + BISHOP_THREAT_ON_ROOK.mult((attacks & self.enemy_rooks).popcount() as i32)
                     + BISHOP_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
+
+                    if TRACE {
+                        trace_threat_update!(t, BISHOP_THREAT_ON_KNIGHT, self.color, attacks, self.enemy_knights);
+                        trace_threat_update!(t, BISHOP_THREAT_ON_ROOK, self.color, attacks, self.enemy_rooks);
+                        trace_threat_update!(t, BISHOP_THREAT_ON_QUEEN, self.color, attacks, self.enemy_queens);
+                    }
             }
             ConstPiece::ROOK => {
-                score += ROOK_MOBILITY[moves.popcount() as usize];
+                score += ROOK_MOBILITY[mobility];
                 score += ROOK_FORWARD_MOBILITY[forward_mobility];
 
                 score += ROOK_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
+
+                if TRACE {
+                    trace_threat_update!(t, ROOK_THREAT_ON_QUEEN, self.color, attacks, self.enemy_queens);
+                }
             }
             ConstPiece::QUEEN => {
-                score += QUEEN_MOBILITY[moves.popcount() as usize];
+                score += QUEEN_MOBILITY[mobility];
                 score += QUEEN_FORWARD_MOBILITY[forward_mobility];
             }
             _ => (),
+        }
+
+        if TRACE {
+            let enemy_virt_mobility = self.enemy_virt_mobility;
+            trace_update!(t, Safety, (piece, enemy_virt_mobility), self.color, kz_attacks);
+
+            // we fix 0 mobility at 0 for eval constants readability
+            if mobility > 0 {
+                trace_update!(t, Mobility, (piece, mobility), self.color, 1);
+            }
+            if forward_mobility > 0 {
+                trace_update!(t, ForwardMobility, (piece, forward_mobility), self.color, 1);
+            }
         }
 
         score
     }
 
     #[allow(clippy::cast_possible_wrap)]
-    fn pawn_score(&self, pawns: Bitboard, color: Color) -> ScoreTuple {
+    #[rustfmt::skip]
+    fn pawn_score<const TRACE: bool>(&self, pawns: Bitboard, color: Color, t: &mut Trace) -> ScoreTuple {
+        let piece = Piece::PAWN;
         let pawn_attacks = attacks::pawn_setwise(pawns, color);
-        let kz_attacks = pawn_attacks & self.enemy_king_zone;
-        let attack_weight = KING_ZONE_ATTACKS[Piece::PAWN.as_index()][self.enemy_virt_mobility];
+        let kz_attacks = self.enemy_king_zone.intersection(pawn_attacks).popcount() as i32;
+        let attack_weight = KING_ZONE_ATTACKS[piece.as_index()][self.enemy_virt_mobility];
 
-        attack_weight.mult(kz_attacks.popcount() as i32)
+        if TRACE {
+            let enemy_virt_mobility = self.enemy_virt_mobility;
+            trace_update!(t, Safety, (piece, enemy_virt_mobility), self.color, kz_attacks);
+
+            trace_threat_update!(t, PAWN_THREAT_ON_KNIGHT, self.color, pawn_attacks, self.enemy_knights);
+            trace_threat_update!(t, PAWN_THREAT_ON_BISHOP, self.color, pawn_attacks, self.enemy_bishops);
+            trace_threat_update!(t, PAWN_THREAT_ON_ROOK, self.color, pawn_attacks, self.enemy_rooks);
+            trace_threat_update!(t, PAWN_THREAT_ON_QUEEN, self.color, pawn_attacks, self.enemy_queens);
+        }
+
+        attack_weight.mult(kz_attacks)
             + PAWN_THREAT_ON_KNIGHT.mult((pawn_attacks & self.enemy_knights).popcount() as i32)
             + PAWN_THREAT_ON_BISHOP.mult((pawn_attacks & self.enemy_bishops).popcount() as i32)
             + PAWN_THREAT_ON_ROOK.mult((pawn_attacks & self.enemy_rooks).popcount() as i32)
             + PAWN_THREAT_ON_QUEEN.mult((pawn_attacks & self.enemy_queens).popcount() as i32)
     }
 
-    fn piece_loop<const PIECE: u8>(&self, board: &Board, mut piece_bb: Bitboard) -> ScoreTuple {
+    fn piece_loop<const PIECE: u8, const TRACE: bool>(
+        &self,
+        board: &Board,
+        mut piece_bb: Bitboard,
+        t: &mut Trace,
+    ) -> ScoreTuple {
         let mut score = ScoreTuple::new(0, 0);
         bitloop!(|sq| piece_bb, {
-            score += self.single_score::<PIECE>(board, sq);
+            score += self.single_score::<PIECE, TRACE>(board, sq, t);
         });
         score
     }
 }
 
-pub fn mobility_threats_safety(board: &Board, color: Color) -> ScoreTuple {
+pub fn mobility_threats_safety<const TRACE: bool>(
+    board: &Board,
+    color: Color,
+    t: &mut Trace,
+) -> ScoreTuple {
     let knights = board.piece_bb(Piece::KNIGHT, color);
     let bishops = board.piece_bb(Piece::BISHOP, color);
     let rooks = board.piece_bb(Piece::ROOK, color);
@@ -258,11 +313,11 @@ pub fn mobility_threats_safety(board: &Board, color: Color) -> ScoreTuple {
     let pawns = board.piece_bb(Piece::PAWN, color);
 
     let looper = LoopEvaluator::new(board, color);
-    looper.piece_loop::<{ ConstPiece::KNIGHT }>(board, knights)
-        + looper.piece_loop::<{ ConstPiece::BISHOP }>(board, bishops)
-        + looper.piece_loop::<{ ConstPiece::ROOK }>(board, rooks)
-        + looper.piece_loop::<{ ConstPiece::QUEEN }>(board, queens)
-        + looper.pawn_score(pawns, color)
+    looper.piece_loop::<{ ConstPiece::KNIGHT }, TRACE>(board, knights, t)
+        + looper.piece_loop::<{ ConstPiece::BISHOP }, TRACE>(board, bishops, t)
+        + looper.piece_loop::<{ ConstPiece::ROOK }, TRACE>(board, rooks, t)
+        + looper.piece_loop::<{ ConstPiece::QUEEN }, TRACE>(board, queens, t)
+        + looper.pawn_score::<TRACE>(pawns, color, t)
 }
 
 #[cfg(test)]

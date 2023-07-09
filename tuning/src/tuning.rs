@@ -1,11 +1,12 @@
 use engine::{
-    attacks, bitloop,
-    board_representation::{
-        Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
+    board_representation::{Board, Piece, Square, NUM_RANKS, NUM_SQUARES},
+    evaluation::{
+        phase, trace_of_position, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX,
     },
-    evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
-    piece_loop_eval::{
-        self, enemy_king_zone, enemy_virtual_mobility, forward_mobility, MoveCounts,
+    piece_loop_eval::MoveCounts,
+    trace::{
+        BishopPair, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer, PasserBlocker,
+        PhalanxPawns, Safety, TempoBonus, Threats,
     },
 };
 use std::{
@@ -14,167 +15,10 @@ use std::{
     io::Write,
 };
 
-const TUNER_VEC_LEN: usize = MaterialPst::LEN
-    + Passer::LEN
-    + PasserBlocker::LEN
-    + BishopPair::LEN
-    + Mobility::LEN
-    + Safety::LEN
-    + IsolatedPawns::LEN
-    + PhalanxPawns::LEN
-    + Threats::LEN
-    + TempoBonus::LEN
-    + ForwardMobility::LEN;
+use crate::prev_weights::PREV_WEIGHTS;
+
+const TUNER_VEC_LEN: usize = engine::trace::TRACE_LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
-
-struct MaterialPst;
-impl MaterialPst {
-    const START: usize = 0;
-    const LEN: usize = (NUM_PIECES as usize) * (NUM_SQUARES as usize);
-
-    fn index(piece: Piece, sq: Square) -> usize {
-        Self::START + usize::from(NUM_SQUARES) * piece.as_index() + sq.as_index()
-    }
-}
-
-struct Passer;
-impl Passer {
-    const START: usize = MaterialPst::START + MaterialPst::LEN;
-    const LEN: usize = (NUM_SQUARES as usize);
-
-    fn index(sq: Square) -> usize {
-        Self::START + sq.as_index()
-    }
-}
-
-struct PasserBlocker;
-impl PasserBlocker {
-    const START: usize = Passer::START + Passer::LEN;
-    const LEN: usize = (NUM_RANKS as usize);
-
-    fn index(rank: u8) -> usize {
-        Self::START + rank as usize
-    }
-}
-
-struct BishopPair;
-impl BishopPair {
-    const START: usize = PasserBlocker::START + PasserBlocker::LEN;
-    const LEN: usize = 1;
-
-    fn index() -> usize {
-        Self::START
-    }
-}
-
-struct Mobility;
-impl Mobility {
-    const START: usize = BishopPair::START + BishopPair::LEN;
-    const PIECE_MOVECOUNTS: [usize; 4] = [
-        MoveCounts::KNIGHT,
-        MoveCounts::BISHOP,
-        MoveCounts::ROOK,
-        MoveCounts::QUEEN,
-    ];
-    const PIECE_OFFSETS: [usize; 4] = [
-        0,
-        MoveCounts::KNIGHT,
-        MoveCounts::KNIGHT + MoveCounts::BISHOP,
-        MoveCounts::KNIGHT + MoveCounts::BISHOP + MoveCounts::ROOK,
-    ];
-    const LEN: usize =
-        MoveCounts::KNIGHT + MoveCounts::BISHOP + MoveCounts::ROOK + MoveCounts::QUEEN;
-
-    fn index(piece: Piece, attack_count: u32) -> usize {
-        Self::START + (attack_count as usize) + Self::PIECE_OFFSETS[piece.as_index()]
-    }
-}
-
-struct Safety;
-impl Safety {
-    const START: usize = Mobility::START + Mobility::LEN;
-    const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 1) as usize);
-
-    fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
-        Self::START + MoveCounts::QUEEN * piece.as_index() + enemy_virt_mobility
-    }
-}
-
-struct IsolatedPawns;
-impl IsolatedPawns {
-    const START: usize = Safety::START + Safety::LEN;
-    const LEN: usize = (NUM_RANKS as usize);
-
-    fn index(rank: u8) -> usize {
-        Self::START + rank as usize
-    }
-}
-
-struct PhalanxPawns;
-impl PhalanxPawns {
-    const START: usize = IsolatedPawns::START + IsolatedPawns::LEN;
-    const LEN: usize = (NUM_RANKS as usize);
-
-    fn index(rank: u8) -> usize {
-        Self::START + rank as usize
-    }
-}
-
-struct Threats;
-impl Threats {
-    const START: usize = PhalanxPawns::START + PhalanxPawns::LEN;
-    const LEN: usize = 11;
-
-    const PAWN_THREAT_ON_KNIGHT: usize = Self::START;
-    const PAWN_THREAT_ON_BISHOP: usize = Self::START + 1;
-    const PAWN_THREAT_ON_ROOK: usize = Self::START + 2;
-    const PAWN_THREAT_ON_QUEEN: usize = Self::START + 3;
-
-    const KNIGHT_THREAT_ON_BISHOP: usize = Self::START + 4;
-    const KNIGHT_THREAT_ON_ROOK: usize = Self::START + 5;
-    const KNIGHT_THREAT_ON_QUEEN: usize = Self::START + 6;
-
-    const BISHOP_THREAT_ON_KNIGHT: usize = Self::START + 7;
-    const BISHOP_THREAT_ON_ROOK: usize = Self::START + 8;
-    const BISHOP_THREAT_ON_QUEEN: usize = Self::START + 9;
-
-    const ROOK_THREAT_ON_QUEEN: usize = Self::START + 10;
-}
-
-struct TempoBonus;
-impl TempoBonus {
-    const START: usize = Threats::START + Threats::LEN;
-    const LEN: usize = (NUM_RANKS as usize);
-
-    fn index() -> usize {
-        Self::START
-    }
-}
-
-struct ForwardMobility;
-impl ForwardMobility {
-    const START: usize = TempoBonus::START + TempoBonus::LEN;
-    const PIECE_MOVECOUNTS: [usize; 4] = [
-        MoveCounts::FORWARD_KNIGHT,
-        MoveCounts::FORWARD_BISHOP,
-        MoveCounts::FORWARD_ROOK,
-        MoveCounts::FORWARD_QUEEN,
-    ];
-    const PIECE_OFFSETS: [usize; 4] = [
-        0,
-        MoveCounts::FORWARD_KNIGHT,
-        MoveCounts::FORWARD_KNIGHT + MoveCounts::FORWARD_BISHOP,
-        MoveCounts::FORWARD_KNIGHT + MoveCounts::FORWARD_BISHOP + MoveCounts::FORWARD_ROOK,
-    ];
-    const LEN: usize = MoveCounts::FORWARD_KNIGHT
-        + MoveCounts::FORWARD_BISHOP
-        + MoveCounts::FORWARD_ROOK
-        + MoveCounts::FORWARD_QUEEN;
-
-    fn index(piece: Piece, f_mobility: usize) -> usize {
-        Self::START + f_mobility + Self::PIECE_OFFSETS[piece.as_index()]
-    }
-}
 
 struct Feature {
     value: i8,
@@ -194,208 +38,6 @@ struct Entry {
 }
 
 impl Entry {
-    pub fn pst_update<F>(&mut self, w_pieces: Bitboard, b_pieces: Bitboard, index_fn: F)
-    where
-        F: Fn(Square) -> usize,
-    {
-        for i in 0..NUM_SQUARES {
-            let sq = Square::new(i);
-            let w_sq = sq.flip();
-            let b_sq = sq;
-
-            let value = (w_sq.as_bitboard().intersection(w_pieces).popcount() as i8)
-                - (b_sq.as_bitboard().intersection(b_pieces).popcount() as i8);
-            if value != 0 {
-                self.feature_vec.push(Feature::new(value, index_fn(sq)));
-            }
-        }
-    }
-
-    pub fn prt_update<F>(&mut self, w_pieces: Bitboard, b_pieces: Bitboard, index_fn: F)
-    where
-        F: Fn(u8) -> usize,
-    {
-        let rank = Bitboard::RANK_1;
-        for i in 0..NUM_RANKS {
-            let w_rank = rank.shift_north(7 - i);
-            let b_rank = rank.shift_north(i);
-
-            let value = (w_rank.intersection(w_pieces).popcount() as i8)
-                - (b_rank.intersection(b_pieces).popcount() as i8);
-            if value != 0 {
-                self.feature_vec.push(Feature::new(value, index_fn(i)));
-            }
-        }
-    }
-
-    fn add_pst_features(&mut self, board: &Board) {
-        for piece in Piece::LIST {
-            let w_piece_bb = board.piece_bb(piece, Color::White);
-            let b_piece_bb = board.piece_bb(piece, Color::Black);
-            self.pst_update(w_piece_bb, b_piece_bb, |sq| MaterialPst::index(piece, sq));
-        }
-    }
-
-    fn add_passer_features(&mut self, board: &Board) {
-        let w_passers = board.passed_pawns(Color::White);
-        let b_passers = board.passed_pawns(Color::Black);
-        self.pst_update(w_passers, b_passers, Passer::index);
-
-        let blocking_white = w_passers
-            .north_one()
-            .intersection(board.all[Color::Black.as_index()]);
-        let blocking_black = b_passers
-            .south_one()
-            .intersection(board.all[Color::White.as_index()]);
-        self.prt_update(blocking_white, blocking_black, PasserBlocker::index);
-    }
-
-    fn add_isolated_features(&mut self, board: &Board) {
-        let w_isolated = board.isolated_pawns(Color::White);
-        let b_isolated = board.isolated_pawns(Color::Black);
-
-        self.prt_update(w_isolated, b_isolated, IsolatedPawns::index);
-    }
-
-    fn add_phalanx_features(&mut self, board: &Board) {
-        let w_phalanx = board.phalanx_pawns(Color::White);
-        let b_phalanx = board.phalanx_pawns(Color::Black);
-
-        self.prt_update(w_phalanx, b_phalanx, PhalanxPawns::index);
-    }
-
-    fn add_threat_val(
-        board: &Board,
-        piece: Piece,
-        attacks: Bitboard,
-        threats: &mut [i8; Threats::LEN],
-        color: Color,
-    ) {
-        let sign = if color == Color::White { 1 } else { -1 };
-        let offset = Threats::START;
-
-        let knights = board.piece_bb(Piece::KNIGHT, color.flip());
-        let bishops = board.piece_bb(Piece::BISHOP, color.flip());
-        let rooks = board.piece_bb(Piece::ROOK, color.flip());
-        let queens = board.piece_bb(Piece::QUEEN, color.flip());
-        match piece {
-            Piece::KNIGHT => {
-                threats[Threats::KNIGHT_THREAT_ON_BISHOP - offset] +=
-                    sign * (attacks & bishops).popcount() as i8;
-                threats[Threats::KNIGHT_THREAT_ON_ROOK - offset] +=
-                    sign * (attacks & rooks).popcount() as i8;
-                threats[Threats::KNIGHT_THREAT_ON_QUEEN - offset] +=
-                    sign * (attacks & queens).popcount() as i8;
-            }
-            Piece::BISHOP => {
-                threats[Threats::BISHOP_THREAT_ON_KNIGHT - offset] +=
-                    sign * (attacks & knights).popcount() as i8;
-                threats[Threats::BISHOP_THREAT_ON_ROOK - offset] +=
-                    sign * (attacks & rooks).popcount() as i8;
-                threats[Threats::BISHOP_THREAT_ON_QUEEN - offset] +=
-                    sign * (attacks & queens).popcount() as i8;
-            }
-            Piece::ROOK => {
-                threats[Threats::ROOK_THREAT_ON_QUEEN - offset] +=
-                    sign * (attacks & queens).popcount() as i8;
-            }
-            Piece::PAWN => {
-                threats[Threats::PAWN_THREAT_ON_KNIGHT - offset] +=
-                    sign * (attacks & knights).popcount() as i8;
-                threats[Threats::PAWN_THREAT_ON_BISHOP - offset] +=
-                    sign * (attacks & bishops).popcount() as i8;
-                threats[Threats::PAWN_THREAT_ON_ROOK - offset] +=
-                    sign * (attacks & rooks).popcount() as i8;
-                threats[Threats::PAWN_THREAT_ON_QUEEN - offset] +=
-                    sign * (attacks & queens).popcount() as i8;
-            }
-            _ => (),
-        }
-    }
-
-    fn add_piece_loop_features(&mut self, board: &Board) {
-        let mut mobility = [0; Mobility::LEN];
-        let mut f_mobility = [0; ForwardMobility::LEN];
-        let mut safety = [0; Safety::LEN];
-        let mut threats = [0; Threats::LEN];
-
-        for color in Color::LIST {
-            let availible = piece_loop_eval::availible(board, color);
-            let enemy_king_virt_mobility = enemy_virtual_mobility(board, color);
-
-            let mult = match color {
-                Color::White => 1,
-                Color::Black => -1,
-            };
-
-            for &piece in Piece::LIST.iter().take(4) {
-                let mut pieces = board.piece_bb(piece, color);
-
-                bitloop!(|sq| pieces, {
-                    let attacks = attacks::generic(piece, sq, board.occupied());
-                    let moves = attacks & availible;
-                    let count = moves.popcount();
-                    if count > 0 {
-                        mobility[Mobility::index(piece, count) - Mobility::START] += mult;
-                    }
-
-                    let forward_count = forward_mobility(moves, sq, color);
-                    if forward_count > 0 {
-                        f_mobility[ForwardMobility::index(piece, forward_count)
-                            - ForwardMobility::START] += mult;
-                    }
-
-                    let kz_attacks = (moves & enemy_king_zone(board, color)).popcount() as i8;
-                    safety[Safety::index(piece, enemy_king_virt_mobility) - Safety::START] +=
-                        kz_attacks * mult;
-
-                    Self::add_threat_val(board, piece, attacks, &mut threats, color);
-                });
-            }
-
-            let pawns = board.piece_bb(Piece::PAWN, color);
-            let pawn_attacks = attacks::pawn_setwise(pawns, color);
-            let kz_attacks = (pawn_attacks & enemy_king_zone(board, color)).popcount() as i8;
-            safety[Safety::index(Piece::PAWN, enemy_king_virt_mobility) - Safety::START] +=
-                kz_attacks * mult;
-
-            Self::add_threat_val(board, Piece::PAWN, pawn_attacks, &mut threats, color);
-        }
-
-        for i in 0..Mobility::LEN {
-            let val = mobility[i];
-            if val != 0 {
-                let vec_index = i + Mobility::START;
-                self.feature_vec.push(Feature::new(val, vec_index));
-            }
-        }
-
-        // todo: make all these a macro :p
-        for i in 0..ForwardMobility::LEN {
-            let val = f_mobility[i];
-            if val != 0 {
-                let vec_index = i + ForwardMobility::START;
-                self.feature_vec.push(Feature::new(val, vec_index));
-            }
-        }
-
-        for i in 0..Safety::LEN {
-            let val = safety[i];
-            if val != 0 {
-                let vec_index = i + Safety::START;
-                self.feature_vec.push(Feature::new(val, vec_index));
-            }
-        }
-
-        for i in 0..Threats::LEN {
-            let val = threats[i];
-            if val != 0 {
-                let vec_index = i + Threats::START;
-                self.feature_vec.push(Feature::new(val, vec_index));
-            }
-        }
-    }
-
     fn new(board: &Board, game_result: f64) -> Self {
         let mut entry = Self {
             feature_vec: vec![],
@@ -403,25 +45,12 @@ impl Entry {
             game_result,
         };
 
-        entry.add_pst_features(board);
-        entry.add_passer_features(board);
-        entry.add_piece_loop_features(board);
-        entry.add_isolated_features(board);
-        entry.add_phalanx_features(board);
-
-        let bishop_pair_val = i8::from(board.piece_bb(Piece::BISHOP, Color::White).popcount() >= 2)
-            - i8::from(board.piece_bb(Piece::BISHOP, Color::Black).popcount() >= 2);
-        entry
-            .feature_vec
-            .push(Feature::new(bishop_pair_val, BishopPair::index()));
-
-        let tempo = match board.color_to_move {
-            Color::White => 1,
-            Color::Black => -1,
-        };
-        entry
-            .feature_vec
-            .push(Feature::new(tempo, TempoBonus::index()));
+        let trace = trace_of_position(board);
+        for (i, &value) in trace.iter().enumerate() {
+            if value != 0 {
+                entry.feature_vec.push(Feature::new(value, i));
+            }
+        }
 
         entry
     }
@@ -462,29 +91,24 @@ impl Tuner {
     const MAX_EPOCHS: u32 = 20000;
     const LEARN_RATE: f64 = 0.12;
 
-    fn new_weights(from_zero: bool) -> TunerVec {
-        if from_zero {
-            return [[0.0; TUNER_VEC_LEN]; NUM_PHASES];
-        }
-
-        let scores: [EvalScore; NUM_PIECES as usize] = [300, 320, 500, 900, 100, 0];
+    fn new_weights(from_previous: bool) -> TunerVec {
         let mut result = [[0.0; TUNER_VEC_LEN]; NUM_PHASES];
-
-        for piece in Piece::LIST {
-            for i in 0..NUM_SQUARES {
-                let index = MaterialPst::index(piece, Square::new(i));
-                result[MG][index] = scores[piece.as_index()] as f64;
-                result[EG][index] = scores[piece.as_index()] as f64;
+        if from_previous {
+            for phase in PHASES {
+                for (i, &w) in PREV_WEIGHTS[phase].iter().enumerate() {
+                    result[phase][i] = w;
+                }
             }
         }
+
         result
     }
 
-    pub fn new(from_zero: bool) -> Self {
+    pub fn new(from_previous: bool) -> Self {
         Self {
             entries: vec![],
             gradient: [[0.0; TUNER_VEC_LEN]; NUM_PHASES],
-            weights: Self::new_weights(from_zero),
+            weights: Self::new_weights(from_previous),
             momentum: [[0.0; TUNER_VEC_LEN]; NUM_PHASES],
             velocity: [[0.0; TUNER_VEC_LEN]; NUM_PHASES],
         }
@@ -582,6 +206,7 @@ impl Tuner {
                 println!("MSE change since previous: {delta_mse}\n");
 
                 self.create_output_file();
+                self.create_weights_file();
 
                 if delta_mse < Self::CONVERGENCE_DELTA {
                     return;
@@ -701,7 +326,7 @@ impl Tuner {
             write!(output, "  ").unwrap();
 
             for i in 0..Mobility::PIECE_MOVECOUNTS[piece.as_index()] {
-                let index = Mobility::index(piece, i.try_into().unwrap());
+                let index = Mobility::index(piece, i);
                 write!(
                     output,
                     "s({}, {}), ",
@@ -810,5 +435,18 @@ impl Tuner {
         self.write_safety(&mut output);
         self.write_threats(&mut output);
         self.write_tempo(&mut output);
+    }
+
+    fn create_weights_file(&self) {
+        let mut output = BufWriter::new(File::create("prev_weights.rs").unwrap());
+        writeln!(output, "pub const PREV_WEIGHTS: [[f64; {TUNER_VEC_LEN}]; {NUM_PHASES}] = [",).unwrap();
+        for phase in PHASES {
+            writeln!(output, "[",).unwrap();
+            for w in self.weights[phase] {
+                write!(output, "{:.2}, ", w).unwrap();
+            }
+            writeln!(output, "],",).unwrap();
+        }
+        writeln!(output, "];",).unwrap();
     }
 }
