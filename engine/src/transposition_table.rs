@@ -4,7 +4,6 @@ use crate::{
     chess_move::Move,
     evaluation::{EvalScore, MATE_THRESHOLD},
     search::{Depth, Ply},
-    tuple_constants_enum,
     zobrist::ZobristHash,
 };
 
@@ -12,7 +11,10 @@ use crate::{
 pub struct TTFlag(u8);
 
 impl TTFlag {
-    tuple_constants_enum!(Self, UNINITIALIZED, LOWER_BOUND, EXACT, UPPER_BOUND);
+    pub const UNINITIALIZED: Self = Self(0b00 << 6);
+    pub const LOWER_BOUND: Self = Self(0b01 << 6);
+    pub const EXACT: Self = Self(0b10 << 6);
+    pub const UPPER_BOUND: Self = Self(0b11 << 6);
 
     const fn new(data: u8) -> Self {
         Self(data)
@@ -34,22 +36,49 @@ impl TTFlag {
     }
 }
 
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+struct AgeAndFlag(u8);
+impl AgeAndFlag {
+    const AGE_BITFIELD: u8 = 0b00111111;
+    const FLAG_BITFIELD: u8 = 0b11000000;
+
+    const fn new(age: u8, flag: TTFlag) -> Self {
+        Self(age | flag.0)
+    }
+
+    const fn flag(self) -> TTFlag {
+        TTFlag::new(self.0 & Self::FLAG_BITFIELD)
+    }
+
+    const fn age(self) -> u8 {
+        self.0 & Self::AGE_BITFIELD
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub struct TTEntry {
-    flag: TTFlag,        // 1 byte
-    depth: Depth,        // 1 byte
-    pub best_move: Move, // 2 byte
-    score: i16,          // 2 byte
-    key: u16,            // 2 byte
+    age_and_flag: AgeAndFlag, // 1 byte
+    depth: Depth,             // 1 byte
+    pub best_move: Move,      // 2 byte
+    score: i16,               // 2 byte
+    key: u16,                 // 2 byte
 }
 
 impl TTEntry {
     const BYTES: usize = 8;
 
-    const fn new(flag: TTFlag, depth: Depth, best_move: Move, score: i16, key: u16) -> Self {
+    const fn new(
+        age: u8,
+        flag: TTFlag,
+        depth: Depth,
+        best_move: Move,
+        score: i16,
+        key: u16,
+    ) -> Self {
+        let age_and_flag = AgeAndFlag::new(age, flag);
         Self {
-            flag,
+            age_and_flag,
             depth,
             best_move,
             score,
@@ -95,12 +124,19 @@ impl TTEntry {
         }
 
         let score = i32::from(self.score);
-        match self.flag {
+        match self.age_and_flag.flag() {
             TTFlag::EXACT => true,
             TTFlag::LOWER_BOUND => score >= beta,
             TTFlag::UPPER_BOUND => score <= alpha,
             _ => false,
         }
+    }
+
+    #[allow(clippy::cast_sign_loss)]
+    const fn quality(self) -> u16 {
+        let age = self.age_and_flag.age() as u16;
+        let depth = self.depth as u16;
+        age * 2 + depth
     }
 }
 
@@ -121,6 +157,7 @@ impl From<TTEntry> for u64 {
 #[derive(Debug)]
 pub struct TranspositionTable {
     table: Vec<AtomicU64>,
+    age: u8,
 }
 
 impl TranspositionTable {
@@ -132,13 +169,14 @@ impl TranspositionTable {
         let mut table = vec![];
         table.resize_with(entries, AtomicU64::default);
 
-        Self { table }
+        Self { table, age: 0 }
     }
 
     pub fn reset(&mut self) {
         self.table
             .iter_mut()
             .for_each(|x| *x = AtomicU64::default());
+        self.age = 0;
     }
 
     fn table_index(&self, hash: ZobristHash) -> usize {
@@ -157,9 +195,14 @@ impl TranspositionTable {
     ) {
         let score = TTEntry::score_to_tt(best_score, ply);
         let key = TTEntry::key_from_hash(hash);
-        let entry = TTEntry::new(flag, depth, best_move, score, key);
+        let new_entry = TTEntry::new(self.age, flag, depth, best_move, score, key);
 
-        self.table[self.table_index(hash)].store(entry.into(), Ordering::Relaxed);
+        let index = self.table_index(hash);
+        let old_entry: TTEntry = self.table[index].load(Ordering::Relaxed).into();
+
+        if new_entry.quality() >= old_entry.quality() {
+            self.table[index].store(new_entry.into(), Ordering::Relaxed);
+        }
     }
 
     pub fn probe(&self, hash: ZobristHash) -> Option<TTEntry> {
@@ -167,7 +210,7 @@ impl TranspositionTable {
         let key = TTEntry::key_from_hash(hash);
         let entry = TTEntry::from(self.table[index].load(Ordering::Relaxed));
 
-        if (entry.key == key) && (entry.flag != TTFlag::UNINITIALIZED) {
+        if (entry.key == key) && (entry.age_and_flag.flag() != TTFlag::UNINITIALIZED) {
             Some(entry)
         } else {
             None
@@ -178,12 +221,17 @@ impl TranspositionTable {
         let mut hash_full = 0;
         self.table.iter().take(1000).for_each(|x| {
             let entry = TTEntry::from(x.load(Ordering::Relaxed));
-            if entry.flag != TTFlag::UNINITIALIZED {
+            if entry.age_and_flag.flag() != TTFlag::UNINITIALIZED {
                 hash_full += 1;
             }
         });
 
         hash_full
+    }
+
+    pub fn age_table(&mut self) {
+        self.age += 1;
+        self.age = self.age.min(63); // dont want it to overflow when it gets packed
     }
 }
 
@@ -195,11 +243,12 @@ mod tests {
         zobrist::ZobristHash,
     };
 
-    use super::{TTEntry, TTFlag, TranspositionTable};
+    use super::{AgeAndFlag, TTEntry, TTFlag, TranspositionTable};
 
     #[test]
     fn probe_works() {
-        let tt = TranspositionTable::new(16);
+        let mut tt = TranspositionTable::new(16);
+        tt.age_table();
         let board = Board::from_fen(START_FEN);
         let best_score = 16;
         let flag = TTFlag::EXACT;
@@ -209,6 +258,7 @@ mod tests {
 
         let entry = tt.probe(hash).unwrap();
         let expected = TTEntry::new(
+            1,
             flag,
             4,
             mv,
@@ -221,5 +271,14 @@ mod tests {
             Board::from_fen("r3k2r/ppp2ppp/2n1bn2/8/2P1N3/1P4P1/P3PPBP/bNBR2K1 w kq - 0 12");
         let other_hash = ZobristHash::complete(&other_board);
         assert_eq!(tt.probe(other_hash), None);
+    }
+
+    #[test]
+    fn flag_packing() {
+        let age = 43;
+        let flag = TTFlag::EXACT;
+        let packed = AgeAndFlag::new(age, flag);
+        assert_eq!(packed.age(), age);
+        assert_eq!(packed.flag(), flag);
     }
 }
