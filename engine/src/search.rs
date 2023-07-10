@@ -246,7 +246,7 @@ impl<'a> Searcher<'a> {
                 beta = (alpha + 3 * beta) / 4;
             } else if score >= beta {
                 beta = (beta + delta).min(INF);
-                asp_depth = (asp_depth - 1).min(1);
+                asp_depth = (asp_depth - 1).max(1);
             } else {
                 return score;
             }
