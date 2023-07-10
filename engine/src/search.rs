@@ -181,7 +181,7 @@ impl<'a> Searcher<'a> {
         while !self.stop_searching(depth) {
             self.seldepth = 0;
 
-            let score = self.negamax::<false>(board, depth, 0, -INF, INF);
+            let score = self.aspiration_window_search(board, search_results.score, depth);
 
             if self.out_of_time || stop_flag_is_set() {
                 break;
@@ -207,6 +207,42 @@ impl<'a> Searcher<'a> {
         }
 
         search_results
+    }
+
+    fn aspiration_window_search(&mut self, board: &Board, prev_score: EvalScore, current_depth: Depth) -> EvalScore {
+        const ASP_WINDOW_MIN_DEPTH: Depth = 7;
+        const ASP_WINDOW_INIT_WINDOW: EvalScore = 12;
+        const ASP_WINDOW_INIT_DELTA: EvalScore = 16;
+        const ASP_WINDOW_FULL_SEARCH_BOUNDS: EvalScore = 3500;
+
+        let mut alpha = -INF;
+        let mut beta = INF;
+        let mut asp_depth = current_depth;
+        let mut delta = ASP_WINDOW_INIT_DELTA;
+    
+        if current_depth > ASP_WINDOW_MIN_DEPTH {
+            alpha = (prev_score - ASP_WINDOW_INIT_WINDOW).max(-INF);
+            beta  = (prev_score + ASP_WINDOW_INIT_WINDOW).min(INF);
+        }
+    
+        loop {
+            if alpha < -ASP_WINDOW_FULL_SEARCH_BOUNDS { alpha = -INF; }
+            if INF  > ASP_WINDOW_FULL_SEARCH_BOUNDS { beta = INF; }
+    
+            let score = self.negamax::<false>(board, asp_depth, 0, alpha, beta);
+    
+            if score <= alpha {
+                alpha = (alpha - delta).max(-INF);
+                beta = (alpha + 3 * beta) / 4;
+            } else if score >= beta {
+                beta = (beta + delta).min(INF);
+                asp_depth = (asp_depth - 1).min(1);
+            } else {
+                return score;
+            }
+    
+            delta += delta * 2 / 3;
+        }
     }
 
     #[rustfmt::skip]
