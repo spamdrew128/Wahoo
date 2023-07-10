@@ -158,8 +158,9 @@ impl<'a> Searcher<'a> {
 
     pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
         write_stop_flag(false);
+        let mut prev_score = 0;
         for d in 1..depth {
-            self.negamax::<false>(board, d, 0, -INF, INF);
+            prev_score = self.aspiration_window_search(board, prev_score, d);
         }
         write_stop_flag(true);
 
@@ -209,7 +210,12 @@ impl<'a> Searcher<'a> {
         search_results
     }
 
-    fn aspiration_window_search(&mut self, board: &Board, prev_score: EvalScore, current_depth: Depth) -> EvalScore {
+    fn aspiration_window_search(
+        &mut self,
+        board: &Board,
+        prev_score: EvalScore,
+        current_depth: Depth,
+    ) -> EvalScore {
         const ASP_WINDOW_MIN_DEPTH: Depth = 7;
         const ASP_WINDOW_INIT_WINDOW: EvalScore = 12;
         const ASP_WINDOW_INIT_DELTA: EvalScore = 16;
@@ -219,18 +225,22 @@ impl<'a> Searcher<'a> {
         let mut beta = INF;
         let mut asp_depth = current_depth;
         let mut delta = ASP_WINDOW_INIT_DELTA;
-    
+
         if current_depth > ASP_WINDOW_MIN_DEPTH {
             alpha = (prev_score - ASP_WINDOW_INIT_WINDOW).max(-INF);
-            beta  = (prev_score + ASP_WINDOW_INIT_WINDOW).min(INF);
+            beta = (prev_score + ASP_WINDOW_INIT_WINDOW).min(INF);
         }
-    
+
         loop {
-            if alpha < -ASP_WINDOW_FULL_SEARCH_BOUNDS { alpha = -INF; }
-            if INF  > ASP_WINDOW_FULL_SEARCH_BOUNDS { beta = INF; }
-    
+            if alpha < -ASP_WINDOW_FULL_SEARCH_BOUNDS {
+                alpha = -INF;
+            }
+            if beta > ASP_WINDOW_FULL_SEARCH_BOUNDS {
+                beta = INF;
+            }
+
             let score = self.negamax::<false>(board, asp_depth, 0, alpha, beta);
-    
+
             if score <= alpha {
                 alpha = (alpha - delta).max(-INF);
                 beta = (alpha + 3 * beta) / 4;
@@ -240,7 +250,7 @@ impl<'a> Searcher<'a> {
             } else {
                 return score;
             }
-    
+
             delta += delta * 2 / 3;
         }
     }
