@@ -138,9 +138,13 @@ impl<'a> Searcher<'a> {
         );
     }
 
-    fn stop_searching(&self, depth: Depth) -> bool {
+    fn stop_searching<const IS_PRIMARY: bool>(&self, depth: Depth) -> bool {
         if depth == MAX_DEPTH {
             return true;
+        }
+
+        if !IS_PRIMARY {
+            return false; // let secondary threads run until stop flag is set by main thread
         }
 
         let mut result = false;
@@ -177,7 +181,7 @@ impl<'a> Searcher<'a> {
         node_count()
     }
 
-    pub fn go(&mut self, board: &Board, report_info: bool) -> SearchResults {
+    pub fn go<const IS_PRIMARY: bool>(&mut self, board: &Board, report_info: bool) -> SearchResults {
         for &limit in &self.search_limits {
             if let SearchLimit::Time(t) = limit {
                 self.timer = Some(SearchTimer::new(t));
@@ -190,7 +194,7 @@ impl<'a> Searcher<'a> {
         let mut search_results = SearchResults::new(board);
         write_stop_flag(false);
         reset_node_count();
-        while !self.stop_searching(depth) {
+        while !self.stop_searching::<IS_PRIMARY>(depth){
             self.seldepth = 0;
 
             let score = self.aspiration_window_search(board, search_results.score, depth, &mut search_results.best_move);

@@ -287,12 +287,12 @@ impl UciHandler {
 
                 thread::scope(|s| {
                     s.spawn(|| {
-                        searcher.go(&self.board, true);
+                        searcher.go::<true>(&self.board, true);
                     });
 
                     for searcher in secondary_searchers.iter_mut() {
                         s.spawn(|| {
-                            searcher.go(&self.board, false);
+                            searcher.go::<false>(&self.board, false);
                         });
                     }
 
