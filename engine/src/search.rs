@@ -162,7 +162,7 @@ impl<'a> Searcher<'a> {
     }
 
     fn is_out_of_time(&self) -> bool {
-        if node_count() % Self::TIMER_CHECK_FREQ == 0 {
+        if self.node_count % Self::TIMER_CHECK_FREQ == 0 {
             if let Some(timer) = self.timer {
                 return timer.is_expired();
             }
