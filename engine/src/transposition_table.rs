@@ -172,13 +172,6 @@ impl TranspositionTable {
         Self { table, age: 0 }
     }
 
-    pub fn reset(&mut self) {
-        self.table
-            .iter_mut()
-            .for_each(|x| *x = AtomicU64::default());
-        self.age = 0;
-    }
-
     fn table_index(&self, hash: ZobristHash) -> usize {
         // use lower bits for index
         hash.as_usize() % self.table.len()
@@ -230,8 +223,27 @@ impl TranspositionTable {
     }
 
     pub fn age_table(&mut self) {
+        const AGE_MAX: u8 = 63; // max value we can fit into 6 bits
+
+        assert!(self.age <= AGE_MAX, "TT AGE EXCEEDED AGE_MAX");
+        if self.age == AGE_MAX {
+            self.age = 0;
+            self.table.iter_mut().for_each(|x| {
+                let mut entry = TTEntry::from(x.load(Ordering::Relaxed));
+                let flag = entry.age_and_flag.flag();
+                entry.age_and_flag = AgeAndFlag::new(0, flag);
+                x.store(entry.into(), Ordering::Relaxed);
+            });
+        }
+
         self.age += 1;
-        self.age = self.age.min(63); // dont want it to overflow when it gets packed
+    }
+
+    pub fn reset(&mut self) {
+        self.table
+            .iter_mut()
+            .for_each(|x| *x = AtomicU64::default());
+        self.age = 0;
     }
 }
 
