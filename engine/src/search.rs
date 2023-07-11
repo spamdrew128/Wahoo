@@ -41,8 +41,8 @@ fn reset_node_count() {
     NODE_COUNT.store(0, Ordering::Relaxed);
 }
 
-fn increment_node_count() {
-    NODE_COUNT.fetch_add(1, Ordering::Relaxed);
+fn update_node_count(nodes: Nodes) {
+    NODE_COUNT.fetch_add(nodes, Ordering::Relaxed);
 }
 
 fn node_count() -> Nodes {
@@ -79,6 +79,7 @@ pub struct Searcher<'a> {
     killers: Killers,
     tt: &'a TranspositionTable,
 
+    node_count: Nodes,
     timer: Option<SearchTimer>,
     seldepth: u8,
 }
@@ -99,6 +100,7 @@ impl<'a> Searcher<'a> {
             killers: Killers::new(),
             tt,
             pv_table: PvTable::new(),
+            node_count: 0,
             timer: None,
             seldepth: 0,
         }
@@ -171,14 +173,13 @@ impl<'a> Searcher<'a> {
 
     pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
         write_stop_flag(false);
-        reset_node_count();
         let mut prev_score = 0;
         for d in 1..depth {
             prev_score = self.aspiration_window_search(board, prev_score, d, &mut Move::nullmove());
         }
         write_stop_flag(true);
 
-        node_count()
+        self.node_count
     }
 
     pub fn go<const IS_PRIMARY: bool>(&mut self, board: &Board, report_info: bool) -> SearchResults {
@@ -188,16 +189,20 @@ impl<'a> Searcher<'a> {
             }
         }
 
+        if IS_PRIMARY {
+            reset_node_count();
+        }
+
         let stopwatch = std::time::Instant::now();
         let mut depth: Depth = 1;
 
         let mut search_results = SearchResults::new(board);
         write_stop_flag(false);
-        reset_node_count();
         while !self.stop_searching::<IS_PRIMARY>(depth){
             self.seldepth = 0;
 
             let score = self.aspiration_window_search(board, search_results.score, depth, &mut search_results.best_move);
+            update_node_count(self.node_count);
 
             if stop_flag_is_set() {
                 break;
@@ -384,7 +389,7 @@ impl<'a> Searcher<'a> {
                 continue;
             }
 
-            increment_node_count();
+            self.node_count += 1;
             moves_played += 1;
 
             let mut score = 0;
@@ -502,7 +507,7 @@ impl<'a> Searcher<'a> {
                 continue;
             }
 
-            increment_node_count();
+            self.node_count += 1;
 
             let score = -self.qsearch(&next_board, ply + 1, -beta, -alpha);
 
