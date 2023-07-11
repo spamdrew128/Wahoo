@@ -1,5 +1,5 @@
 use std::{
-    sync::atomic::{AtomicBool, Ordering},
+    sync::atomic::{AtomicBool, Ordering, AtomicU64},
     time::Instant,
 };
 
@@ -27,6 +27,7 @@ const MAX_DEPTH: Depth = i8::MAX;
 pub const MAX_PLY: Ply = MAX_DEPTH as u8;
 
 static STOP_FLAG: AtomicBool = AtomicBool::new(false);
+static NODE_COUNT: AtomicU64 = AtomicU64::new(0);
 
 pub fn write_stop_flag(val: bool) {
     STOP_FLAG.store(val, Ordering::Relaxed);
@@ -34,6 +35,18 @@ pub fn write_stop_flag(val: bool) {
 
 pub fn stop_flag_is_set() -> bool {
     STOP_FLAG.load(Ordering::Relaxed)
+}
+
+fn reset_node_count() {
+    NODE_COUNT.store(0, Ordering::Relaxed);
+}
+
+fn update_node_count(nodes: Nodes) {
+    NODE_COUNT.fetch_add(nodes, Ordering::Relaxed);
+}
+
+fn node_count() -> Nodes {
+    NODE_COUNT.load(Ordering::Relaxed)
 }
 
 pub struct SearchResults {
@@ -66,9 +79,8 @@ pub struct Searcher<'a> {
     killers: Killers,
     tt: &'a TranspositionTable,
 
-    timer: Option<SearchTimer>,
-    out_of_time: bool,
     node_count: Nodes,
+    timer: Option<SearchTimer>,
     seldepth: u8,
 }
 
@@ -88,9 +100,8 @@ impl<'a> Searcher<'a> {
             killers: Killers::new(),
             tt,
             pv_table: PvTable::new(),
-            timer: None,
-            out_of_time: false,
             node_count: 0,
+            timer: None,
             seldepth: 0,
         }
     }
@@ -102,7 +113,7 @@ impl<'a> Searcher<'a> {
 
     fn report_search_info(&self, score: EvalScore, depth: Depth, stopwatch: Instant) {
         let elapsed = stopwatch.elapsed();
-        let nps = (u128::from(self.node_count) * 1_000_000) / elapsed.as_micros().max(1);
+        let nps = (u128::from(node_count()) * 1_000_000) / elapsed.as_micros().max(1);
 
         let score_str = if score >= MATE_THRESHOLD {
             let ply = EVAL_MAX - score;
@@ -121,7 +132,7 @@ impl<'a> Searcher<'a> {
         print!("info ");
         println!(
             "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} hashfull {} pv {}",
-            self.node_count,
+            node_count(),
             elapsed.as_millis(),
             self.seldepth,
             self.tt.hashfull(),
@@ -129,9 +140,13 @@ impl<'a> Searcher<'a> {
         );
     }
 
-    fn stop_searching(&self, depth: Depth) -> bool {
+    fn stop_searching<const IS_PRIMARY: bool>(&self, depth: Depth) -> bool {
         if depth == MAX_DEPTH {
             return true;
+        }
+
+        if !IS_PRIMARY {
+            return false; // let secondary threads run until stop flag is set by main thread
         }
 
         let mut result = false;
@@ -139,7 +154,7 @@ impl<'a> Searcher<'a> {
             result |= match limit {
                 SearchLimit::Time(_) => self.timer.unwrap().soft_cutoff_is_expired(),
                 SearchLimit::Depth(depth_limit) => depth > depth_limit,
-                SearchLimit::Nodes(node_limit) => self.node_count > node_limit,
+                SearchLimit::Nodes(node_limit) => node_count() > node_limit,
             }
         }
 
@@ -167,11 +182,15 @@ impl<'a> Searcher<'a> {
         self.node_count
     }
 
-    pub fn go(&mut self, board: &Board, report_info: bool) -> SearchResults {
-        for &limit in &self.search_limits {
-            if let SearchLimit::Time(t) = limit {
-                self.timer = Some(SearchTimer::new(t));
+    pub fn go<const IS_PRIMARY: bool>(&mut self, board: &Board, report_info: bool) -> SearchResults {
+        if IS_PRIMARY {
+            for &limit in &self.search_limits {
+                if let SearchLimit::Time(t) = limit {
+                    self.timer = Some(SearchTimer::new(t));
+                }
             }
+
+            reset_node_count();
         }
 
         let stopwatch = std::time::Instant::now();
@@ -179,12 +198,13 @@ impl<'a> Searcher<'a> {
 
         let mut search_results = SearchResults::new(board);
         write_stop_flag(false);
-        while !self.stop_searching(depth) {
+        while !self.stop_searching::<IS_PRIMARY>(depth){
             self.seldepth = 0;
 
             let score = self.aspiration_window_search(board, search_results.score, depth, &mut search_results.best_move);
+            update_node_count(self.node_count);
 
-            if self.out_of_time || stop_flag_is_set() {
+            if stop_flag_is_set() {
                 break;
             }
 
@@ -300,7 +320,7 @@ impl<'a> Searcher<'a> {
         }
 
         if self.is_out_of_time() {
-            self.out_of_time = true;
+            write_stop_flag(true);
             return 0;
         }
 
@@ -408,7 +428,7 @@ impl<'a> Searcher<'a> {
 
             self.zobrist_stack.revert_state();
 
-            if self.out_of_time || stop_flag_is_set() {
+            if stop_flag_is_set() {
                 return 0;
             }
 
@@ -458,7 +478,7 @@ impl<'a> Searcher<'a> {
         beta: EvalScore,
     ) -> EvalScore {
         if self.is_out_of_time() {
-            self.out_of_time = true;
+            write_stop_flag(true);
             return 0;
         }
 
@@ -493,7 +513,7 @@ impl<'a> Searcher<'a> {
 
             self.zobrist_stack.revert_state();
 
-            if self.out_of_time || stop_flag_is_set() {
+            if stop_flag_is_set() {
                 return 0;
             }
 

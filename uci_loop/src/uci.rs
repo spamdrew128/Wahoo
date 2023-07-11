@@ -19,6 +19,7 @@ enum UciCommand {
     Go(Vec<String>),
     SetOptionOverhead(Milliseconds),
     SetOptionHash(usize),
+    SetOptionThreads(usize),
 }
 
 pub struct UciHandler {
@@ -28,6 +29,7 @@ pub struct UciHandler {
     tt: TranspositionTable,
     time_manager: TimeManager,
     stored_message: Option<String>,
+    threads: usize,
 }
 
 macro_rules! send_uci_option {
@@ -57,9 +59,9 @@ impl UciHandler {
     const HASH_MIN: usize = 0;
     const HASH_MAX: usize = 8192;
 
-    const THREADS_DEFAULT: u32 = 1;
-    const THREADS_MIN: u32 = 1;
-    const THREADS_MAX: u32 = 1;
+    const THREADS_DEFAULT: usize = 1;
+    const THREADS_MIN: usize = 1;
+    const THREADS_MAX: usize = 64;
 
     pub fn new() -> Self {
         let board = Board::from_fen(START_FEN);
@@ -71,6 +73,7 @@ impl UciHandler {
             tt: TranspositionTable::new(Self::HASH_DEFAULT),
             time_manager: TimeManager::new(Self::OVERHEAD_DEFAULT),
             stored_message: None,
+            threads: Self::THREADS_DEFAULT,
         }
     }
 
@@ -142,6 +145,9 @@ impl UciHandler {
                         )),
                         "Hash" => self.process_command(UciCommand::SetOptionHash(
                             val.parse::<usize>().unwrap_or(Self::HASH_DEFAULT),
+                        )),
+                        "Threads" => self.process_command(UciCommand::SetOptionThreads(
+                            val.parse::<usize>().unwrap_or(Self::THREADS_DEFAULT),
                         )),
                         _ => (),
                     }
@@ -273,18 +279,27 @@ impl UciHandler {
                     ));
                 }
 
-                let mut searcher =
-                    Searcher::new(search_limits, &self.zobrist_stack, &self.history, &self.tt);
+                let mut searcher = Searcher::new(search_limits.clone(), &self.zobrist_stack, &self.history, &self.tt);
+                let mut secondary_searchers = vec![];
+                for _ in 1..self.threads {
+                    secondary_searchers.push(Searcher::new(search_limits.clone(), &self.zobrist_stack, &self.history, &self.tt));
+                }
 
                 thread::scope(|s| {
                     s.spawn(|| {
-                        searcher.go(&self.board, true);
-                        searcher.search_complete_actions(&mut self.history);
+                        searcher.go::<true>(&self.board, true);
                     });
+
+                    for searcher in secondary_searchers.iter_mut() {
+                        s.spawn(|| {
+                            searcher.go::<false>(&self.board, false);
+                        });
+                    }
 
                     Self::handle_stop_and_quit(&mut self.stored_message);
                 });
 
+                searcher.search_complete_actions(&mut self.history);
                 self.tt.age_table();
             }
             UciCommand::SetOptionOverhead(overhead) => {
@@ -293,6 +308,9 @@ impl UciHandler {
             }
             UciCommand::SetOptionHash(megabytes) => {
                 self.tt = TranspositionTable::new(megabytes.clamp(Self::HASH_MIN, Self::HASH_MAX));
+            },
+            UciCommand::SetOptionThreads(count) => {
+                self.threads = count.clamp(Self::THREADS_MIN, Self::THREADS_MAX);
             }
         }
     }
