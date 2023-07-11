@@ -183,13 +183,13 @@ impl<'a> Searcher<'a> {
     }
 
     pub fn go<const IS_PRIMARY: bool>(&mut self, board: &Board, report_info: bool) -> SearchResults {
-        for &limit in &self.search_limits {
-            if let SearchLimit::Time(t) = limit {
-                self.timer = Some(SearchTimer::new(t));
-            }
-        }
-
         if IS_PRIMARY {
+            for &limit in &self.search_limits {
+                if let SearchLimit::Time(t) = limit {
+                    self.timer = Some(SearchTimer::new(t));
+                }
+            }
+
             reset_node_count();
         }
 
