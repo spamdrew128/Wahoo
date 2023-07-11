@@ -160,7 +160,7 @@ impl<'a> Searcher<'a> {
         write_stop_flag(false);
         let mut prev_score = 0;
         for d in 1..depth {
-            prev_score = self.aspiration_window_search(board, prev_score, d);
+            prev_score = self.aspiration_window_search(board, prev_score, d, &mut Move::nullmove());
         }
         write_stop_flag(true);
 
@@ -182,7 +182,7 @@ impl<'a> Searcher<'a> {
         while !self.stop_searching(depth) {
             self.seldepth = 0;
 
-            let score = self.aspiration_window_search(board, search_results.score, depth);
+            let score = self.aspiration_window_search(board, search_results.score, depth, &mut search_results.best_move);
 
             if self.out_of_time || stop_flag_is_set() {
                 break;
@@ -215,6 +215,7 @@ impl<'a> Searcher<'a> {
         board: &Board,
         prev_score: EvalScore,
         current_depth: Depth,
+        best_move: &mut Move,
     ) -> EvalScore {
         const ASP_WINDOW_MIN_DEPTH: Depth = 7;
         const ASP_WINDOW_INIT_WINDOW: EvalScore = 12;
@@ -247,6 +248,7 @@ impl<'a> Searcher<'a> {
             } else if score >= beta {
                 beta = (beta + delta).min(INF);
                 asp_depth = (asp_depth - 1).max(1);
+                *best_move = self.pv_table.best_move();
             } else {
                 return score;
             }
