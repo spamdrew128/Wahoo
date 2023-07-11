@@ -279,18 +279,27 @@ impl UciHandler {
                     ));
                 }
 
-                let mut searcher =
-                    Searcher::new(search_limits, &self.zobrist_stack, &self.history, &self.tt);
+                let mut searcher = Searcher::new(search_limits.clone(), &self.zobrist_stack, &self.history, &self.tt);
+                let mut secondary_searchers = vec![];
+                for _ in 1..self.threads {
+                    secondary_searchers.push(Searcher::new(search_limits.clone(), &self.zobrist_stack, &self.history, &self.tt));
+                }
 
                 thread::scope(|s| {
                     s.spawn(|| {
                         searcher.go(&self.board, true);
-                        searcher.search_complete_actions(&mut self.history);
                     });
+
+                    for searcher in secondary_searchers.iter_mut() {
+                        s.spawn(|| {
+                            searcher.go(&self.board, false);
+                        });
+                    }
 
                     Self::handle_stop_and_quit(&mut self.stored_message);
                 });
 
+                searcher.search_complete_actions(&mut self.history);
                 self.tt.age_table();
             }
             UciCommand::SetOptionOverhead(overhead) => {
