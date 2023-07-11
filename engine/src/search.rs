@@ -246,9 +246,12 @@ impl<'a> Searcher<'a> {
                 alpha = (alpha - delta).max(-INF);
                 beta = (alpha + 3 * beta) / 4;
             } else if score >= beta {
+                if asp_depth == current_depth {
+                    *best_move = self.pv_table.best_move();
+                }
+
                 beta = (beta + delta).min(INF);
                 asp_depth = (asp_depth - 1).max(1);
-                *best_move = self.pv_table.best_move();
             } else {
                 return score;
             }
