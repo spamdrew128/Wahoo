@@ -336,6 +336,12 @@ impl<'a> Searcher<'a> {
 
             entry.best_move
         } else {
+            // INTERNAL ITERATIVE REDUCTION (IIR)
+            const MIN_IIR_DEPTH: Depth = 3;
+            if depth >= MIN_IIR_DEPTH {
+                depth -= 1;
+            }
+
             Move::nullmove()
         };
 
