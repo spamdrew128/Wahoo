@@ -80,7 +80,6 @@ pub struct Searcher<'a> {
     tt: &'a TranspositionTable,
 
     timer: Option<SearchTimer>,
-    out_of_time: bool,
     seldepth: u8,
 }
 
@@ -101,7 +100,6 @@ impl<'a> Searcher<'a> {
             tt,
             pv_table: PvTable::new(),
             timer: None,
-            out_of_time: false,
             seldepth: 0,
         }
     }
@@ -197,7 +195,7 @@ impl<'a> Searcher<'a> {
 
             let score = self.aspiration_window_search(board, search_results.score, depth, &mut search_results.best_move);
 
-            if self.out_of_time || stop_flag_is_set() {
+            if stop_flag_is_set() {
                 break;
             }
 
@@ -313,7 +311,7 @@ impl<'a> Searcher<'a> {
         }
 
         if self.is_out_of_time() {
-            self.out_of_time = true;
+            write_stop_flag(true);
             return 0;
         }
 
@@ -421,7 +419,7 @@ impl<'a> Searcher<'a> {
 
             self.zobrist_stack.revert_state();
 
-            if self.out_of_time || stop_flag_is_set() {
+            if stop_flag_is_set() {
                 return 0;
             }
 
@@ -471,7 +469,7 @@ impl<'a> Searcher<'a> {
         beta: EvalScore,
     ) -> EvalScore {
         if self.is_out_of_time() {
-            self.out_of_time = true;
+            write_stop_flag(true);
             return 0;
         }
 
@@ -506,7 +504,7 @@ impl<'a> Searcher<'a> {
 
             self.zobrist_stack.revert_state();
 
-            if self.out_of_time || stop_flag_is_set() {
+            if stop_flag_is_set() {
                 return 0;
             }
 
