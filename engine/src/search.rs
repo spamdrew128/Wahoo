@@ -1,5 +1,5 @@
 use std::{
-    sync::atomic::{AtomicBool, Ordering},
+    sync::atomic::{AtomicBool, Ordering, AtomicU64},
     time::Instant,
 };
 
@@ -27,6 +27,7 @@ const MAX_DEPTH: Depth = i8::MAX;
 pub const MAX_PLY: Ply = MAX_DEPTH as u8;
 
 static STOP_FLAG: AtomicBool = AtomicBool::new(false);
+static NODE_COUNT: AtomicU64 = AtomicU64::new(0);
 
 pub fn write_stop_flag(val: bool) {
     STOP_FLAG.store(val, Ordering::Relaxed);
@@ -34,6 +35,18 @@ pub fn write_stop_flag(val: bool) {
 
 pub fn stop_flag_is_set() -> bool {
     STOP_FLAG.load(Ordering::Relaxed)
+}
+
+fn reset_node_count() {
+    NODE_COUNT.store(0, Ordering::Relaxed);
+}
+
+fn increment_node_count() {
+    NODE_COUNT.fetch_add(1, Ordering::Relaxed);
+}
+
+fn node_count() -> Nodes {
+    NODE_COUNT.load(Ordering::Relaxed)
 }
 
 pub struct SearchResults {
@@ -68,7 +81,6 @@ pub struct Searcher<'a> {
 
     timer: Option<SearchTimer>,
     out_of_time: bool,
-    node_count: Nodes,
     seldepth: u8,
 }
 
@@ -90,7 +102,6 @@ impl<'a> Searcher<'a> {
             pv_table: PvTable::new(),
             timer: None,
             out_of_time: false,
-            node_count: 0,
             seldepth: 0,
         }
     }
@@ -102,7 +113,7 @@ impl<'a> Searcher<'a> {
 
     fn report_search_info(&self, score: EvalScore, depth: Depth, stopwatch: Instant) {
         let elapsed = stopwatch.elapsed();
-        let nps = (u128::from(self.node_count) * 1_000_000) / elapsed.as_micros().max(1);
+        let nps = (u128::from(node_count()) * 1_000_000) / elapsed.as_micros().max(1);
 
         let score_str = if score >= MATE_THRESHOLD {
             let ply = EVAL_MAX - score;
@@ -121,7 +132,7 @@ impl<'a> Searcher<'a> {
         print!("info ");
         println!(
             "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} hashfull {} pv {}",
-            self.node_count,
+            node_count(),
             elapsed.as_millis(),
             self.seldepth,
             self.tt.hashfull(),
@@ -139,7 +150,7 @@ impl<'a> Searcher<'a> {
             result |= match limit {
                 SearchLimit::Time(_) => self.timer.unwrap().soft_cutoff_is_expired(),
                 SearchLimit::Depth(depth_limit) => depth > depth_limit,
-                SearchLimit::Nodes(node_limit) => self.node_count > node_limit,
+                SearchLimit::Nodes(node_limit) => node_count() > node_limit,
             }
         }
 
@@ -147,7 +158,7 @@ impl<'a> Searcher<'a> {
     }
 
     fn is_out_of_time(&self) -> bool {
-        if self.node_count % Self::TIMER_CHECK_FREQ == 0 {
+        if node_count() % Self::TIMER_CHECK_FREQ == 0 {
             if let Some(timer) = self.timer {
                 return timer.is_expired();
             }
@@ -158,13 +169,14 @@ impl<'a> Searcher<'a> {
 
     pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
         write_stop_flag(false);
+        reset_node_count();
         let mut prev_score = 0;
         for d in 1..depth {
             prev_score = self.aspiration_window_search(board, prev_score, d, &mut Move::nullmove());
         }
         write_stop_flag(true);
 
-        self.node_count
+        node_count()
     }
 
     pub fn go(&mut self, board: &Board, report_info: bool) -> SearchResults {
@@ -179,6 +191,7 @@ impl<'a> Searcher<'a> {
 
         let mut search_results = SearchResults::new(board);
         write_stop_flag(false);
+        reset_node_count();
         while !self.stop_searching(depth) {
             self.seldepth = 0;
 
@@ -369,7 +382,7 @@ impl<'a> Searcher<'a> {
                 continue;
             }
 
-            self.node_count += 1;
+            increment_node_count();
             moves_played += 1;
 
             let mut score = 0;
@@ -487,7 +500,7 @@ impl<'a> Searcher<'a> {
                 continue;
             }
 
-            self.node_count += 1;
+            increment_node_count();
 
             let score = -self.qsearch(&next_board, ply + 1, -beta, -alpha);
 
