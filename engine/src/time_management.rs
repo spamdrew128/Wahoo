@@ -1,16 +1,15 @@
 use std::time::Instant;
 
-use crate::board_representation::Color;
+use crate::board_representation::{Color, NUM_COLORS};
 
 pub type Milliseconds = u128;
 
 #[derive(Debug, Copy, Clone, Default, Eq, PartialEq)]
 pub struct TimeArgs {
-    pub w_time: Milliseconds,
-    pub b_time: Milliseconds,
-    pub w_inc: Milliseconds,
-    pub b_inc: Milliseconds,
+    pub time: [Milliseconds; NUM_COLORS as usize],
+    pub inc: [Milliseconds; NUM_COLORS as usize],
     pub move_time: Milliseconds,
+    pub moves_to_go: u64,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -23,15 +22,22 @@ impl TimeManager {
         Self { overhead }
     }
 
-    pub const fn calculate_search_time(self, args: TimeArgs, color: Color) -> Milliseconds {
+    pub fn calculate_search_time(self, args: TimeArgs, color: Color) -> Milliseconds {
         if args.move_time > 0 {
             return args.move_time.saturating_sub(self.overhead);
         }
 
-        match color {
-            Color::White => (args.w_time / 20 + args.w_inc / 2).saturating_sub(self.overhead),
-            Color::Black => (args.b_time / 20 + args.b_inc / 2).saturating_sub(self.overhead),
-        }
+        let time = args.time[color.as_index()];
+        let inc = args.inc[color.as_index()];
+
+        let normal_time = (time / 20 + inc / 2).saturating_sub(self.overhead);
+        let to_go_time = if args.moves_to_go > 0 {
+            (time / u128::from(args.moves_to_go)).saturating_sub(self.overhead)
+        } else {
+            0
+        };
+
+        normal_time.max(to_go_time)
     }
 }
 

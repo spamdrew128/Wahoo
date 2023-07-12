@@ -373,7 +373,7 @@ impl<'a> Searcher<'a> {
 
             // REVERSE FUTILITY PRUNING
             const RFP_MAX_DEPTH: Depth = 8;
-            const RFP_MARGIN: EvalScore = 90;
+            const RFP_MARGIN: EvalScore = 120;
 
             if depth <= RFP_MAX_DEPTH && static_eval >= (beta + RFP_MARGIN * i32::from(depth)) {
                 return static_eval;

@@ -1,5 +1,5 @@
 use engine::{
-    board_representation::{Board, START_FEN},
+    board_representation::{Board, START_FEN, Color},
     chess_move::Move,
     history_table::History,
     search::{self, Depth, Nodes, SearchLimit, Searcher},
@@ -51,7 +51,7 @@ fn kill_program() {
 }
 
 impl UciHandler {
-    const OVERHEAD_DEFAULT: Milliseconds = 40;
+    const OVERHEAD_DEFAULT: Milliseconds = 25;
     const OVERHEAD_MIN: Milliseconds = 0;
     const OVERHEAD_MAX: Milliseconds = 500;
 
@@ -220,28 +220,28 @@ impl UciHandler {
                 while let Some(arg) = args_iterator.next() {
                     match arg.as_str() {
                         "wtime" => {
-                            time_args.w_time = args_iterator
+                            time_args.time[Color::White.as_index()] = args_iterator
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
                                 .unwrap_or(0);
                         }
                         "btime" => {
-                            time_args.b_time = args_iterator
+                            time_args.time[Color::Black.as_index()] = args_iterator
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
                                 .unwrap_or(0);
                         }
                         "winc" => {
-                            time_args.w_inc = args_iterator
+                            time_args.inc[Color::White.as_index()] = args_iterator
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
                                 .unwrap_or(0);
                         }
                         "binc" => {
-                            time_args.b_inc = args_iterator
+                            time_args.inc[Color::Black.as_index()] = args_iterator
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
@@ -252,6 +252,13 @@ impl UciHandler {
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
+                                .unwrap_or(0);
+                        }
+                        "movestogo" => {
+                            time_args.moves_to_go = args_iterator
+                                .next()
+                                .unwrap()
+                                .parse::<u64>()
                                 .unwrap_or(0);
                         }
                         "depth" => {
