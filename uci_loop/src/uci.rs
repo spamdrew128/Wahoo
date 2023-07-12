@@ -51,7 +51,7 @@ fn kill_program() {
 }
 
 impl UciHandler {
-    const OVERHEAD_DEFAULT: Milliseconds = 40;
+    const OVERHEAD_DEFAULT: Milliseconds = 25;
     const OVERHEAD_MIN: Milliseconds = 0;
     const OVERHEAD_MAX: Milliseconds = 500;
 

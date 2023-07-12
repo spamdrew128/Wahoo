@@ -32,7 +32,7 @@ impl TimeManager {
 
         let normal_time = (time / 20 + inc / 2).saturating_sub(self.overhead);
         let to_go_time = if args.moves_to_go > 0 {
-            time / u128::from(args.moves_to_go)
+            time / u128::from(args.moves_to_go).saturating_sub(self.overhead)
         } else {
             0
         };
