@@ -200,7 +200,7 @@ impl<'a> Searcher<'a> {
         write_stop_flag(false);
         while !self.stop_searching::<IS_PRIMARY>(depth){
             self.seldepth = 0;
-
+            self.node_count = 0;
             let score = self.aspiration_window_search(board, search_results.score, depth, &mut search_results.best_move);
             update_node_count(self.node_count);
 
