@@ -6,7 +6,7 @@ use crate::{
 };
 
 use super::bindings::{
-    tb_free, tb_init, tb_probe_wdl_impl, TB_BLESSED_LOSS, TB_CURSED_WIN, TB_DRAW, TB_WIN, TB_LOSS,
+    tb_free, tb_init, tb_probe_wdl_impl, TB_BLESSED_LOSS, TB_CURSED_WIN, TB_DRAW, TB_WIN, TB_LOSS, TB_LARGEST,
 };
 
 pub fn init_tablebase(path: &str) {
@@ -20,6 +20,10 @@ pub fn free_tablebase() {
     unsafe {
         tb_free();
     }
+}
+
+pub fn tb_max_pieces_count() -> u8 {
+    unsafe { TB_LARGEST as u8 }
 }
 
 pub fn probe_wdl(board: &Board) -> Option<EvalScore> {
