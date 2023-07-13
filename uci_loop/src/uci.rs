@@ -6,7 +6,7 @@ use engine::{
     time_management::{Milliseconds, TimeArgs, TimeManager},
     transposition_table::TranspositionTable,
     zobrist::ZobristHash,
-    zobrist_stack::ZobristStack,
+    zobrist_stack::ZobristStack, tablebase::probe::Syzygy,
 };
 
 use std::thread;
@@ -30,6 +30,7 @@ pub struct UciHandler {
     time_manager: TimeManager,
     stored_message: Option<String>,
     threads: usize,
+    tablebase: Syzygy,
 }
 
 macro_rules! send_uci_option {
@@ -74,6 +75,7 @@ impl UciHandler {
             time_manager: TimeManager::new(Self::OVERHEAD_DEFAULT),
             stored_message: None,
             threads: Self::THREADS_DEFAULT,
+            tablebase: Syzygy::new(),
         }
     }
 
