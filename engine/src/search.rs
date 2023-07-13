@@ -50,6 +50,7 @@ fn node_count() -> Nodes {
     NODE_COUNT.load(Ordering::Relaxed)
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct SearchResults {
     pub best_move: Move,
     pub score: EvalScore,
@@ -144,6 +145,16 @@ impl<'a> Searcher<'a> {
         );
     }
 
+    fn tb_root_report(&self, search_results: SearchResults) {
+        println!(
+            "score {} nodes 0 time 0 nps 0 depth 0 seldepth 0 hashfull {} pv {}",
+            search_results.score,
+            self.tt.hashfull(),
+            search_results.best_move.as_string(),
+        );
+        println!("bestmove {}", search_results.best_move.as_string());
+    }
+
     fn stop_searching<const IS_PRIMARY: bool>(&self, depth: Depth) -> bool {
         if depth == MAX_DEPTH {
             return true;
@@ -192,16 +203,22 @@ impl<'a> Searcher<'a> {
         report_info: bool,
     ) -> SearchResults {
         if IS_PRIMARY {
+            write_stop_flag(false);
+            reset_node_count();
+
             for &limit in &self.search_limits {
                 if let SearchLimit::Time(t) = limit {
                     self.timer = Some(SearchTimer::new(t));
                 }
             }
 
-            reset_node_count();
-
             if let Some((best_move, score)) = self.tb.probe_root(board) {
-                return SearchResults { best_move, score };
+                let results = SearchResults { best_move, score };
+                if report_info {
+                    self.tb_root_report(results);
+                }
+                write_stop_flag(true);
+                return results;
             }
         }
 
@@ -209,7 +226,6 @@ impl<'a> Searcher<'a> {
         let mut depth: Depth = 1;
 
         let mut search_results = SearchResults::new(board);
-        write_stop_flag(false);
         while !self.stop_searching::<IS_PRIMARY>(depth) {
             self.seldepth = 0;
             self.node_count = 0;

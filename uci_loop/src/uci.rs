@@ -154,7 +154,8 @@ impl UciHandler {
                             val.parse::<usize>().unwrap_or(Self::THREADS_DEFAULT),
                         )),
                         "SyzygyPath" => {
-                            self.process_command(UciCommand::SetOptionSyzygyPath(val.to_owned()))
+                            let path = &message[4..].join(" ");
+                            self.process_command(UciCommand::SetOptionSyzygyPath(path.to_owned()))
                         }
                         _ => (),
                     }
@@ -195,7 +196,7 @@ impl UciHandler {
                     Self::THREADS_MIN,
                     Self::THREADS_MAX
                 );
-                send_uci_option!("SyzygyPath", "spin", "default");
+                send_uci_option!("SyzygyPath", "string", "");
 
                 println!("uciok");
             }
