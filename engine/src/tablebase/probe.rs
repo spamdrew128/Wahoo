@@ -2,10 +2,12 @@ use std::ffi::CString;
 
 use crate::{
     board_representation::{Board, Color, Piece},
-    evaluation::EvalScore,
+    evaluation::{EvalScore, TB_LOSS_SCORE, TB_WIN_SCORE},
 };
 
-use super::bindings::{tb_free, tb_init, tb_probe_wdl_impl};
+use super::bindings::{
+    tb_free, tb_init, tb_probe_wdl_impl, TB_BLESSED_LOSS, TB_CURSED_WIN, TB_DRAW, TB_WIN, TB_LOSS,
+};
 
 pub fn init_tablebase(path: &str) {
     unsafe {
@@ -38,7 +40,12 @@ pub fn probe_wdl(board: &Board) -> Option<EvalScore> {
             0,
             board.color_to_move == Color::White,
         );
-    }
 
-    None
+        match wdl {
+            TB_WIN => Some(TB_WIN_SCORE),
+            TB_LOSS => Some(TB_LOSS_SCORE),
+            TB_DRAW | TB_CURSED_WIN | TB_BLESSED_LOSS => Some(0),
+            _ => None,
+        }
+    }
 }
