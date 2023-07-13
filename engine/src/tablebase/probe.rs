@@ -33,7 +33,7 @@ pub fn probe_wdl(board: &Board) -> Option<EvalScore> {
     }
 
     let ep_sq = if let Some(sq) = board.ep_sq {
-        sq.as_u16()
+        u32::from(sq.as_u16())
     } else {
         0
     };
@@ -48,7 +48,7 @@ pub fn probe_wdl(board: &Board) -> Option<EvalScore> {
             board.pieces[Piece::BISHOP.as_index()].as_u64(),
             board.pieces[Piece::KNIGHT.as_index()].as_u64(),
             board.pieces[Piece::PAWN.as_index()].as_u64(),
-            ep_sq as u32,
+            ep_sq,
             board.color_to_move == Color::White,
         );
 
