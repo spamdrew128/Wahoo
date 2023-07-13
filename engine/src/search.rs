@@ -14,10 +14,11 @@ use crate::{
     late_move_reductions::get_reduction,
     movegen::MoveGenerator,
     pv_table::PvTable,
+    tablebase::probe::Syzygy,
     time_management::{Milliseconds, SearchTimer},
     transposition_table::{TTFlag, TranspositionTable},
     zobrist::ZobristHash,
-    zobrist_stack::ZobristStack, tablebase::probe::Syzygy,
+    zobrist_stack::ZobristStack,
 };
 
 pub type Nodes = u64;
@@ -198,6 +199,10 @@ impl<'a> Searcher<'a> {
             }
 
             reset_node_count();
+
+            if let Some((best_move, score)) = self.tb.probe_root(board) {
+                return SearchResults { best_move, score };
+            }
         }
 
         let stopwatch = std::time::Instant::now();

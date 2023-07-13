@@ -115,7 +115,7 @@ impl Syzygy {
         }
     }
 
-    fn probe_root(self, board: &Board) -> Option<(Move, EvalScore)> {
+    pub fn probe_root(self, board: &Board) -> Option<(Move, EvalScore)> {
         if !self.can_probe(board) || board.castle_rights.not_empty() {
             return None;
         }
