@@ -378,6 +378,14 @@ impl<'a> Searcher<'a> {
             Move::nullmove()
         };
 
+        // SYZYGY TABLEBASE PROBING
+        if !is_root {
+            if let Some(score) = self.tb.probe_score(board) {
+                self.tt.store(TTFlag::EXACT, score, hash, ply, depth, Move::nullmove());
+                return score;
+            }
+        }
+
         if !is_pv && !in_check {
             let static_eval = evaluate(board);
 
