@@ -296,6 +296,7 @@ impl UciHandler {
                     &self.zobrist_stack,
                     &self.history,
                     &self.tt,
+                    self.tablebase,
                 );
                 let mut secondary_searchers = vec![];
                 for _ in 1..self.threads {
@@ -304,6 +305,7 @@ impl UciHandler {
                         &self.zobrist_stack,
                         &self.history,
                         &self.tt,
+                        self.tablebase,
                     ));
                 }
 

@@ -17,7 +17,7 @@ use crate::{
     time_management::{Milliseconds, SearchTimer},
     transposition_table::{TTFlag, TranspositionTable},
     zobrist::ZobristHash,
-    zobrist_stack::ZobristStack,
+    zobrist_stack::ZobristStack, tablebase::probe::Syzygy,
 };
 
 pub type Nodes = u64;
@@ -78,6 +78,7 @@ pub struct Searcher<'a> {
     history: History,
     killers: Killers,
     tt: &'a TranspositionTable,
+    tb: Syzygy,
 
     node_count: Nodes,
     timer: Option<SearchTimer>,
@@ -92,6 +93,7 @@ impl<'a> Searcher<'a> {
         zobrist_stack: &ZobristStack,
         history: &History,
         tt: &'a TranspositionTable,
+        tb: Syzygy,
     ) -> Self {
         Self {
             search_limits,
@@ -99,6 +101,7 @@ impl<'a> Searcher<'a> {
             history: history.clone(),
             killers: Killers::new(),
             tt,
+            tb,
             pv_table: PvTable::new(),
             node_count: 0,
             timer: None,
