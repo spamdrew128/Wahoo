@@ -148,7 +148,7 @@ impl DataGenerator {
                 &tt,
             );
 
-            let SearchResults { best_move, score } = searcher.go(&self.board, false);
+            let SearchResults { best_move, score } = searcher.go::<true>(&self.board, false);
             searcher.search_complete_actions(&mut history);
 
             if score > MATE_THRESHOLD {

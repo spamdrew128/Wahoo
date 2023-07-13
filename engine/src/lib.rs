@@ -10,9 +10,8 @@
 #![allow(clippy::similar_names)]
 #![allow(clippy::items_after_statements)]
 #![allow(clippy::option_if_let_else)]
-#![allow(dead_code)] // remove later
 
-mod attacks;
+pub mod attacks;
 pub mod bench;
 pub mod board_representation;
 pub mod chess_move;
@@ -24,12 +23,13 @@ mod late_move_reductions;
 mod magic;
 pub mod movegen;
 mod perft;
-mod pst;
+pub mod piece_loop_eval;
+mod piece_tables;
 mod pv_table;
 pub mod search;
 pub mod time_management;
+pub mod trace;
 pub mod transposition_table;
-pub mod uci;
 mod util_macros;
 pub mod zobrist;
 pub mod zobrist_stack;

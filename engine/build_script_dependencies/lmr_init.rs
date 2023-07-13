@@ -7,8 +7,7 @@ type ReductionTable = [[Depth; MAX_MOVECOUNT as usize]; MAX_PLY as usize];
 #[allow(clippy::needless_range_loop)]
 pub fn lmr_init_string() -> String {
     const LMR_BASE: f64 = 0.77;
-    // const LMR_DIVISOR: f64  = 2.36; commented out because more aggressive than I wanted for now
-    const LMR_DIVISOR: f64 = 3.0;
+    const LMR_DIVISOR: f64  = 2.36;
 
     let mut reduction_table: ReductionTable = [[0; MAX_MOVECOUNT as usize]; MAX_PLY as usize];
     for d in 0..MAX_PLY {

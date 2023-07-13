@@ -46,7 +46,7 @@ impl ZobristHash {
         for color in Color::LIST {
             for piece in Piece::LIST {
                 let mut piece_bb = board.piece_bb(piece, color);
-                bitloop!(|sq|, piece_bb, {
+                bitloop!(|sq| piece_bb, {
                     hash.hash_piece(color, piece, sq);
                 });
             }
