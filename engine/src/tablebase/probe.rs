@@ -6,7 +6,8 @@ use crate::{
 };
 
 use super::bindings::{
-    tb_free, tb_init, tb_probe_wdl_impl, TB_BLESSED_LOSS, TB_CURSED_WIN, TB_DRAW, TB_WIN, TB_LOSS, TB_LARGEST,
+    tb_free, tb_init, tb_probe_wdl_impl, TB_BLESSED_LOSS, TB_CURSED_WIN, TB_DRAW, TB_LARGEST,
+    TB_LOSS, TB_WIN,
 };
 
 pub fn init_tablebase(path: &str) {
@@ -31,6 +32,12 @@ pub fn probe_wdl(board: &Board) -> Option<EvalScore> {
         return None;
     }
 
+    let ep_sq = if let Some(sq) = board.ep_sq {
+        sq.as_u16()
+    } else {
+        0
+    };
+
     unsafe {
         let wdl = tb_probe_wdl_impl(
             board.all[Color::White.as_index()].as_u64(),
@@ -41,7 +48,7 @@ pub fn probe_wdl(board: &Board) -> Option<EvalScore> {
             board.pieces[Piece::BISHOP.as_index()].as_u64(),
             board.pieces[Piece::KNIGHT.as_index()].as_u64(),
             board.pieces[Piece::PAWN.as_index()].as_u64(),
-            0,
+            ep_sq as u32,
             board.color_to_move == Color::White,
         );
 
