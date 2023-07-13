@@ -72,7 +72,7 @@ impl Syzygy {
     pub fn activate(&mut self, path: &str) {
         unsafe {
             let syzygy_path = CString::new(path).unwrap();
-            assert!(tb_init(syzygy_path.as_ptr()), "TB failed to initalize");
+            assert!(tb_init(syzygy_path.as_ptr()), "TB failed to initalize with path {path}");
         }
         self.active = true;
         self.n_men = unsafe { TB_LARGEST as u8 };

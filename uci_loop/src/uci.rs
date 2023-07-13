@@ -20,6 +20,7 @@ enum UciCommand {
     SetOptionOverhead(Milliseconds),
     SetOptionHash(usize),
     SetOptionThreads(usize),
+    SetOptionSyzygyPath(String),
 }
 
 pub struct UciHandler {
@@ -151,6 +152,9 @@ impl UciHandler {
                         "Threads" => self.process_command(UciCommand::SetOptionThreads(
                             val.parse::<usize>().unwrap_or(Self::THREADS_DEFAULT),
                         )),
+                        "SyzygyPath" => self.process_command(UciCommand::SetOptionSyzygyPath(
+                            val.to_owned()
+                        )),
                         _ => (),
                     }
                 }
@@ -189,6 +193,12 @@ impl UciHandler {
                     Self::THREADS_DEFAULT,
                     Self::THREADS_MIN,
                     Self::THREADS_MAX
+                );
+                send_uci_option!(
+                    "SyzygyPath",
+                    "spin",
+                    "default {}",
+                    ""
                 );
 
                 println!("uciok");
@@ -327,6 +337,9 @@ impl UciHandler {
             }
             UciCommand::SetOptionThreads(count) => {
                 self.threads = count.clamp(Self::THREADS_MIN, Self::THREADS_MAX);
+            }
+            UciCommand::SetOptionSyzygyPath(path) => {
+                self.tablebase.activate(path.as_str());
             }
         }
     }
