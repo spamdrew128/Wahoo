@@ -24,6 +24,7 @@ fn build_fathom() {
     cc.include("./fathom/src/");
     cc.define("_CRT_SECURE_NO_WARNINGS", None);
     cc.flag("-march=native");
+    cc.flag("-w");
 
     // MSVC doesn't support stdatomic.h, so use clang on Windows
     if env::consts::OS == "windows" {
