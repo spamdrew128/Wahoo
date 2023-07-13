@@ -33,3 +33,4 @@ pub mod transposition_table;
 mod util_macros;
 pub mod zobrist;
 pub mod zobrist_stack;
+mod tablebase;
