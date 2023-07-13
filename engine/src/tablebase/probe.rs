@@ -8,8 +8,8 @@ use crate::{
 };
 
 use super::bindings::{
-    tb_free, tb_init, tb_probe_root_impl, tb_probe_wdl_impl, TB_BLESSED_LOSS, TB_CURSED_WIN,
-    TB_DRAW, TB_LARGEST, TB_LOSS, TB_PROMOTES_BISHOP, TB_PROMOTES_KNIGHT, TB_PROMOTES_QUEEN,
+    tb_init, tb_probe_root_impl, tb_probe_wdl_impl, TB_BLESSED_LOSS, TB_CURSED_WIN, TB_DRAW,
+    TB_LARGEST, TB_LOSS, TB_PROMOTES_BISHOP, TB_PROMOTES_KNIGHT, TB_PROMOTES_QUEEN,
     TB_PROMOTES_ROOK, TB_RESULT_FROM_MASK, TB_RESULT_FROM_SHIFT, TB_RESULT_PROMOTES_MASK,
     TB_RESULT_PROMOTES_SHIFT, TB_RESULT_TO_MASK, TB_RESULT_TO_SHIFT, TB_RESULT_WDL_MASK,
     TB_RESULT_WDL_SHIFT, TB_WIN,
@@ -51,6 +51,7 @@ impl SyzygyResult {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct Syzygy {
     active: bool,
     n_men: u8,
@@ -64,11 +65,11 @@ impl Syzygy {
         }
     }
 
-    pub const fn can_probe(self, board: &Board) -> bool {
+    const fn can_probe(self, board: &Board) -> bool {
         self.active && self.n_men >= (board.occupied().popcount() as u8)
     }
 
-    pub fn init_tablebase(&mut self, path: &str) {
+    pub fn activate(&mut self, path: &str) {
         unsafe {
             let syzygy_path = CString::new(path).unwrap();
             assert!(tb_init(syzygy_path.as_ptr()), "TB failed to initalize");
@@ -77,8 +78,8 @@ impl Syzygy {
         self.n_men = unsafe { TB_LARGEST as u8 };
     }
 
-    pub fn probe_wdl(self, board: &Board) -> Option<EvalScore> {
-        if (self.can_probe(board) || board.halfmoves != 0) || board.castle_rights.not_empty() {
+    pub fn probe_score(self, board: &Board) -> Option<EvalScore> {
+        if !self.can_probe(board) || board.halfmoves != 0 || board.castle_rights.not_empty() {
             return None;
         }
 
@@ -112,7 +113,7 @@ impl Syzygy {
     }
 
     fn probe_root(self, board: &Board) -> Option<(Move, EvalScore)> {
-        if self.can_probe(board) && board.castle_rights.not_empty() {
+        if !self.can_probe(board) || board.castle_rights.not_empty() {
             return None;
         }
 
@@ -149,5 +150,45 @@ impl Syzygy {
         }
 
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{board_representation::Board, evaluation::TB_WIN_SCORE};
+
+    use super::Syzygy;
+
+    #[test]
+    fn can_probe() {
+        let path = "C:\\Users\\Andrew\\OneDrive\\Desktop\\Bitmapped Chess\\3-4-5";
+        let mut tb = Syzygy::new();
+        tb.activate(path);
+
+        let board = Board::from_fen("8/3kr3/8/8/8/8/2K5/2Q5 w - - 0 1");
+        if let Some((mv, score)) = tb.probe_root(&board) {
+            println!("{}", mv.as_string());
+            assert_eq!(score, TB_WIN_SCORE);
+            assert_eq!(score, tb.probe_score(&board).unwrap());
+        } else {
+            panic!("Probe failed")
+        }
+    }
+
+    #[test]
+    fn halfmove_handling() {
+        let path = "C:\\Users\\Andrew\\OneDrive\\Desktop\\Bitmapped Chess\\3-4-5";
+        let mut tb = Syzygy::new();
+        tb.activate(path);
+        let mut board = Board::from_fen("8/3kr3/8/8/8/8/2K5/2Q5 w - - 0 1");
+        board.halfmoves = 70;
+
+        if let Some((mv, score)) = tb.probe_root(&board) {
+            println!("{}", mv.as_string());
+            assert_eq!(score, 0);
+            assert!(tb.probe_score(&board).is_none());
+        } else {
+            panic!("Probe failed")
+        }
     }
 }
