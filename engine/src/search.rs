@@ -83,6 +83,7 @@ pub struct Searcher<'a> {
     tb: Syzygy,
 
     node_count: Nodes,
+    tb_hits: u64,
     timer: Option<SearchTimer>,
     seldepth: u8,
 }
@@ -106,6 +107,7 @@ impl<'a> Searcher<'a> {
             tb,
             pv_table: PvTable::new(),
             node_count: 0,
+            tb_hits: 0,
             timer: None,
             seldepth: 0,
         }
@@ -136,18 +138,19 @@ impl<'a> Searcher<'a> {
 
         print!("info ");
         println!(
-            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} hashfull {} pv {}",
+            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} hashfull {} tbhits {} pv {}",
             node_count(),
             elapsed.as_millis(),
             self.seldepth,
             self.tt.hashfull(),
+            self.tb_hits,
             self.pv_table.pv_string()
         );
     }
 
     fn tb_root_report(&self, search_results: SearchResults) {
         println!(
-            "score {} nodes 0 time 0 nps 0 depth 0 seldepth 0 hashfull {} pv {}",
+            "score {} nodes 0 time 0 nps 0 depth 0 seldepth 0 hashfull {} tbhits 1 pv {}",
             search_results.score,
             self.tt.hashfull(),
             search_results.best_move.as_string(),
@@ -381,6 +384,7 @@ impl<'a> Searcher<'a> {
         // SYZYGY TABLEBASE PROBING
         if !is_root {
             if let Some(score) = self.tb.probe_score(board) {
+                self.tb_hits += 1;
                 self.tt.store(TTFlag::EXACT, score, hash, ply, depth, Move::nullmove());
                 return score;
             }
