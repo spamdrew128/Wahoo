@@ -1,5 +1,6 @@
 mod build_script_dependencies;
 
+use std::env;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
@@ -21,4 +22,33 @@ fn main() {
     gen_output_file("magic_lookup_init.rs", magic_table_init_string);
     gen_output_file("zobrist_keys_init.rs", zobrist_keys_init_string);
     gen_output_file("lmr_init.rs", lmr_init_string);
+}
+
+fn build_fathom() {
+    let cc = &mut cc::Build::new();
+    cc.file("./deps/fathom/src/tbprobe.c");
+    cc.include("./deps/fathom/src/");
+    cc.define("_CRT_SECURE_NO_WARNINGS", None);
+
+    // MSVC doesn't support stdatomic.h, so use clang on Windows
+    if env::consts::OS == "windows" {
+        cc.compiler("clang");
+    }
+
+    cc.compile("fathom");
+}
+
+fn generate_bindings() {
+    generate_fathom_bindings();
+}
+
+fn generate_fathom_bindings() {
+    let bindings = bindgen::Builder::default()
+        .header("./deps/fathom/src/tbprobe.h")
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .layout_tests(false)
+        .generate()
+        .unwrap();
+
+    bindings.write_to_file("./src/tablebases/bindings.rs").unwrap();
 }
