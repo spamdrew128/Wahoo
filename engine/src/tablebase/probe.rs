@@ -19,7 +19,7 @@ use super::bindings::{
 struct SyzygyResult(u32);
 
 impl SyzygyResult {
-    fn score(self) -> EvalScore {
+    const fn score(self) -> EvalScore {
         let wdl = (self.0 & TB_RESULT_WDL_MASK) >> TB_RESULT_WDL_SHIFT;
         match wdl {
             TB_WIN => TB_WIN_SCORE,
@@ -51,93 +51,103 @@ impl SyzygyResult {
     }
 }
 
-pub fn init_tablebase(path: &str) {
-    unsafe {
-        let syzygy_path = CString::new(path).unwrap();
-        assert!(tb_init(syzygy_path.as_ptr()), "TB failed to initalize");
-    }
+pub struct Syzygy {
+    active: bool,
+    n_men: u8,
 }
 
-pub fn free_tablebase() {
-    unsafe {
-        tb_free();
-    }
-}
-
-pub fn tb_max_pieces_count() -> u8 {
-    unsafe { TB_LARGEST as u8 }
-}
-
-pub fn probe_wdl(board: &Board) -> Option<EvalScore> {
-    if (board.halfmoves != 0) || board.castle_rights.not_empty() {
-        return None;
-    }
-
-    let ep_sq = if let Some(sq) = board.ep_sq {
-        u32::from(sq.as_u16())
-    } else {
-        0
-    };
-
-    unsafe {
-        let wdl = tb_probe_wdl_impl(
-            board.all[Color::White.as_index()].as_u64(),
-            board.all[Color::Black.as_index()].as_u64(),
-            board.pieces[Piece::KING.as_index()].as_u64(),
-            board.pieces[Piece::QUEEN.as_index()].as_u64(),
-            board.pieces[Piece::ROOK.as_index()].as_u64(),
-            board.pieces[Piece::BISHOP.as_index()].as_u64(),
-            board.pieces[Piece::KNIGHT.as_index()].as_u64(),
-            board.pieces[Piece::PAWN.as_index()].as_u64(),
-            ep_sq,
-            board.color_to_move == Color::White,
-        );
-
-        match wdl {
-            TB_WIN => Some(TB_WIN_SCORE),
-            TB_LOSS => Some(TB_LOSS_SCORE),
-            TB_DRAW | TB_CURSED_WIN | TB_BLESSED_LOSS => Some(0),
-            _ => None,
+impl Syzygy {
+    pub const fn new() -> Self {
+        Self {
+            active: false,
+            n_men: 0,
         }
     }
-}
 
-fn probe_root(board: &Board) -> Option<(Move, EvalScore)> {
-    if board.castle_rights.not_empty() {
-        return None;
+    pub const fn can_probe(self, board: &Board) -> bool {
+        self.active && self.n_men >= (board.occupied().popcount() as u8)
     }
 
-    let ep_sq = if let Some(sq) = board.ep_sq {
-        u32::from(sq.as_u16())
-    } else {
-        0
-    };
+    pub fn init_tablebase(&mut self, path: &str) {
+        unsafe {
+            let syzygy_path = CString::new(path).unwrap();
+            assert!(tb_init(syzygy_path.as_ptr()), "TB failed to initalize");
+        }
+        self.active = true;
+        self.n_men = unsafe { TB_LARGEST as u8 };
+    }
 
-    unsafe {
-        let result = SyzygyResult(tb_probe_root_impl(
-            board.all[Color::White.as_index()].as_u64(),
-            board.all[Color::Black.as_index()].as_u64(),
-            board.pieces[Piece::KING.as_index()].as_u64(),
-            board.pieces[Piece::QUEEN.as_index()].as_u64(),
-            board.pieces[Piece::ROOK.as_index()].as_u64(),
-            board.pieces[Piece::BISHOP.as_index()].as_u64(),
-            board.pieces[Piece::KNIGHT.as_index()].as_u64(),
-            board.pieces[Piece::PAWN.as_index()].as_u64(),
-            u32::from(board.halfmoves),
-            ep_sq,
-            board.color_to_move == Color::White,
-            ptr::null_mut(),
-        ));
+    pub fn probe_wdl(self, board: &Board) -> Option<EvalScore> {
+        if (self.can_probe(board) || board.halfmoves != 0) || board.castle_rights.not_empty() {
+            return None;
+        }
 
-        let score = result.score();
+        let ep_sq = if let Some(sq) = board.ep_sq {
+            u32::from(sq.as_u16())
+        } else {
+            0
+        };
 
-        let mut generator = MoveGenerator::new();
-        while let Some(mv) = generator.simple_next::<true>(board) {
-            if result.matches_move(mv) {
-                return Some((mv, score));
+        unsafe {
+            let wdl = tb_probe_wdl_impl(
+                board.all[Color::White.as_index()].as_u64(),
+                board.all[Color::Black.as_index()].as_u64(),
+                board.pieces[Piece::KING.as_index()].as_u64(),
+                board.pieces[Piece::QUEEN.as_index()].as_u64(),
+                board.pieces[Piece::ROOK.as_index()].as_u64(),
+                board.pieces[Piece::BISHOP.as_index()].as_u64(),
+                board.pieces[Piece::KNIGHT.as_index()].as_u64(),
+                board.pieces[Piece::PAWN.as_index()].as_u64(),
+                ep_sq,
+                board.color_to_move == Color::White,
+            );
+
+            match wdl {
+                TB_WIN => Some(TB_WIN_SCORE),
+                TB_LOSS => Some(TB_LOSS_SCORE),
+                TB_DRAW | TB_CURSED_WIN | TB_BLESSED_LOSS => Some(0),
+                _ => None,
             }
         }
     }
 
-    None
+    fn probe_root(self, board: &Board) -> Option<(Move, EvalScore)> {
+        if self.can_probe(board) && board.castle_rights.not_empty() {
+            return None;
+        }
+
+        let ep_sq = if let Some(sq) = board.ep_sq {
+            u32::from(sq.as_u16())
+        } else {
+            0
+        };
+
+        unsafe {
+            let result = SyzygyResult(tb_probe_root_impl(
+                board.all[Color::White.as_index()].as_u64(),
+                board.all[Color::Black.as_index()].as_u64(),
+                board.pieces[Piece::KING.as_index()].as_u64(),
+                board.pieces[Piece::QUEEN.as_index()].as_u64(),
+                board.pieces[Piece::ROOK.as_index()].as_u64(),
+                board.pieces[Piece::BISHOP.as_index()].as_u64(),
+                board.pieces[Piece::KNIGHT.as_index()].as_u64(),
+                board.pieces[Piece::PAWN.as_index()].as_u64(),
+                u32::from(board.halfmoves),
+                ep_sq,
+                board.color_to_move == Color::White,
+                ptr::null_mut(),
+            ));
+
+            let score = result.score();
+
+            let mut generator = MoveGenerator::new();
+            while let Some(mv) = generator.simple_next::<true>(board) {
+                if result.matches_move(mv) {
+                    return Some((mv, score));
+                }
+            }
+        }
+
+        None
+    }
 }
