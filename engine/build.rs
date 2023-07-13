@@ -41,14 +41,16 @@ fn generate_fathom_bindings() {
         .generate()
         .unwrap();
 
-    bindings.write_to_file("./src/tablebase/bindings.rs").unwrap();
+    bindings
+        .write_to_file("./src/tablebase/bindings.rs")
+        .unwrap();
 }
 
 fn main() {
     gen_output_file("magic_lookup_init.rs", magic_table_init_string);
     gen_output_file("zobrist_keys_init.rs", zobrist_keys_init_string);
     gen_output_file("lmr_init.rs", lmr_init_string);
-    
+
     build_fathom();
     generate_fathom_bindings();
 }

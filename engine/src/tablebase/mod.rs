@@ -7,4 +7,4 @@
     clippy::pedantic
 )]
 mod bindings;
-pub mod probe;
+mod probe;

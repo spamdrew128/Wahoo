@@ -1,5 +1,5 @@
 use engine::{
-    board_representation::{Board, START_FEN, Color},
+    board_representation::{Board, Color, START_FEN},
     chess_move::Move,
     history_table::History,
     search::{self, Depth, Nodes, SearchLimit, Searcher},
@@ -255,11 +255,8 @@ impl UciHandler {
                                 .unwrap_or(0);
                         }
                         "movestogo" => {
-                            time_args.moves_to_go = args_iterator
-                                .next()
-                                .unwrap()
-                                .parse::<u64>()
-                                .unwrap_or(0);
+                            time_args.moves_to_go =
+                                args_iterator.next().unwrap().parse::<u64>().unwrap_or(0);
                         }
                         "depth" => {
                             let depth = args_iterator.next().unwrap().parse::<Depth>().unwrap_or(0);
@@ -286,10 +283,20 @@ impl UciHandler {
                     ));
                 }
 
-                let mut searcher = Searcher::new(search_limits.clone(), &self.zobrist_stack, &self.history, &self.tt);
+                let mut searcher = Searcher::new(
+                    search_limits.clone(),
+                    &self.zobrist_stack,
+                    &self.history,
+                    &self.tt,
+                );
                 let mut secondary_searchers = vec![];
                 for _ in 1..self.threads {
-                    secondary_searchers.push(Searcher::new(search_limits.clone(), &self.zobrist_stack, &self.history, &self.tt));
+                    secondary_searchers.push(Searcher::new(
+                        search_limits.clone(),
+                        &self.zobrist_stack,
+                        &self.history,
+                        &self.tt,
+                    ));
                 }
 
                 thread::scope(|s| {
@@ -315,7 +322,7 @@ impl UciHandler {
             }
             UciCommand::SetOptionHash(megabytes) => {
                 self.tt = TranspositionTable::new(megabytes.clamp(Self::HASH_MIN, Self::HASH_MAX));
-            },
+            }
             UciCommand::SetOptionThreads(count) => {
                 self.threads = count.clamp(Self::THREADS_MIN, Self::THREADS_MAX);
             }

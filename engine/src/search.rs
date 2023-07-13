@@ -1,5 +1,5 @@
 use std::{
-    sync::atomic::{AtomicBool, Ordering, AtomicU64},
+    sync::atomic::{AtomicBool, AtomicU64, Ordering},
     time::Instant,
 };
 
@@ -182,7 +182,11 @@ impl<'a> Searcher<'a> {
         self.node_count
     }
 
-    pub fn go<const IS_PRIMARY: bool>(&mut self, board: &Board, report_info: bool) -> SearchResults {
+    pub fn go<const IS_PRIMARY: bool>(
+        &mut self,
+        board: &Board,
+        report_info: bool,
+    ) -> SearchResults {
         if IS_PRIMARY {
             for &limit in &self.search_limits {
                 if let SearchLimit::Time(t) = limit {
@@ -198,10 +202,15 @@ impl<'a> Searcher<'a> {
 
         let mut search_results = SearchResults::new(board);
         write_stop_flag(false);
-        while !self.stop_searching::<IS_PRIMARY>(depth){
+        while !self.stop_searching::<IS_PRIMARY>(depth) {
             self.seldepth = 0;
             self.node_count = 0;
-            let score = self.aspiration_window_search(board, search_results.score, depth, &mut search_results.best_move);
+            let score = self.aspiration_window_search(
+                board,
+                search_results.score,
+                depth,
+                &mut search_results.best_move,
+            );
             update_node_count(self.node_count);
 
             if stop_flag_is_set() {
