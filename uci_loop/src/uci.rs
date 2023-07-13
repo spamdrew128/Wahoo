@@ -3,10 +3,11 @@ use engine::{
     chess_move::Move,
     history_table::History,
     search::{self, Depth, Nodes, SearchLimit, Searcher},
+    tablebase::probe::Syzygy,
     time_management::{Milliseconds, TimeArgs, TimeManager},
     transposition_table::TranspositionTable,
     zobrist::ZobristHash,
-    zobrist_stack::ZobristStack, tablebase::probe::Syzygy,
+    zobrist_stack::ZobristStack,
 };
 
 use std::thread;
@@ -152,9 +153,9 @@ impl UciHandler {
                         "Threads" => self.process_command(UciCommand::SetOptionThreads(
                             val.parse::<usize>().unwrap_or(Self::THREADS_DEFAULT),
                         )),
-                        "SyzygyPath" => self.process_command(UciCommand::SetOptionSyzygyPath(
-                            val.to_owned()
-                        )),
+                        "SyzygyPath" => {
+                            self.process_command(UciCommand::SetOptionSyzygyPath(val.to_owned()))
+                        }
                         _ => (),
                     }
                 }
@@ -194,12 +195,7 @@ impl UciHandler {
                     Self::THREADS_MIN,
                     Self::THREADS_MAX
                 );
-                send_uci_option!(
-                    "SyzygyPath",
-                    "spin",
-                    "default {}",
-                    ""
-                );
+                send_uci_option!("SyzygyPath", "spin", "default");
 
                 println!("uciok");
             }

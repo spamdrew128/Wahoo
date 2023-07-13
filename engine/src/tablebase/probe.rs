@@ -12,7 +12,7 @@ use super::bindings::{
     TB_LARGEST, TB_LOSS, TB_PROMOTES_BISHOP, TB_PROMOTES_KNIGHT, TB_PROMOTES_QUEEN,
     TB_PROMOTES_ROOK, TB_RESULT_FROM_MASK, TB_RESULT_FROM_SHIFT, TB_RESULT_PROMOTES_MASK,
     TB_RESULT_PROMOTES_SHIFT, TB_RESULT_TO_MASK, TB_RESULT_TO_SHIFT, TB_RESULT_WDL_MASK,
-    TB_RESULT_WDL_SHIFT, TB_WIN, tb_free,
+    TB_RESULT_WDL_SHIFT, TB_WIN,
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -72,7 +72,10 @@ impl Syzygy {
     pub fn activate(&mut self, path: &str) {
         unsafe {
             let syzygy_path = CString::new(path).unwrap();
-            assert!(tb_init(syzygy_path.as_ptr()), "TB failed to initalize with path {path}");
+            assert!(
+                tb_init(syzygy_path.as_ptr()),
+                "TB failed to initalize with path {path}"
+            );
         }
         self.active = true;
         self.n_men = unsafe { TB_LARGEST as u8 };
