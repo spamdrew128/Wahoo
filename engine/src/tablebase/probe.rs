@@ -1,4 +1,4 @@
-use std::ffi::CString;
+use std::{ffi::CString, ptr};
 
 use crate::{
     board_representation::{Board, Color, Piece},
@@ -6,8 +6,8 @@ use crate::{
 };
 
 use super::bindings::{
-    tb_free, tb_init, tb_probe_wdl_impl, TB_BLESSED_LOSS, TB_CURSED_WIN, TB_DRAW, TB_LARGEST,
-    TB_LOSS, TB_WIN,
+    tb_free, tb_init, tb_probe_root_impl, tb_probe_wdl_impl, TB_BLESSED_LOSS, TB_CURSED_WIN,
+    TB_DRAW, TB_LARGEST, TB_LOSS, TB_WIN,
 };
 
 pub fn init_tablebase(path: &str) {
@@ -58,5 +58,34 @@ pub fn probe_wdl(board: &Board) -> Option<EvalScore> {
             TB_DRAW | TB_CURSED_WIN | TB_BLESSED_LOSS => Some(0),
             _ => None,
         }
+    }
+}
+
+fn probe_root(board: &Board) {
+    // if board.castle_rights.not_empty() {
+    //     return None;
+    // }
+
+    let ep_sq = if let Some(sq) = board.ep_sq {
+        u32::from(sq.as_u16())
+    } else {
+        0
+    };
+
+    unsafe {
+        let result = tb_probe_root_impl(
+            board.all[Color::White.as_index()].as_u64(),
+            board.all[Color::Black.as_index()].as_u64(),
+            board.pieces[Piece::KING.as_index()].as_u64(),
+            board.pieces[Piece::QUEEN.as_index()].as_u64(),
+            board.pieces[Piece::ROOK.as_index()].as_u64(),
+            board.pieces[Piece::BISHOP.as_index()].as_u64(),
+            board.pieces[Piece::KNIGHT.as_index()].as_u64(),
+            board.pieces[Piece::PAWN.as_index()].as_u64(),
+            u32::from(board.halfmoves),
+            ep_sq,
+            board.color_to_move == Color::White,
+            ptr::null_mut(),
+        );
     }
 }
