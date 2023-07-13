@@ -20,8 +20,8 @@ fn gen_output_file(name: &str, generator: fn() -> String) {
 
 fn build_fathom() {
     let cc = &mut cc::Build::new();
-    cc.file("./fathom/src/tbprobe.c");
-    cc.include("./fathom/src/");
+    cc.file("./3rdparty/fathom/src/tbprobe.c");
+    cc.include("./3rdparty/fathom/src/");
     cc.define("_CRT_SECURE_NO_WARNINGS", None);
     cc.flag("-march=native");
     cc.flag("-w");
@@ -36,7 +36,7 @@ fn build_fathom() {
 
 fn generate_fathom_bindings() {
     let bindings = bindgen::Builder::default()
-        .header("./fathom/src/tbprobe.h")
+        .header("./3rdparty/fathom/src/tbprobe.h")
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .layout_tests(false)
         .generate()
