@@ -4,6 +4,7 @@ use crate::{
     board_representation::{Board, Color, Piece, Square},
     chess_move::{Flag, Move},
     evaluation::{EvalScore, TB_LOSS_SCORE, TB_WIN_SCORE},
+    movegen::MoveGenerator,
 };
 
 use super::bindings::{
@@ -14,6 +15,7 @@ use super::bindings::{
     TB_RESULT_WDL_SHIFT, TB_WIN,
 };
 
+#[derive(Debug, Copy, Clone)]
 struct SyzygyResult(u32);
 
 impl SyzygyResult {
@@ -100,10 +102,10 @@ pub fn probe_wdl(board: &Board) -> Option<EvalScore> {
     }
 }
 
-fn probe_root(board: &Board) {
-    // if board.castle_rights.not_empty() {
-    //     return None;
-    // }
+fn probe_root(board: &Board) -> Option<(Move, EvalScore)> {
+    if board.castle_rights.not_empty() {
+        return None;
+    }
 
     let ep_sq = if let Some(sq) = board.ep_sq {
         u32::from(sq.as_u16())
@@ -126,5 +128,16 @@ fn probe_root(board: &Board) {
             board.color_to_move == Color::White,
             ptr::null_mut(),
         ));
+
+        let score = result.score();
+
+        let mut generator = MoveGenerator::new();
+        while let Some(mv) = generator.simple_next::<true>(board) {
+            if result.matches_move(mv) {
+                return Some((mv, score));
+            }
+        }
     }
+
+    None
 }
