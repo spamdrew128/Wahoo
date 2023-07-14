@@ -491,6 +491,7 @@ impl<'a> Searcher<'a> {
                 best_score = score;
 
                 if score >= beta {
+                    best_move = mv;
                     if is_quiet {
                         self.killers.update(mv, ply);
                         self.history.update(board, quiets.as_slice(), depth);
