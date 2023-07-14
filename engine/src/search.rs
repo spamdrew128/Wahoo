@@ -488,7 +488,6 @@ impl<'a> Searcher<'a> {
             }
 
             if score > best_score {
-                best_move = mv;
                 best_score = score;
 
                 if score >= beta {
@@ -500,6 +499,7 @@ impl<'a> Searcher<'a> {
                 }
 
                 if score > alpha {
+                    best_move = mv;
                     alpha = score;
                     self.pv_table.update(ply, mv);
                 }
