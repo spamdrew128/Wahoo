@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::{
     chess_move::Move,
-    evaluation::{EvalScore, MATE_THRESHOLD},
+    evaluation::{EvalScore, MATE_THRESHOLD, TB_LOSS_SCORE, TB_WIN_SCORE},
     search::{Depth, Ply},
     zobrist::ZobristHash,
 };
@@ -93,9 +93,9 @@ impl TTEntry {
 
     fn score_to_tt(score: EvalScore, ply: Ply) -> i16 {
         // Adjust to be relative to the node, rather than relative to the position
-        if score >= MATE_THRESHOLD {
+        if score >= TB_WIN_SCORE {
             (score as i16) + i16::from(ply)
-        } else if score <= -MATE_THRESHOLD {
+        } else if score <= TB_LOSS_SCORE {
             (score as i16) - i16::from(ply)
         } else {
             score as i16

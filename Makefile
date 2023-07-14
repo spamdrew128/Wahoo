@@ -1,6 +1,13 @@
-EXE = wahoo
+EXE := wahoo
 TUNER_EXE := tuner
 GENERATOR_EXE := data_generator
+
+TB := N
+FEATURES :=
+
+ifeq ($(TB),Y)
+	FEATURES = --features engine/syzygy
+endif
 
 ifeq ($(OS),Windows_NT)
 	NAME := $(EXE).exe
@@ -25,19 +32,19 @@ else
 endif
 
 rule:
-	cargo rustc --release -p uci_loop -- -C target-cpu=native --emit link=$(NAME)
+	cargo rustc --release $(FEATURES) -p uci_loop -- -C target-cpu=native --emit link=$(NAME)
 
 tuner:
-	cargo rustc --release -p tuning -- -C target-cpu=native --emit link=$(TUNER_NAME)
+	cargo rustc --release $(FEATURES) -p tuning -- -C target-cpu=native --emit link=$(TUNER_NAME)
 
 generator:
-	cargo rustc --release -p datagen -- -C target-cpu=native --emit link=$(GENERATOR_NAME)
+	cargo rustc --release $(FEATURES) -p datagen -- -C target-cpu=native --emit link=$(GENERATOR_NAME)
 
 release:
-	cargo rustc --release -p uci_loop -- -C target-cpu=x86-64 --emit link=$(V1NAME)
-	cargo rustc --release -p uci_loop -- -C target-cpu=x86-64-v2 --emit link=$(V2NAME)
-	cargo rustc --release -p uci_loop -- -C target-cpu=x86-64-v3 --emit link=$(V3NAME)
-	cargo rustc --release -p uci_loop -- -C target-cpu=x86-64-v4 --emit link=$(V4NAME)
+	cargo rustc --release $(FEATURES) -p uci_loop -- -C target-cpu=x86-64 --emit link=$(V1NAME)
+	cargo rustc --release $(FEATURES) -p uci_loop -- -C target-cpu=x86-64-v2 --emit link=$(V2NAME)
+	cargo rustc --release $(FEATURES) -p uci_loop -- -C target-cpu=x86-64-v3 --emit link=$(V3NAME)
+	cargo rustc --release $(FEATURES) -p uci_loop -- -C target-cpu=x86-64-v4 --emit link=$(V4NAME)
 
 bench:
 	cargo r --release --bin uci_loop bench

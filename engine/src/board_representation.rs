@@ -529,6 +529,10 @@ impl CastleRights {
         Self(data)
     }
 
+    pub const fn not_empty(self) -> bool {
+        self.0 != 0
+    }
+
     const fn has_kingside(self, color: Color) -> bool {
         match color {
             Color::White => (self.0 & Self::W_KINGSIDE_MASK) > 0,

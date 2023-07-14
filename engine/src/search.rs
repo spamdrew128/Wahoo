@@ -1,5 +1,5 @@
 use std::{
-    sync::atomic::{AtomicBool, Ordering, AtomicU64},
+    sync::atomic::{AtomicBool, AtomicU64, Ordering},
     time::Instant,
 };
 
@@ -14,6 +14,7 @@ use crate::{
     late_move_reductions::get_reduction,
     movegen::MoveGenerator,
     pv_table::PvTable,
+    tablebase::probe::Syzygy,
     time_management::{Milliseconds, SearchTimer},
     transposition_table::{TTFlag, TranspositionTable},
     zobrist::ZobristHash,
@@ -49,6 +50,7 @@ fn node_count() -> Nodes {
     NODE_COUNT.load(Ordering::Relaxed)
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct SearchResults {
     pub best_move: Move,
     pub score: EvalScore,
@@ -78,8 +80,10 @@ pub struct Searcher<'a> {
     history: History,
     killers: Killers,
     tt: &'a TranspositionTable,
+    tb: Syzygy,
 
     node_count: Nodes,
+    tb_hits: u64,
     timer: Option<SearchTimer>,
     seldepth: u8,
 }
@@ -92,6 +96,7 @@ impl<'a> Searcher<'a> {
         zobrist_stack: &ZobristStack,
         history: &History,
         tt: &'a TranspositionTable,
+        tb: Syzygy,
     ) -> Self {
         Self {
             search_limits,
@@ -99,8 +104,10 @@ impl<'a> Searcher<'a> {
             history: history.clone(),
             killers: Killers::new(),
             tt,
+            tb,
             pv_table: PvTable::new(),
             node_count: 0,
+            tb_hits: 0,
             timer: None,
             seldepth: 0,
         }
@@ -131,13 +138,23 @@ impl<'a> Searcher<'a> {
 
         print!("info ");
         println!(
-            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} hashfull {} pv {}",
+            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} hashfull {} tbhits {} pv {}",
             node_count(),
             elapsed.as_millis(),
             self.seldepth,
             self.tt.hashfull(),
+            self.tb_hits,
             self.pv_table.pv_string()
         );
+    }
+
+    fn tb_root_report(search_results: SearchResults) {
+        println!(
+            "score {} depth 1 nodes 0 nps 0 tbhits 1 pv {}",
+            search_results.score,
+            search_results.best_move.as_string(),
+        );
+        println!("bestmove {}", search_results.best_move.as_string());
     }
 
     fn stop_searching<const IS_PRIMARY: bool>(&self, depth: Depth) -> bool {
@@ -182,26 +199,44 @@ impl<'a> Searcher<'a> {
         self.node_count
     }
 
-    pub fn go<const IS_PRIMARY: bool>(&mut self, board: &Board, report_info: bool) -> SearchResults {
+    pub fn go<const IS_PRIMARY: bool>(
+        &mut self,
+        board: &Board,
+        report_info: bool,
+    ) -> SearchResults {
         if IS_PRIMARY {
+            write_stop_flag(false);
+            reset_node_count();
+
             for &limit in &self.search_limits {
                 if let SearchLimit::Time(t) = limit {
                     self.timer = Some(SearchTimer::new(t));
                 }
             }
 
-            reset_node_count();
+            if let Some((best_move, score)) = self.tb.probe_root(board) {
+                let results = SearchResults { best_move, score };
+                if report_info {
+                    Self::tb_root_report(results);
+                }
+                write_stop_flag(true);
+                return results;
+            }
         }
 
         let stopwatch = std::time::Instant::now();
         let mut depth: Depth = 1;
 
         let mut search_results = SearchResults::new(board);
-        write_stop_flag(false);
-        while !self.stop_searching::<IS_PRIMARY>(depth){
+        while !self.stop_searching::<IS_PRIMARY>(depth) {
             self.seldepth = 0;
             self.node_count = 0;
-            let score = self.aspiration_window_search(board, search_results.score, depth, &mut search_results.best_move);
+            let score = self.aspiration_window_search(
+                board,
+                search_results.score,
+                depth,
+                &mut search_results.best_move,
+            );
             update_node_count(self.node_count);
 
             if stop_flag_is_set() {
@@ -344,6 +379,15 @@ impl<'a> Searcher<'a> {
 
             Move::nullmove()
         };
+
+        // SYZYGY TABLEBASE PROBING
+        if !is_root {
+            if let Some(score) = self.tb.probe_score(board) {
+                self.tb_hits += 1;
+                self.tt.store(TTFlag::EXACT, score, hash, ply, depth, Move::nullmove());
+                return score;
+            }
+        }
 
         if !is_pv && !in_check {
             let static_eval = evaluate(board);
