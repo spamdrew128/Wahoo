@@ -119,8 +119,8 @@ impl Syzygy {
             );
 
             match wdl {
-                TB_WIN => Some(TB_WIN_SCORE - ply),
-                TB_LOSS => Some(TB_LOSS_SCORE + ply),
+                TB_WIN => Some(TB_WIN_SCORE - i32::from(ply)),
+                TB_LOSS => Some(TB_LOSS_SCORE + i32::from(ply)),
                 TB_DRAW | TB_CURSED_WIN | TB_BLESSED_LOSS => Some(0),
                 _ => None,
             }
