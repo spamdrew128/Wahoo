@@ -188,12 +188,15 @@ impl TranspositionTable {
     ) {
         let score = TTEntry::score_to_tt(best_score, ply);
         let key = TTEntry::key_from_hash(hash);
-        let new_entry = TTEntry::new(self.age, flag, depth, best_move, score, key);
+        let mut new_entry = TTEntry::new(self.age, flag, depth, best_move, score, key);
 
         let index = self.table_index(hash);
         let old_entry: TTEntry = self.table[index].load(Ordering::Relaxed).into();
 
         if new_entry.quality() >= old_entry.quality() {
+            if best_move.is_null() && new_entry.key == old_entry.key {
+                new_entry.best_move = old_entry.best_move;
+            }
             self.table[index].store(new_entry.into(), Ordering::Relaxed);
         }
     }
