@@ -533,6 +533,7 @@ impl<'a> Searcher<'a> {
             return 0;
         }
 
+        let old_alpha = alpha;
         self.seldepth = self.seldepth.max(ply);
 
         let stand_pat = evaluate(board);
@@ -545,10 +546,12 @@ impl<'a> Searcher<'a> {
         }
 
         let hash_base = ZobristHash::incremental_update_base(board);
+        let hash = self.zobrist_stack.current_zobrist_hash();
 
         let mut generator = MoveGenerator::new();
 
         let mut best_score = stand_pat;
+        let mut best_move = Move::nullmove();
         while let Some(mv) =
             generator.next::<false>(board, &self.history, Move::nullmove(), Move::nullmove())
         {
@@ -572,15 +575,18 @@ impl<'a> Searcher<'a> {
                 best_score = score;
 
                 if score >= beta {
+                    best_move = mv;
                     break;
                 }
 
                 if score > alpha {
+                    best_move = mv;
                     alpha = score;
                 }
             }
         }
 
+        let flag = TTFlag::determine(best_score, old_alpha, alpha, beta);
         best_score
     }
 }
