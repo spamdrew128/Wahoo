@@ -533,7 +533,6 @@ impl<'a> Searcher<'a> {
             return 0;
         }
 
-        let old_alpha = alpha;
         self.seldepth = self.seldepth.max(ply);
 
         let stand_pat = evaluate(board);
@@ -555,6 +554,7 @@ impl<'a> Searcher<'a> {
 
         let mut generator = MoveGenerator::new();
 
+        let old_alpha = alpha;
         let mut best_score = stand_pat;
         let mut best_move = Move::nullmove();
         while let Some(mv) =
