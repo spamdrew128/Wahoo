@@ -10,6 +10,7 @@ use engine::{
     history_table::History,
     movegen::MoveGenerator,
     search::{Ply, SearchLimit, SearchResults, Searcher},
+    tablebase::probe::Syzygy,
     transposition_table::TranspositionTable,
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
@@ -146,6 +147,7 @@ impl DataGenerator {
                 &self.zobrist_stack,
                 &history,
                 &tt,
+                Syzygy::new(),
             );
 
             let SearchResults { best_move, score } = searcher.go::<true>(&self.board, false);

@@ -1,8 +1,9 @@
 use engine::{
-    board_representation::{Board, START_FEN, Color},
+    board_representation::{Board, Color, START_FEN},
     chess_move::Move,
     history_table::History,
     search::{self, Depth, Nodes, SearchLimit, Searcher},
+    tablebase::probe::Syzygy,
     time_management::{Milliseconds, TimeArgs, TimeManager},
     transposition_table::TranspositionTable,
     zobrist::ZobristHash,
@@ -20,6 +21,7 @@ enum UciCommand {
     SetOptionOverhead(Milliseconds),
     SetOptionHash(usize),
     SetOptionThreads(usize),
+    SetOptionSyzygyPath(String),
 }
 
 pub struct UciHandler {
@@ -30,6 +32,7 @@ pub struct UciHandler {
     time_manager: TimeManager,
     stored_message: Option<String>,
     threads: usize,
+    tablebase: Syzygy,
 }
 
 macro_rules! send_uci_option {
@@ -74,6 +77,7 @@ impl UciHandler {
             time_manager: TimeManager::new(Self::OVERHEAD_DEFAULT),
             stored_message: None,
             threads: Self::THREADS_DEFAULT,
+            tablebase: Syzygy::new(),
         }
     }
 
@@ -149,6 +153,10 @@ impl UciHandler {
                         "Threads" => self.process_command(UciCommand::SetOptionThreads(
                             val.parse::<usize>().unwrap_or(Self::THREADS_DEFAULT),
                         )),
+                        "SyzygyPath" => {
+                            let path = &message[4..].join(" ");
+                            self.process_command(UciCommand::SetOptionSyzygyPath(path.to_owned()))
+                        }
                         _ => (),
                     }
                 }
@@ -188,6 +196,7 @@ impl UciHandler {
                     Self::THREADS_MIN,
                     Self::THREADS_MAX
                 );
+                send_uci_option!("SyzygyPath", "string", "");
 
                 println!("uciok");
             }
@@ -255,11 +264,8 @@ impl UciHandler {
                                 .unwrap_or(0);
                         }
                         "movestogo" => {
-                            time_args.moves_to_go = args_iterator
-                                .next()
-                                .unwrap()
-                                .parse::<u64>()
-                                .unwrap_or(0);
+                            time_args.moves_to_go =
+                                args_iterator.next().unwrap().parse::<u64>().unwrap_or(0);
                         }
                         "depth" => {
                             let depth = args_iterator.next().unwrap().parse::<Depth>().unwrap_or(0);
@@ -286,10 +292,22 @@ impl UciHandler {
                     ));
                 }
 
-                let mut searcher = Searcher::new(search_limits.clone(), &self.zobrist_stack, &self.history, &self.tt);
+                let mut searcher = Searcher::new(
+                    search_limits.clone(),
+                    &self.zobrist_stack,
+                    &self.history,
+                    &self.tt,
+                    self.tablebase,
+                );
                 let mut secondary_searchers = vec![];
                 for _ in 1..self.threads {
-                    secondary_searchers.push(Searcher::new(search_limits.clone(), &self.zobrist_stack, &self.history, &self.tt));
+                    secondary_searchers.push(Searcher::new(
+                        search_limits.clone(),
+                        &self.zobrist_stack,
+                        &self.history,
+                        &self.tt,
+                        self.tablebase,
+                    ));
                 }
 
                 thread::scope(|s| {
@@ -315,9 +333,12 @@ impl UciHandler {
             }
             UciCommand::SetOptionHash(megabytes) => {
                 self.tt = TranspositionTable::new(megabytes.clamp(Self::HASH_MIN, Self::HASH_MAX));
-            },
+            }
             UciCommand::SetOptionThreads(count) => {
                 self.threads = count.clamp(Self::THREADS_MIN, Self::THREADS_MAX);
+            }
+            UciCommand::SetOptionSyzygyPath(path) => {
+                self.tablebase.activate(path.as_str());
             }
         }
     }
