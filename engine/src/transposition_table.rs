@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::{
     chess_move::Move,
-    evaluation::{EvalScore, MATE_THRESHOLD, TB_WIN_SCORE, TB_LOSS_SCORE},
+    evaluation::{EvalScore, MATE_THRESHOLD, TB_LOSS_SCORE, TB_WIN_SCORE},
     search::{Depth, Ply},
     zobrist::ZobristHash,
 };

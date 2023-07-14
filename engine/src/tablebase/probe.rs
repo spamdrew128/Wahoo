@@ -1,3 +1,11 @@
+#![allow(
+    dead_code,
+    unused_imports,
+    clippy::unused_self,
+    unused_variables,
+    clippy::missing_const_for_fn
+)]
+
 use std::{ffi::CString, ptr};
 
 use crate::{
@@ -65,10 +73,12 @@ impl Syzygy {
         }
     }
 
+    #[cfg(feature = "syzygy")]
     const fn can_probe(self, board: &Board) -> bool {
         self.active && self.n_men >= (board.occupied().popcount() as u8)
     }
 
+    #[cfg(feature = "syzygy")]
     pub fn activate(&mut self, path: &str) {
         unsafe {
             let syzygy_path = CString::new(path).unwrap();
@@ -81,6 +91,7 @@ impl Syzygy {
         self.n_men = unsafe { TB_LARGEST as u8 };
     }
 
+    #[cfg(feature = "syzygy")]
     pub fn probe_score(self, board: &Board) -> Option<EvalScore> {
         if !self.can_probe(board) || board.halfmoves != 0 || board.castle_rights.not_empty() {
             return None;
@@ -115,6 +126,7 @@ impl Syzygy {
         }
     }
 
+    #[cfg(feature = "syzygy")]
     pub fn probe_root(self, board: &Board) -> Option<(Move, EvalScore)> {
         if !self.can_probe(board) || board.castle_rights.not_empty() {
             return None;
@@ -154,6 +166,24 @@ impl Syzygy {
 
         None
     }
+
+    #[cfg(not(feature = "syzygy"))]
+    const fn can_probe(self, board: &Board) -> bool {
+        false
+    }
+
+    #[cfg(not(feature = "syzygy"))]
+    pub fn activate(&mut self, path: &str) {}
+
+    #[cfg(not(feature = "syzygy"))]
+    pub fn probe_score(self, board: &Board) -> Option<EvalScore> {
+        None
+    }
+
+    #[cfg(not(feature = "syzygy"))]
+    pub fn probe_root(self, board: &Board) -> Option<(Move, EvalScore)> {
+        None
+    }
 }
 
 #[cfg(test)]
@@ -163,6 +193,7 @@ mod tests {
     use super::Syzygy;
 
     #[test]
+    #[ignore = "wrong path"]
     fn can_probe() {
         let path = "C:\\Users\\Andrew\\OneDrive\\Desktop\\Bitmapped Chess\\3-4-5";
         let mut tb = Syzygy::new();
@@ -179,6 +210,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "wrong path"]
     fn halfmove_handling() {
         let path = "C:\\Users\\Andrew\\OneDrive\\Desktop\\Bitmapped Chess\\3-4-5";
         let mut tb = Syzygy::new();
