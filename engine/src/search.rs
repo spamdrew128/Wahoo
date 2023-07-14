@@ -382,7 +382,7 @@ impl<'a> Searcher<'a> {
 
         // SYZYGY TABLEBASE PROBING
         if !is_root {
-            if let Some(score) = self.tb.probe_score(board) {
+            if let Some(score) = self.tb.probe_score(board, ply) {
                 self.tb_hits += 1;
                 self.tt.store(TTFlag::EXACT, score, hash, ply, depth, Move::nullmove());
                 return score;
