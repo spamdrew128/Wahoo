@@ -547,6 +547,11 @@ impl<'a> Searcher<'a> {
 
         let hash_base = ZobristHash::incremental_update_base(board);
         let hash = self.zobrist_stack.current_zobrist_hash();
+        if let Some(entry) = self.tt.probe(hash) {
+            if entry.cutoff_is_possible(alpha, beta, 0) {
+                return entry.score_from_tt(ply);
+            }
+        }
 
         let mut generator = MoveGenerator::new();
 
@@ -587,6 +592,7 @@ impl<'a> Searcher<'a> {
         }
 
         let flag = TTFlag::determine(best_score, old_alpha, alpha, beta);
+        self.tt.store(flag, best_score, hash, ply, 0, best_move);
         best_score
     }
 }
