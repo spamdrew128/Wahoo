@@ -148,11 +148,10 @@ impl<'a> Searcher<'a> {
         );
     }
 
-    fn tb_root_report(&self, search_results: SearchResults) {
+    fn tb_root_report(search_results: SearchResults) {
         println!(
-            "score {} nodes 0 time 0 nps 0 depth 0 seldepth 0 hashfull {} tbhits 1 pv {}",
+            "score {} depth 1 nodes 0 nps 0 tbhits 1 pv {}",
             search_results.score,
-            self.tt.hashfull(),
             search_results.best_move.as_string(),
         );
         println!("bestmove {}", search_results.best_move.as_string());
@@ -218,7 +217,7 @@ impl<'a> Searcher<'a> {
             if let Some((best_move, score)) = self.tb.probe_root(board) {
                 let results = SearchResults { best_move, score };
                 if report_info {
-                    self.tb_root_report(results);
+                    Self::tb_root_report(results);
                 }
                 write_stop_flag(true);
                 return results;
