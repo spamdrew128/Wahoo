@@ -66,6 +66,7 @@ impl SearchTimer {
     }
 
     #[allow(clippy::cast_sign_loss)]
+    #[allow(clippy::cast_precision_loss)]
     pub fn update_soft_limit(&mut self, widenings: u16) {
         let w = f64::from(widenings);
         let scale: f64 = (0.006 * w).mul_add(w, 0.5);
