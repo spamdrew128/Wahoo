@@ -13,6 +13,7 @@ use crate::{
     chess_move::{Flag, Move},
     evaluation::{EvalScore, TB_LOSS_SCORE, TB_WIN_SCORE},
     movegen::MoveGenerator,
+    search::Ply,
 };
 
 use super::bindings::{
@@ -92,7 +93,7 @@ impl Syzygy {
     }
 
     #[cfg(feature = "syzygy")]
-    pub fn probe_score(self, board: &Board) -> Option<EvalScore> {
+    pub fn probe_score(self, board: &Board, ply: Ply) -> Option<EvalScore> {
         if !self.can_probe(board) || board.halfmoves != 0 || board.castle_rights.not_empty() {
             return None;
         }
@@ -118,8 +119,8 @@ impl Syzygy {
             );
 
             match wdl {
-                TB_WIN => Some(TB_WIN_SCORE),
-                TB_LOSS => Some(TB_LOSS_SCORE),
+                TB_WIN => Some(TB_WIN_SCORE - i32::from(ply)),
+                TB_LOSS => Some(TB_LOSS_SCORE + i32::from(ply)),
                 TB_DRAW | TB_CURSED_WIN | TB_BLESSED_LOSS => Some(0),
                 _ => None,
             }
@@ -176,7 +177,7 @@ impl Syzygy {
     pub fn activate(&mut self, path: &str) {}
 
     #[cfg(not(feature = "syzygy"))]
-    pub fn probe_score(self, board: &Board) -> Option<EvalScore> {
+    pub fn probe_score(self, board: &Board, ply: Ply) -> Option<EvalScore> {
         None
     }
 
@@ -203,7 +204,7 @@ mod tests {
         if let Some((mv, score)) = tb.probe_root(&board) {
             println!("{}", mv.as_string());
             assert_eq!(score, TB_WIN_SCORE);
-            assert_eq!(score, tb.probe_score(&board).unwrap());
+            assert_eq!(score, tb.probe_score(&board, 0).unwrap());
         } else {
             panic!("Probe failed")
         }
@@ -221,7 +222,7 @@ mod tests {
         if let Some((mv, score)) = tb.probe_root(&board) {
             println!("{}", mv.as_string());
             assert_eq!(score, 0);
-            assert!(tb.probe_score(&board).is_none());
+            assert!(tb.probe_score(&board, 0).is_none());
         } else {
             panic!("Probe failed")
         }
