@@ -30,7 +30,7 @@ impl TimeManager {
         let time = args.time[color.as_index()];
         let inc = args.inc[color.as_index()];
 
-        let normal_time = (time / 20 + inc / 2).saturating_sub(self.overhead);
+        let normal_time = (time / 17 + inc / 2).saturating_sub(self.overhead);
         let to_go_time = if args.moves_to_go > 0 {
             (time / u128::from(args.moves_to_go)).saturating_sub(self.overhead)
         } else {
@@ -69,7 +69,7 @@ impl SearchTimer {
     #[allow(clippy::cast_precision_loss)]
     pub fn update_soft_limit(&mut self, widenings: &[u16]) {
         let avg_w = f64::from(widenings.iter().sum::<u16>()) / widenings.len() as f64;
-        let scale: f64 = (0.1 * avg_w).mul_add(avg_w, 0.5);
+        let scale: f64 = (0.06 * avg_w).mul_add(avg_w, 0.50);
         self.soft_limit = ((self.hard_limit as f64) * scale) as u128;
     }
 }
