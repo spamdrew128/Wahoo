@@ -169,7 +169,7 @@ impl<'a> Searcher<'a> {
         let mut result = false;
         for &limit in &self.search_limits {
             result |= match limit {
-                SearchLimit::Time(_) => self.timer.unwrap().soft_cutoff_is_expired(),
+                SearchLimit::Time(_) => self.timer.unwrap().is_soft_expired(),
                 SearchLimit::Depth(depth_limit) => depth > depth_limit,
                 SearchLimit::Nodes(node_limit) => node_count() > node_limit,
             }
@@ -287,6 +287,7 @@ impl<'a> Searcher<'a> {
             beta = (prev_score + ASP_WINDOW_INIT_WINDOW).min(INF);
         }
 
+        let mut widenings = 0;
         loop {
             if alpha < -ASP_WINDOW_FULL_SEARCH_BOUNDS {
                 alpha = -INF;
@@ -308,10 +309,14 @@ impl<'a> Searcher<'a> {
                 beta = (beta + delta).min(INF);
                 asp_depth = (asp_depth - 1).max(1);
             } else {
+                if let Some(timer) = &mut self.timer {
+                    timer.update_soft_limit(widenings);
+                }
                 return score;
             }
 
             delta += delta * 2 / 3;
+            widenings += 1;
         }
     }
 

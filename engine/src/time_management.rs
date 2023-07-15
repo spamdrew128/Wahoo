@@ -44,22 +44,30 @@ impl TimeManager {
 #[derive(Debug, Copy, Clone)]
 pub struct SearchTimer {
     timer: Instant,
-    search_time: u128,
+    hard_limit: u128,
+    soft_limit: u128,
 }
 
 impl SearchTimer {
     pub fn new(time_to_use: Milliseconds) -> Self {
         Self {
             timer: Instant::now(),
-            search_time: time_to_use.saturating_mul(1000),
+            hard_limit: time_to_use.saturating_mul(1000),
+            soft_limit: time_to_use.saturating_mul(1000) / 2,
         }
     }
 
     pub fn is_expired(&self) -> bool {
-        (self.timer.elapsed().as_micros()) > self.search_time
+        (self.timer.elapsed().as_micros()) > self.hard_limit
     }
 
-    pub fn soft_cutoff_is_expired(&self) -> bool {
-        (self.timer.elapsed().as_micros()) > (6 * self.search_time / 10)
+    pub fn is_soft_expired(&self) -> bool {
+        self.timer.elapsed().as_micros() > self.soft_limit
+    }
+
+    pub fn update_soft_limit(&mut self, widenings: u16) {
+        let w = f64::from(widenings);
+        let scale: f64 = 0.5 + 0.006 * w * w;
+        self.soft_limit = ((self.hard_limit as f64) * scale) as u128;
     }
 }
