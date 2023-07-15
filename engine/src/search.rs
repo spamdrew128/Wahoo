@@ -192,7 +192,13 @@ impl<'a> Searcher<'a> {
         write_stop_flag(false);
         let mut prev_score = 0;
         for d in 1..depth {
-            prev_score = self.aspiration_window_search(board, prev_score, d, &mut Move::nullmove(), &mut vec![]);
+            prev_score = self.aspiration_window_search(
+                board,
+                prev_score,
+                d,
+                &mut Move::nullmove(),
+                &mut vec![],
+            );
         }
         write_stop_flag(true);
 
@@ -237,7 +243,7 @@ impl<'a> Searcher<'a> {
                 search_results.score,
                 depth,
                 &mut search_results.best_move,
-                &mut widenings
+                &mut widenings,
             );
             update_node_count(self.node_count);
 
@@ -288,6 +294,8 @@ impl<'a> Searcher<'a> {
         if current_depth > ASP_WINDOW_MIN_DEPTH {
             alpha = (prev_score - ASP_WINDOW_INIT_WINDOW).max(-INF);
             beta = (prev_score + ASP_WINDOW_INIT_WINDOW).min(INF);
+        } else {
+            return self.negamax::<false>(board, asp_depth, 0, alpha, beta);
         }
 
         let mut w = 0;
@@ -312,10 +320,11 @@ impl<'a> Searcher<'a> {
                 beta = (beta + delta).min(INF);
                 asp_depth = (asp_depth - 1).max(1);
             } else {
-                widenings.push(w);
                 if let Some(timer) = &mut self.timer {
+                    widenings.push(w);
                     timer.update_soft_limit(widenings.as_slice());
                 }
+
                 return score;
             }
 
