@@ -66,6 +66,8 @@ impl UciHandler {
     const THREADS_MIN: usize = 1;
     const THREADS_MAX: usize = 64;
 
+    const SYZYGY_PATH_DEFAULT: &str = "<empty>";
+
     pub fn new() -> Self {
         let board = Board::from_fen(START_FEN);
         let zobrist_stack = ZobristStack::new(&board);
@@ -196,7 +198,12 @@ impl UciHandler {
                     Self::THREADS_MIN,
                     Self::THREADS_MAX
                 );
-                send_uci_option!("SyzygyPath", "string", "");
+                send_uci_option!(
+                    "SyzygyPath",
+                    "string",
+                    "default {}",
+                    Self::SYZYGY_PATH_DEFAULT
+                );
 
                 println!("uciok");
             }
@@ -338,7 +345,9 @@ impl UciHandler {
                 self.threads = count.clamp(Self::THREADS_MIN, Self::THREADS_MAX);
             }
             UciCommand::SetOptionSyzygyPath(path) => {
-                self.tablebase.activate(path.as_str());
+                if path != Self::SYZYGY_PATH_DEFAULT {
+                    self.tablebase.activate(path.as_str());
+                }
             }
         }
     }
