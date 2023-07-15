@@ -65,9 +65,10 @@ impl SearchTimer {
         self.timer.elapsed().as_micros() > self.soft_limit
     }
 
+    #[allow(clippy::cast_sign_loss)]
     pub fn update_soft_limit(&mut self, widenings: u16) {
         let w = f64::from(widenings);
-        let scale: f64 = 0.5 + 0.006 * w * w;
+        let scale: f64 = (0.006 * w).mul_add(w, 0.5);
         self.soft_limit = ((self.hard_limit as f64) * scale) as u128;
     }
 }
