@@ -136,9 +136,8 @@ impl<'a> Searcher<'a> {
             format!("cp {score}")
         };
 
-        print!("info ");
         println!(
-            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} hashfull {} tbhits {} pv {}",
+            "info score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} hashfull {} tbhits {} pv {}",
             node_count(),
             elapsed.as_millis(),
             self.seldepth,
@@ -150,7 +149,7 @@ impl<'a> Searcher<'a> {
 
     fn tb_root_report(search_results: SearchResults) {
         println!(
-            "score {} depth 1 nodes 0 nps 0 tbhits 1 pv {}",
+            "info score cp {} depth 1 seldepth 1 nodes 1 nps 1 tbhits 1 pv {}",
             search_results.score,
             search_results.best_move.as_string(),
         );
