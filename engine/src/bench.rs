@@ -1,10 +1,10 @@
 use crate::{
     board_representation::Board,
+    create_thread_data,
     history_table::History,
     perft::{test_postions, PerftTest},
     search::Searcher,
     tablebase::probe::Syzygy,
-    thread_data::ThreadData,
     transposition_table::TranspositionTable,
     zobrist_stack::ZobristStack,
 };
@@ -21,8 +21,7 @@ pub fn bench() {
     for pos in positions {
         let board = Board::from_fen(pos.fen);
 
-        let v = ThreadData::elem_vec(1);
-        let thread_data = ThreadData::new(&v, 0);
+        create_thread_data!(thread_data);
 
         let mut searcher = Searcher::new(
             vec![],

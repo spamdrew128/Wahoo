@@ -6,6 +6,7 @@ use std::{
 use engine::{
     board_representation::{Board, Color, START_FEN},
     chess_move::Move,
+    create_thread_data,
     evaluation::{evaluate, EvalScore, INF, MATE_THRESHOLD},
     history_table::History,
     movegen::MoveGenerator,
@@ -142,12 +143,15 @@ impl DataGenerator {
         let mut history = History::new();
         let tt = TranspositionTable::new(16);
         loop {
+            create_thread_data!(thread_data);
+
             let mut searcher = Searcher::new(
                 self.search_limits.clone(),
                 &self.zobrist_stack,
                 &history,
                 &tt,
                 Syzygy::new(),
+                thread_data,
             );
 
             let SearchResults { best_move, score } = searcher.go::<true>(&self.board, false);
