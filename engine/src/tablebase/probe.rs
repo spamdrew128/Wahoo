@@ -24,6 +24,11 @@ use super::bindings::{
     TB_RESULT_WDL_SHIFT, TB_WIN,
 };
 
+#[cfg(feature = "syzygy")]
+pub const FATHOM_IS_COMPILED: bool = true;
+#[cfg(not(feature = "syzygy"))]
+pub const FATHOM_IS_COMPILED: bool = false;
+
 #[derive(Debug, Copy, Clone)]
 struct SyzygyResult(u32);
 

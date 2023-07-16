@@ -4,7 +4,7 @@ use engine::{
     create_thread_data,
     history_table::History,
     search::{self, Depth, SearchLimit, Searcher},
-    tablebase::probe::Syzygy,
+    tablebase::probe::{Syzygy, FATHOM_IS_COMPILED},
     thread_data::Nodes,
     time_management::{Milliseconds, TimeArgs, TimeManager},
     transposition_table::TranspositionTable,
@@ -200,12 +200,14 @@ impl UciHandler {
                     Self::THREADS_MIN,
                     Self::THREADS_MAX
                 );
-                send_uci_option!(
-                    "SyzygyPath",
-                    "string",
-                    "default {}",
-                    Self::SYZYGY_PATH_DEFAULT
-                );
+                if FATHOM_IS_COMPILED {
+                    send_uci_option!(
+                        "SyzygyPath",
+                        "string",
+                        "default {}",
+                        Self::SYZYGY_PATH_DEFAULT
+                    );
+                }
 
                 println!("uciok");
             }
