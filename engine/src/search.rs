@@ -168,7 +168,7 @@ impl<'a> Searcher<'a> {
         let mut result = false;
         for &limit in &self.search_limits {
             result |= match limit {
-                SearchLimit::Time(_) => self.timer.unwrap().soft_cutoff_is_expired(),
+                SearchLimit::Time(_) => self.timer.unwrap().is_soft_expired(),
                 SearchLimit::Depth(depth_limit) => depth > depth_limit,
                 SearchLimit::Nodes(node_limit) => node_count() > node_limit,
             }
@@ -191,7 +191,13 @@ impl<'a> Searcher<'a> {
         write_stop_flag(false);
         let mut prev_score = 0;
         for d in 1..depth {
-            prev_score = self.aspiration_window_search(board, prev_score, d, &mut Move::nullmove());
+            prev_score = self.aspiration_window_search(
+                board,
+                prev_score,
+                d,
+                &mut Move::nullmove(),
+                &mut vec![],
+            );
         }
         write_stop_flag(true);
 
@@ -227,6 +233,7 @@ impl<'a> Searcher<'a> {
         let mut depth: Depth = 1;
 
         let mut search_results = SearchResults::new(board);
+        let mut widenings = vec![];
         while !self.stop_searching::<IS_PRIMARY>(depth) {
             self.seldepth = 0;
             self.node_count = 0;
@@ -235,6 +242,7 @@ impl<'a> Searcher<'a> {
                 search_results.score,
                 depth,
                 &mut search_results.best_move,
+                &mut widenings,
             );
             update_node_count(self.node_count);
 
@@ -270,6 +278,7 @@ impl<'a> Searcher<'a> {
         prev_score: EvalScore,
         current_depth: Depth,
         best_move: &mut Move,
+        widenings: &mut Vec<u16>,
     ) -> EvalScore {
         const ASP_WINDOW_MIN_DEPTH: Depth = 7;
         const ASP_WINDOW_INIT_WINDOW: EvalScore = 12;
@@ -284,8 +293,11 @@ impl<'a> Searcher<'a> {
         if current_depth > ASP_WINDOW_MIN_DEPTH {
             alpha = (prev_score - ASP_WINDOW_INIT_WINDOW).max(-INF);
             beta = (prev_score + ASP_WINDOW_INIT_WINDOW).min(INF);
+        } else {
+            return self.negamax::<false>(board, asp_depth, 0, alpha, beta);
         }
 
+        let mut w = 0;
         loop {
             if alpha < -ASP_WINDOW_FULL_SEARCH_BOUNDS {
                 alpha = -INF;
@@ -307,10 +319,16 @@ impl<'a> Searcher<'a> {
                 beta = (beta + delta).min(INF);
                 asp_depth = (asp_depth - 1).max(1);
             } else {
+                if let Some(timer) = &mut self.timer {
+                    widenings.push(w);
+                    timer.update_soft_limit(widenings.as_slice());
+                }
+
                 return score;
             }
 
             delta += delta * 2 / 3;
+            w += 1;
         }
     }
 
