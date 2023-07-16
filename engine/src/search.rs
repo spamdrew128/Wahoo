@@ -176,7 +176,6 @@ impl<'a> Searcher<'a> {
     }
 
     pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
-        write_stop_flag(false);
         let mut prev_score = 0;
         for d in 1..depth {
             prev_score = self.aspiration_window_search(
@@ -187,7 +186,6 @@ impl<'a> Searcher<'a> {
                 &mut vec![],
             );
         }
-        write_stop_flag(true);
 
         self.thread_data.thread_node_count()
     }
@@ -198,8 +196,6 @@ impl<'a> Searcher<'a> {
         report_info: bool,
     ) -> SearchResults {
         if IS_PRIMARY {
-            write_stop_flag(false);
-
             for &limit in &self.search_limits {
                 if let SearchLimit::Time(t) = limit {
                     self.timer = Some(SearchTimer::new(t));

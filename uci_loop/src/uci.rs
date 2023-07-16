@@ -326,6 +326,7 @@ impl UciHandler {
                     thread_data,
                 );
 
+                search::write_stop_flag(false);
                 thread::scope(|s| {
                     s.spawn(|| {
                         primary_searcher.go::<true>(&self.board, true);
