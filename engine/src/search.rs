@@ -488,19 +488,18 @@ impl<'a> Searcher<'a> {
             if score > best_score {
                 best_score = score;
 
-                if score >= beta {
+                if score > alpha {
                     best_move = mv;
+                    alpha = score;
+                    self.pv_table.update(ply, mv);
+                }
+
+                if score >= beta {
                     if is_quiet {
                         self.killers.update(mv, ply);
                         self.history.update(board, quiets.as_slice(), depth);
                     }
                     break;
-                }
-
-                if score > alpha {
-                    best_move = mv;
-                    alpha = score;
-                    self.pv_table.update(ply, mv);
                 }
             }
         }
@@ -577,14 +576,13 @@ impl<'a> Searcher<'a> {
             if score > best_score {
                 best_score = score;
 
-                if score >= beta {
-                    best_move = mv;
-                    break;
-                }
-
                 if score > alpha {
                     best_move = mv;
                     alpha = score;
+                }
+
+                if score >= beta {
+                    break;
                 }
             }
         }
