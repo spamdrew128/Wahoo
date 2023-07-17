@@ -1,6 +1,6 @@
 use crate::{
-    board_representation::{Color, Square, NUM_COLORS, NUM_RANKS, NUM_SQUARES},
-    evaluation::ScoreTuple,
+    board::board_representation::{Color, Square, NUM_COLORS, NUM_RANKS, NUM_SQUARES},
+    eval::evaluation::ScoreTuple,
 };
 
 pub struct Pst {
@@ -8,6 +8,7 @@ pub struct Pst {
 }
 
 impl Pst {
+    #[allow(clippy::large_types_passed_by_value)]
     pub const fn new(before: [ScoreTuple; NUM_SQUARES as usize]) -> Self {
         let mut table = [[ScoreTuple::new(0, 0); NUM_SQUARES as usize]; NUM_COLORS as usize];
         let mut i = 0;
@@ -28,11 +29,11 @@ impl Pst {
     }
 }
 
-pub struct Rst {
+pub struct Prt {
     table: [[ScoreTuple; NUM_RANKS as usize]; NUM_COLORS as usize],
 }
 
-impl Rst {
+impl Prt {
     pub const fn new(before: [ScoreTuple; NUM_RANKS as usize]) -> Self {
         let mut table = [[ScoreTuple::new(0, 0); NUM_RANKS as usize]; NUM_COLORS as usize];
         let mut i = 0;

@@ -5,3 +5,10 @@ edition = "2021"
 
 [dependencies]
 arrayvec = "0.7.4"
+
+[features]
+syzygy = ["dep:cc", "dep:bindgen"]
+
+[build-dependencies]
+cc = { version = "1.0.79", optional = true }
+bindgen = { version = "0.66.1", optional = true }

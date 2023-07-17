@@ -1,18 +1,18 @@
-use crate::{
-    board_representation::{Board, START_FEN},
-    chess_move::Move,
-    history_table::History,
-    search::{self, Depth, Nodes, SearchLimit, Searcher},
-    time_management::{Milliseconds, TimeArgs, TimeManager},
-    transposition_table::TranspositionTable,
-    zobrist::ZobristHash,
-    zobrist_stack::ZobristStack,
+use engine::{
+    board::board_representation::{Board, Color, START_FEN},
+    board::chess_move::Move,
+    board::zobrist::ZobristHash,
+    board::zobrist_stack::ZobristStack,
+    create_thread_data,
+    search::history_table::History,
+    search::search::{self, Depth, SearchLimit, Searcher},
+    search::thread_data::Nodes,
+    search::time_management::{Milliseconds, TimeArgs, TimeManager},
+    search::transposition_table::TranspositionTable,
+    tablebase::probe::{Syzygy, FATHOM_IS_COMPILED},
 };
 
-use std::{
-    sync::atomic::{AtomicBool, Ordering},
-    thread,
-};
+use std::thread;
 
 enum UciCommand {
     Uci,
@@ -22,6 +22,8 @@ enum UciCommand {
     Go(Vec<String>),
     SetOptionOverhead(Milliseconds),
     SetOptionHash(usize),
+    SetOptionThreads(usize),
+    SetOptionSyzygyPath(String),
 }
 
 pub struct UciHandler {
@@ -31,6 +33,8 @@ pub struct UciHandler {
     tt: TranspositionTable,
     time_manager: TimeManager,
     stored_message: Option<String>,
+    num_threads: usize,
+    tablebase: Syzygy,
 }
 
 macro_rules! send_uci_option {
@@ -52,7 +56,7 @@ fn kill_program() {
 }
 
 impl UciHandler {
-    const OVERHEAD_DEFAULT: Milliseconds = 40;
+    const OVERHEAD_DEFAULT: Milliseconds = 25;
     const OVERHEAD_MIN: Milliseconds = 0;
     const OVERHEAD_MAX: Milliseconds = 500;
 
@@ -60,9 +64,11 @@ impl UciHandler {
     const HASH_MIN: usize = 0;
     const HASH_MAX: usize = 8192;
 
-    const THREADS_DEFAULT: u32 = 1;
-    const THREADS_MIN: u32 = 1;
-    const THREADS_MAX: u32 = 1;
+    const THREADS_DEFAULT: usize = 1;
+    const THREADS_MIN: usize = 1;
+    const THREADS_MAX: usize = 64;
+
+    const SYZYGY_PATH_DEFAULT: &str = "<empty>";
 
     pub fn new() -> Self {
         let board = Board::from_fen(START_FEN);
@@ -74,6 +80,8 @@ impl UciHandler {
             tt: TranspositionTable::new(Self::HASH_DEFAULT),
             time_manager: TimeManager::new(Self::OVERHEAD_DEFAULT),
             stored_message: None,
+            num_threads: Self::THREADS_DEFAULT,
+            tablebase: Syzygy::new(),
         }
     }
 
@@ -103,6 +111,7 @@ impl UciHandler {
         if let Some(&cmd) = message.first() {
             match cmd {
                 "uci" => self.process_command(UciCommand::Uci),
+                "ucinewgame" => self.process_command(UciCommand::UciNewGame),
                 "isready" => self.process_command(UciCommand::IsReady),
                 "position" => {
                     let mut i = 1;
@@ -145,6 +154,13 @@ impl UciHandler {
                         "Hash" => self.process_command(UciCommand::SetOptionHash(
                             val.parse::<usize>().unwrap_or(Self::HASH_DEFAULT),
                         )),
+                        "Threads" => self.process_command(UciCommand::SetOptionThreads(
+                            val.parse::<usize>().unwrap_or(Self::THREADS_DEFAULT),
+                        )),
+                        "SyzygyPath" => {
+                            let path = &message[4..].join(" ");
+                            self.process_command(UciCommand::SetOptionSyzygyPath(path.to_owned()))
+                        }
                         _ => (),
                     }
                 }
@@ -157,7 +173,7 @@ impl UciHandler {
     fn process_command(&mut self, command: UciCommand) {
         match command {
             UciCommand::Uci => {
-                println!("id name Wahoo v2.0.0");
+                println!("id name Wahoo v3.0.0");
                 println!("id author Andrew Hockman");
 
                 send_uci_option!(
@@ -184,6 +200,14 @@ impl UciHandler {
                     Self::THREADS_MIN,
                     Self::THREADS_MAX
                 );
+                if FATHOM_IS_COMPILED {
+                    send_uci_option!(
+                        "SyzygyPath",
+                        "string",
+                        "default {}",
+                        Self::SYZYGY_PATH_DEFAULT
+                    );
+                }
 
                 println!("uciok");
             }
@@ -216,28 +240,28 @@ impl UciHandler {
                 while let Some(arg) = args_iterator.next() {
                     match arg.as_str() {
                         "wtime" => {
-                            time_args.w_time = args_iterator
+                            time_args.time[Color::White.as_index()] = args_iterator
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
                                 .unwrap_or(0);
                         }
                         "btime" => {
-                            time_args.b_time = args_iterator
+                            time_args.time[Color::Black.as_index()] = args_iterator
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
                                 .unwrap_or(0);
                         }
                         "winc" => {
-                            time_args.w_inc = args_iterator
+                            time_args.inc[Color::White.as_index()] = args_iterator
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
                                 .unwrap_or(0);
                         }
                         "binc" => {
-                            time_args.b_inc = args_iterator
+                            time_args.inc[Color::Black.as_index()] = args_iterator
                                 .next()
                                 .unwrap()
                                 .parse::<Milliseconds>()
@@ -249,6 +273,10 @@ impl UciHandler {
                                 .unwrap()
                                 .parse::<Milliseconds>()
                                 .unwrap_or(0);
+                        }
+                        "movestogo" => {
+                            time_args.moves_to_go =
+                                args_iterator.next().unwrap().parse::<u64>().unwrap_or(0);
                         }
                         "depth" => {
                             let depth = args_iterator.next().unwrap().parse::<Depth>().unwrap_or(0);
@@ -275,19 +303,46 @@ impl UciHandler {
                     ));
                 }
 
-                let mut searcher =
-                    Searcher::new(search_limits, &self.zobrist_stack, &self.history, &self.tt);
+                create_thread_data!(thread_data, self.num_threads);
 
-                let is_searching: AtomicBool = true.into();
+                let mut secondary_searchers = vec![];
+                for id in 1..self.num_threads {
+                    secondary_searchers.push(Searcher::new(
+                        search_limits.clone(),
+                        &self.zobrist_stack,
+                        &self.history,
+                        &self.tt,
+                        self.tablebase,
+                        thread_data.get_secondary(id),
+                    ));
+                }
+
+                let mut primary_searcher = Searcher::new(
+                    search_limits.clone(),
+                    &self.zobrist_stack,
+                    &self.history,
+                    &self.tt,
+                    self.tablebase,
+                    thread_data,
+                );
+
+                search::write_stop_flag(false);
                 thread::scope(|s| {
                     s.spawn(|| {
-                        searcher.go(&self.board, true);
-                        searcher.search_complete_actions(&mut self.history);
-                        is_searching.store(false, Ordering::Relaxed);
+                        primary_searcher.go::<true>(&self.board, true);
                     });
 
-                    Self::handle_stop_and_quit(&mut self.stored_message, &is_searching);
+                    for searcher in secondary_searchers.iter_mut() {
+                        s.spawn(|| {
+                            searcher.go::<false>(&self.board, false);
+                        });
+                    }
+
+                    Self::handle_stop_and_quit(&mut self.stored_message);
                 });
+
+                primary_searcher.search_complete_actions(&mut self.history);
+                self.tt.age_table();
             }
             UciCommand::SetOptionOverhead(overhead) => {
                 self.time_manager =
@@ -296,24 +351,37 @@ impl UciHandler {
             UciCommand::SetOptionHash(megabytes) => {
                 self.tt = TranspositionTable::new(megabytes.clamp(Self::HASH_MIN, Self::HASH_MAX));
             }
+            UciCommand::SetOptionThreads(count) => {
+                self.num_threads = count.clamp(Self::THREADS_MIN, Self::THREADS_MAX);
+            }
+            UciCommand::SetOptionSyzygyPath(path) => {
+                if path != Self::SYZYGY_PATH_DEFAULT {
+                    self.tablebase.activate(path.as_str());
+                }
+            }
         }
     }
 
-    fn handle_stop_and_quit(stored_message: &mut Option<String>, is_searching: &AtomicBool) {
+    fn handle_stop_and_quit(stored_message: &mut Option<String>) {
         loop {
             let buffer = Self::read_uci_input();
 
             match buffer.as_str().trim() {
+                "isready" => println!("readyok"),
                 "quit" => kill_program(),
                 "stop" => {
                     search::write_stop_flag(true);
                     return;
                 }
                 _ => {
-                    if !is_searching.load(Ordering::Relaxed) {
+                    if search::stop_flag_is_set() {
                         *stored_message = Some(buffer);
                         return;
                     }
+                    eprintln!(
+                        "Cannot handle command \"{}\" while searching",
+                        buffer.trim()
+                    );
                 }
             };
         }

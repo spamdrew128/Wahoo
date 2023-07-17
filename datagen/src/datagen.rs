@@ -4,15 +4,17 @@ use std::{
 };
 
 use engine::{
-    board_representation::{Board, Color, START_FEN},
-    chess_move::Move,
-    evaluation::{evaluate, EvalScore, INF, MATE_THRESHOLD},
-    history_table::History,
-    movegen::MoveGenerator,
-    search::{Ply, SearchLimit, SearchResults, Searcher},
-    transposition_table::TranspositionTable,
-    zobrist::ZobristHash,
-    zobrist_stack::ZobristStack,
+    board::board_representation::{Board, Color, START_FEN},
+    board::chess_move::Move,
+    board::movegen::MoveGenerator,
+    board::zobrist::ZobristHash,
+    board::zobrist_stack::ZobristStack,
+    create_thread_data,
+    eval::evaluation::{evaluate, EvalScore, INF, MATE_THRESHOLD},
+    search::history_table::History,
+    search::search::{write_stop_flag, Ply, SearchLimit, SearchResults, Searcher},
+    search::transposition_table::TranspositionTable,
+    tablebase::probe::Syzygy,
 };
 
 use crate::rng::Rng;
@@ -141,14 +143,19 @@ impl DataGenerator {
         let mut history = History::new();
         let tt = TranspositionTable::new(16);
         loop {
+            create_thread_data!(thread_data);
+            write_stop_flag(false);
+
             let mut searcher = Searcher::new(
                 self.search_limits.clone(),
                 &self.zobrist_stack,
                 &history,
                 &tt,
+                Syzygy::new(),
+                thread_data,
             );
 
-            let SearchResults { best_move, score } = searcher.go(&self.board, false);
+            let SearchResults { best_move, score } = searcher.go::<true>(&self.board, false);
             searcher.search_complete_actions(&mut history);
 
             if score > MATE_THRESHOLD {

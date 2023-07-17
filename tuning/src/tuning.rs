@@ -1,8 +1,13 @@
 use engine::{
-    board_representation::{
-        Bitboard, Board, Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
+    board::board_representation::{Board, Piece, Square, NUM_RANKS, NUM_SQUARES},
+    eval::evaluation::{
+        phase, trace_of_position, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX,
     },
-    evaluation::{phase, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX},
+    eval::piece_loop_eval::MoveCounts,
+    eval::trace::{
+        BishopPair, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer, PasserBlocker,
+        PhalanxPawns, Safety, TempoBonus, Threats, TRACE_LEN,
+    },
 };
 use std::{
     fs::{read_to_string, File},
@@ -10,38 +15,10 @@ use std::{
     io::Write,
 };
 
-const TUNER_VEC_LEN: usize = MaterialPst::LEN + Passer::LEN + PasserBlocker::LEN;
+use crate::prev_weights::PREV_WEIGHTS;
+
+const TUNER_VEC_LEN: usize = TRACE_LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
-
-struct MaterialPst;
-impl MaterialPst {
-    const START: usize = 0;
-    const LEN: usize = (NUM_PIECES as usize) * (NUM_SQUARES as usize);
-
-    fn index(piece: Piece, sq: Square) -> usize {
-        Self::START + usize::from(NUM_SQUARES) * piece.as_index() + sq.as_index()
-    }
-}
-
-struct Passer;
-impl Passer {
-    const START: usize = MaterialPst::START + MaterialPst::LEN;
-    const LEN: usize = (NUM_SQUARES as usize);
-
-    fn index(sq: Square) -> usize {
-        Self::START + sq.as_index()
-    }
-}
-
-struct PasserBlocker;
-impl PasserBlocker {
-    const START: usize = Passer::START + Passer::LEN;
-    const LEN: usize = (NUM_RANKS as usize);
-
-    fn index(rank: u8) -> usize {
-        Self::START + rank as usize
-    }
-}
 
 struct Feature {
     value: i8,
@@ -61,62 +38,6 @@ struct Entry {
 }
 
 impl Entry {
-    pub fn pst_update<F>(&mut self, w_pieces: Bitboard, b_pieces: Bitboard, index_fn: F)
-    where
-        F: Fn(Square) -> usize,
-    {
-        for i in 0..NUM_SQUARES {
-            let sq = Square::new(i);
-            let w_sq = sq.flip();
-            let b_sq = sq;
-
-            let value = (w_sq.as_bitboard().intersection(w_pieces).popcount() as i8)
-                - (b_sq.as_bitboard().intersection(b_pieces).popcount() as i8);
-            if value != 0 {
-                self.feature_vec.push(Feature::new(value, index_fn(sq)));
-            }
-        }
-    }
-
-    pub fn rst_update<F>(&mut self, w_pieces: Bitboard, b_pieces: Bitboard, index_fn: F)
-    where
-        F: Fn(u8) -> usize,
-    {
-        let rank = Bitboard::RANK_1;
-        for i in 0..NUM_RANKS {
-            let w_rank = rank.shift_north(7 - i);
-            let b_rank = rank.shift_north(i);
-
-            let value = (w_rank.intersection(w_pieces).popcount() as i8)
-                - (b_rank.intersection(b_pieces).popcount() as i8);
-            if value != 0 {
-                self.feature_vec.push(Feature::new(value, index_fn(i)));
-            }
-        }
-    }
-
-    fn add_pst_features(&mut self, board: &Board) {
-        for piece in Piece::LIST {
-            let w_piece_bb = board.piece_bb(piece, Color::White);
-            let b_piece_bb = board.piece_bb(piece, Color::Black);
-            self.pst_update(w_piece_bb, b_piece_bb, |sq| MaterialPst::index(piece, sq));
-        }
-    }
-
-    fn add_passer_features(&mut self, board: &Board) {
-        let w_passers = board.passed_pawns(Color::White);
-        let b_passers = board.passed_pawns(Color::Black);
-        self.pst_update(w_passers, b_passers, Passer::index);
-
-        let blocking_white = w_passers
-            .north_one()
-            .intersection(board.all[Color::Black.as_index()]);
-        let blocking_black = b_passers
-            .south_one()
-            .intersection(board.all[Color::White.as_index()]);
-        self.rst_update(blocking_white, blocking_black, PasserBlocker::index);
-    }
-
     fn new(board: &Board, game_result: f64) -> Self {
         let mut entry = Self {
             feature_vec: vec![],
@@ -124,8 +45,12 @@ impl Entry {
             game_result,
         };
 
-        entry.add_pst_features(board);
-        entry.add_passer_features(board);
+        let trace = trace_of_position(board);
+        for (i, &value) in trace.iter().enumerate() {
+            if value != 0 {
+                entry.feature_vec.push(Feature::new(value, i));
+            }
+        }
 
         entry
     }
@@ -161,34 +86,29 @@ pub struct Tuner {
 
 impl Tuner {
     const K: f64 = 0.006634;
-    const CONVERGENCE_DELTA: f64 = 1e-7;
+    const CONVERGENCE_DELTA: f64 = 2e-7;
     const CONVERGENCE_CHECK_FREQ: u32 = 50;
     const MAX_EPOCHS: u32 = 20000;
-    const LEARN_RATE: f64 = 0.1;
+    const LEARN_RATE: f64 = 0.12;
 
-    fn new_weights(from_zero: bool) -> TunerVec {
-        if from_zero {
-            return [[0.0; TUNER_VEC_LEN]; NUM_PHASES];
-        }
-
-        let scores: [EvalScore; NUM_PIECES as usize] = [300, 320, 500, 900, 100, 0];
+    fn new_weights(from_previous: bool) -> TunerVec {
         let mut result = [[0.0; TUNER_VEC_LEN]; NUM_PHASES];
-
-        for piece in Piece::LIST {
-            for i in 0..NUM_SQUARES {
-                let index = MaterialPst::index(piece, Square::new(i));
-                result[MG][index] = scores[piece.as_index()] as f64;
-                result[EG][index] = scores[piece.as_index()] as f64;
+        if from_previous {
+            for phase in PHASES {
+                for (i, &w) in PREV_WEIGHTS[phase].iter().enumerate() {
+                    result[phase][i] = w;
+                }
             }
         }
+
         result
     }
 
-    pub fn new(from_zero: bool) -> Self {
+    pub fn new(from_previous: bool) -> Self {
         Self {
             entries: vec![],
             gradient: [[0.0; TUNER_VEC_LEN]; NUM_PHASES],
-            weights: Self::new_weights(from_zero),
+            weights: Self::new_weights(from_previous),
             momentum: [[0.0; TUNER_VEC_LEN]; NUM_PHASES],
             velocity: [[0.0; TUNER_VEC_LEN]; NUM_PHASES],
         }
@@ -286,6 +206,7 @@ impl Tuner {
                 println!("MSE change since previous: {delta_mse}\n");
 
                 self.create_output_file();
+                self.create_weights_file();
 
                 if delta_mse < Self::CONVERGENCE_DELTA {
                     return;
@@ -300,13 +221,13 @@ impl Tuner {
         writeln!(output, "#![cfg_attr(rustfmt, rustfmt_skip)]").unwrap();
         writeln!(
             output,
-            "use crate::{{evaluation::ScoreTuple, board_representation::NUM_PIECES, pst::{{Pst, Rst}}}};\n"
+            "use crate::{{eval::{{evaluation::ScoreTuple, piece_tables::{{Pst, Prt}}}}, board::board_representation::NUM_PIECES}};\n"
         )
         .unwrap();
 
         writeln!(
             output,
-            "const fn s(mg: i16, eg: i16) -> ScoreTuple {{ ScoreTuple::new(mg, eg) }}\n"
+            "const fn s(mg: i32, eg: i32) -> ScoreTuple {{ ScoreTuple::new(mg, eg) }}\n"
         )
         .unwrap();
     }
@@ -332,11 +253,11 @@ impl Tuner {
         writeln!(output, "\n]){closing_str}").unwrap();
     }
 
-    fn write_rst<F>(&self, output: &mut BufWriter<File>, closing_str: &str, index_fn: F)
+    fn write_prt<F>(&self, output: &mut BufWriter<File>, closing_str: &str, index_fn: F)
     where
         F: Fn(u8) -> usize,
     {
-        write!(output, "Rst::new([").unwrap();
+        write!(output, "Prt::new([").unwrap();
         for i in 0..NUM_RANKS {
             write!(
                 output,
@@ -369,9 +290,135 @@ impl Tuner {
         self.write_pst(output, ";\n", Passer::index);
     }
 
-    fn write_passer_blocker_rst(&self, output: &mut BufWriter<File>) {
-        write!(output, "pub const PASSER_BLOCKERS_RST: Rst = ").unwrap();
-        self.write_rst(output, ";", PasserBlocker::index);
+    fn write_passer_blocker_prt(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const PASSER_BLOCKERS_PRT: Prt = ").unwrap();
+        self.write_prt(output, ";\n", PasserBlocker::index);
+    }
+
+    fn write_isolated_prt(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const ISOLATED_PAWNS_PRT: Prt = ").unwrap();
+        self.write_prt(output, ";\n", IsolatedPawns::index);
+    }
+
+    fn write_phalanx_prt(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const PHALANX_PAWNS_PRT: Prt = ").unwrap();
+        self.write_prt(output, ";\n", PhalanxPawns::index);
+    }
+
+    fn write_bishop_pair(&self, output: &mut BufWriter<File>) {
+        writeln!(
+            output,
+            "pub const BISHOP_PAIR_BONUS: ScoreTuple = s({}, {});\n",
+            self.weights[MG][BishopPair::index()] as EvalScore,
+            self.weights[EG][BishopPair::index()] as EvalScore,
+        )
+        .unwrap();
+    }
+
+    fn write_mobility(&self, output: &mut BufWriter<File>) {
+        for &piece in Piece::LIST.iter().take(4) {
+            let init_line = format!(
+                "pub const {}_MOBILITY: [ScoreTuple; {}] = [",
+                piece.as_string().unwrap().to_uppercase(),
+                Mobility::PIECE_MOVECOUNTS[piece.as_index()]
+            );
+            writeln!(output, "{}", init_line).unwrap();
+            write!(output, "  ").unwrap();
+
+            for i in 0..Mobility::PIECE_MOVECOUNTS[piece.as_index()] {
+                let index = Mobility::index(piece, i);
+                write!(
+                    output,
+                    "s({}, {}), ",
+                    self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore,
+                )
+                .unwrap();
+            }
+            writeln!(output, "\n];\n").unwrap();
+        }
+    }
+
+    fn write_forward_mobility(&self, output: &mut BufWriter<File>) {
+        for &piece in Piece::LIST.iter().take(4) {
+            let init_line = format!(
+                "pub const {}_FORWARD_MOBILITY: [ScoreTuple; {}] = [",
+                piece.as_string().unwrap().to_uppercase(),
+                ForwardMobility::PIECE_MOVECOUNTS[piece.as_index()]
+            );
+            writeln!(output, "{}", init_line).unwrap();
+            write!(output, "  ").unwrap();
+
+            for i in 0..ForwardMobility::PIECE_MOVECOUNTS[piece.as_index()] {
+                let index = ForwardMobility::index(piece, i);
+                write!(
+                    output,
+                    "s({}, {}), ",
+                    self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore,
+                )
+                .unwrap();
+            }
+            writeln!(output, "\n];\n").unwrap();
+        }
+    }
+
+    fn write_safety(&self, output: &mut BufWriter<File>) {
+        writeln!(
+            output,
+            "pub const KING_ZONE_ATTACKS: [[ScoreTuple; 28]; (NUM_PIECES - 1) as usize] = ["
+        )
+        .unwrap();
+        for &piece in Piece::LIST.iter().take(5) {
+            writeln!(output, "// {} attack values", piece.as_string().unwrap()).unwrap();
+            write!(output, "[\n  ").unwrap();
+
+            for i in 0..MoveCounts::QUEEN {
+                let index = Safety::index(piece, i);
+                write!(
+                    output,
+                    "s({}, {}), ",
+                    self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore,
+                )
+                .unwrap();
+            }
+            writeln!(output, "\n],").unwrap();
+        }
+        writeln!(output, "];\n").unwrap();
+    }
+
+    fn write_threats(&self, output: &mut BufWriter<File>) {
+        let strings = [
+            "PAWN_THREAT_ON_KNIGHT",
+            "PAWN_THREAT_ON_BISHOP",
+            "PAWN_THREAT_ON_ROOK",
+            "PAWN_THREAT_ON_QUEEN",
+            "KNIGHT_THREAT_ON_BISHOP",
+            "KNIGHT_THREAT_ON_ROOK",
+            "KNIGHT_THREAT_ON_QUEEN",
+            "BISHOP_THREAT_ON_KNIGHT",
+            "BISHOP_THREAT_ON_ROOK",
+            "BISHOP_THREAT_ON_QUEEN",
+            "ROOK_THREAT_ON_QUEEN",
+        ];
+
+        for (i, s) in strings.iter().enumerate() {
+            let index = Threats::START + i;
+            writeln!(
+                output,
+                "pub const {}: ScoreTuple = s({}, {});",
+                s, self.weights[MG][index] as EvalScore, self.weights[EG][index] as EvalScore,
+            )
+            .unwrap();
+        }
+    }
+
+    fn write_tempo(&self, output: &mut BufWriter<File>) {
+        writeln!(
+            output,
+            "\npub const TEMPO_BONUS: ScoreTuple = s({}, {});",
+            self.weights[MG][TempoBonus::index()] as EvalScore,
+            self.weights[EG][TempoBonus::index()] as EvalScore,
+        )
+        .unwrap();
     }
 
     fn create_output_file(&self) {
@@ -379,6 +426,31 @@ impl Tuner {
         self.write_header(&mut output);
         self.write_material_psts(&mut output);
         self.write_passer_pst(&mut output);
-        self.write_passer_blocker_rst(&mut output);
+        self.write_passer_blocker_prt(&mut output);
+        self.write_isolated_prt(&mut output);
+        self.write_phalanx_prt(&mut output);
+        self.write_bishop_pair(&mut output);
+        self.write_mobility(&mut output);
+        self.write_forward_mobility(&mut output);
+        self.write_safety(&mut output);
+        self.write_threats(&mut output);
+        self.write_tempo(&mut output);
+    }
+
+    fn create_weights_file(&self) {
+        let mut output = BufWriter::new(File::create("prev_weights.rs").unwrap());
+        writeln!(
+            output,
+            "#[rustfmt::skip]\npub const PREV_WEIGHTS: [[f64; {TUNER_VEC_LEN}]; {NUM_PHASES}] = [",
+        )
+        .unwrap();
+        for phase in PHASES {
+            writeln!(output, "[",).unwrap();
+            for w in self.weights[phase] {
+                write!(output, "{:.2}, ", w).unwrap();
+            }
+            writeln!(output, "],",).unwrap();
+        }
+        writeln!(output, "];",).unwrap();
     }
 }

@@ -5,22 +5,26 @@ use std::{
 
 use arrayvec::ArrayVec;
 
-use crate::{
-    board_representation::Board,
-    chess_move::{Move, MAX_MOVECOUNT},
-    evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
+use super::{
     history_table::History,
     killers::Killers,
     late_move_reductions::get_reduction,
-    movegen::MoveGenerator,
     pv_table::PvTable,
+    thread_data::{Nodes, ThreadData},
     time_management::{Milliseconds, SearchTimer},
     transposition_table::{TTFlag, TranspositionTable},
-    zobrist::ZobristHash,
-    zobrist_stack::ZobristStack,
 };
 
-pub type Nodes = u64;
+use crate::{
+    board::board_representation::Board,
+    board::chess_move::{Move, MAX_MOVECOUNT},
+    board::movegen::MoveGenerator,
+    board::zobrist::ZobristHash,
+    board::zobrist_stack::ZobristStack,
+    eval::evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
+    tablebase::probe::Syzygy,
+};
+
 pub type Depth = i8;
 pub type Ply = u8;
 const MAX_DEPTH: Depth = i8::MAX;
@@ -32,10 +36,11 @@ pub fn write_stop_flag(val: bool) {
     STOP_FLAG.store(val, Ordering::Relaxed);
 }
 
-fn stop_flag_is_set() -> bool {
+pub fn stop_flag_is_set() -> bool {
     STOP_FLAG.load(Ordering::Relaxed)
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct SearchResults {
     pub best_move: Move,
     pub score: EvalScore,
@@ -65,10 +70,10 @@ pub struct Searcher<'a> {
     history: History,
     killers: Killers,
     tt: &'a TranspositionTable,
+    tb: Syzygy,
 
+    thread_data: ThreadData<'a>,
     timer: Option<SearchTimer>,
-    out_of_time: bool,
-    node_count: Nodes,
     seldepth: u8,
 }
 
@@ -80,6 +85,8 @@ impl<'a> Searcher<'a> {
         zobrist_stack: &ZobristStack,
         history: &History,
         tt: &'a TranspositionTable,
+        tb: Syzygy,
+        thread_data: ThreadData<'a>,
     ) -> Self {
         Self {
             search_limits,
@@ -87,10 +94,10 @@ impl<'a> Searcher<'a> {
             history: history.clone(),
             killers: Killers::new(),
             tt,
+            tb,
             pv_table: PvTable::new(),
+            thread_data,
             timer: None,
-            out_of_time: false,
-            node_count: 0,
             seldepth: 0,
         }
     }
@@ -101,8 +108,10 @@ impl<'a> Searcher<'a> {
     }
 
     fn report_search_info(&self, score: EvalScore, depth: Depth, stopwatch: Instant) {
+        let (nodes, tb_hits) = self.thread_data.combined();
+
         let elapsed = stopwatch.elapsed();
-        let nps = (u128::from(self.node_count) * 1_000_000) / elapsed.as_micros().max(1);
+        let nps = (u128::from(nodes) * 1_000_000) / elapsed.as_micros().max(1);
 
         let score_str = if score >= MATE_THRESHOLD {
             let ply = EVAL_MAX - score;
@@ -118,28 +127,41 @@ impl<'a> Searcher<'a> {
             format!("cp {score}")
         };
 
-        print!("info ");
         println!(
-            "score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} hashfull {} pv {}",
-            self.node_count,
+            "info score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} hashfull {} tbhits {} pv {}",
+            nodes,
             elapsed.as_millis(),
             self.seldepth,
             self.tt.hashfull(),
+            tb_hits,
             self.pv_table.pv_string()
         );
     }
 
-    fn stop_searching(&self, depth: Depth) -> bool {
+    fn tb_root_report(search_results: SearchResults) {
+        println!(
+            "info score cp {} depth 1 seldepth 1 nodes 1 nps 1 tbhits 1 pv {}",
+            search_results.score,
+            search_results.best_move.as_string(),
+        );
+        println!("bestmove {}", search_results.best_move.as_string());
+    }
+
+    fn stop_searching<const IS_PRIMARY: bool>(&self, depth: Depth) -> bool {
         if depth == MAX_DEPTH {
             return true;
+        }
+
+        if !IS_PRIMARY {
+            return false; // let secondary threads run until stop flag is set by main thread
         }
 
         let mut result = false;
         for &limit in &self.search_limits {
             result |= match limit {
-                SearchLimit::Time(_) => self.out_of_time,
+                SearchLimit::Time(_) => self.timer.unwrap().is_soft_expired(),
                 SearchLimit::Depth(depth_limit) => depth > depth_limit,
-                SearchLimit::Nodes(node_limit) => self.node_count > node_limit,
+                SearchLimit::Nodes(node_limit) => self.thread_data.thread_node_count() > node_limit,
             }
         }
 
@@ -147,7 +169,7 @@ impl<'a> Searcher<'a> {
     }
 
     fn is_out_of_time(&self) -> bool {
-        if self.node_count % Self::TIMER_CHECK_FREQ == 0 {
+        if self.thread_data.thread_node_count() % Self::TIMER_CHECK_FREQ == 0 {
             if let Some(timer) = self.timer {
                 return timer.is_expired();
             }
@@ -157,21 +179,39 @@ impl<'a> Searcher<'a> {
     }
 
     pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
-        write_stop_flag(false);
-
+        let mut prev_score = 0;
         for d in 1..depth {
-            self.negamax::<true>(board, d, 0, -INF, INF);
+            prev_score = self.aspiration_window_search(
+                board,
+                prev_score,
+                d,
+                &mut Move::nullmove(),
+                &mut vec![],
+            );
         }
 
-        self.node_count
+        self.thread_data.thread_node_count()
     }
 
-    pub fn go(&mut self, board: &Board, report_info: bool) -> SearchResults {
-        write_stop_flag(false);
+    pub fn go<const IS_PRIMARY: bool>(
+        &mut self,
+        board: &Board,
+        report_info: bool,
+    ) -> SearchResults {
+        if IS_PRIMARY {
+            for &limit in &self.search_limits {
+                if let SearchLimit::Time(t) = limit {
+                    self.timer = Some(SearchTimer::new(t));
+                }
+            }
 
-        for &limit in &self.search_limits {
-            if let SearchLimit::Time(t) = limit {
-                self.timer = Some(SearchTimer::new(t));
+            if let Some((best_move, score)) = self.tb.probe_root(board) {
+                let results = SearchResults { best_move, score };
+                if report_info {
+                    Self::tb_root_report(results);
+                }
+                write_stop_flag(true);
+                return results;
             }
         }
 
@@ -179,12 +219,18 @@ impl<'a> Searcher<'a> {
         let mut depth: Depth = 1;
 
         let mut search_results = SearchResults::new(board);
-        while !self.stop_searching(depth) {
+        let mut widenings = vec![];
+        while !self.stop_searching::<IS_PRIMARY>(depth) {
             self.seldepth = 0;
+            let score = self.aspiration_window_search(
+                board,
+                search_results.score,
+                depth,
+                &mut search_results.best_move,
+                &mut widenings,
+            );
 
-            let score = self.negamax::<true>(board, depth, 0, -INF, INF);
-
-            if self.out_of_time || stop_flag_is_set() {
+            if stop_flag_is_set() {
                 break;
             }
 
@@ -196,6 +242,7 @@ impl<'a> Searcher<'a> {
 
             depth += 1;
         }
+        write_stop_flag(true);
 
         assert!(
             search_results.best_move.to() != search_results.best_move.from(),
@@ -209,11 +256,72 @@ impl<'a> Searcher<'a> {
         search_results
     }
 
+    fn aspiration_window_search(
+        &mut self,
+        board: &Board,
+        prev_score: EvalScore,
+        current_depth: Depth,
+        best_move: &mut Move,
+        widenings: &mut Vec<u16>,
+    ) -> EvalScore {
+        const ASP_WINDOW_MIN_DEPTH: Depth = 7;
+        const ASP_WINDOW_INIT_WINDOW: EvalScore = 12;
+        const ASP_WINDOW_INIT_DELTA: EvalScore = 16;
+        const ASP_WINDOW_FULL_SEARCH_BOUNDS: EvalScore = 3500;
+
+        let mut alpha = -INF;
+        let mut beta = INF;
+        let mut asp_depth = current_depth;
+        let mut delta = ASP_WINDOW_INIT_DELTA;
+
+        if current_depth > ASP_WINDOW_MIN_DEPTH {
+            alpha = (prev_score - ASP_WINDOW_INIT_WINDOW).max(-INF);
+            beta = (prev_score + ASP_WINDOW_INIT_WINDOW).min(INF);
+        } else {
+            return self.negamax::<false>(board, asp_depth, 0, alpha, beta);
+        }
+
+        let mut w = 0;
+        loop {
+            if alpha < -ASP_WINDOW_FULL_SEARCH_BOUNDS {
+                alpha = -INF;
+            }
+            if beta > ASP_WINDOW_FULL_SEARCH_BOUNDS {
+                beta = INF;
+            }
+
+            let score = self.negamax::<false>(board, asp_depth, 0, alpha, beta);
+
+            if score <= alpha {
+                alpha = (alpha - delta).max(-INF);
+                beta = (alpha + 3 * beta) / 4;
+            } else if score >= beta {
+                if asp_depth == current_depth {
+                    *best_move = self.pv_table.best_move();
+                }
+
+                beta = (beta + delta).min(INF);
+                asp_depth = (asp_depth - 1).max(1);
+            } else {
+                if let Some(timer) = &mut self.timer {
+                    widenings.push(w);
+                    timer.update_soft_limit(widenings.as_slice());
+                }
+
+                return score;
+            }
+
+            delta += delta * 2 / 3;
+            w += 1;
+        }
+    }
+
     #[rustfmt::skip]
+    #[allow(clippy::cognitive_complexity)] // lol
     fn negamax<const DO_NULL_MOVE: bool>(
         &mut self,
         board: &Board,
-        depth: Depth,
+        mut depth: Depth,
         ply: Ply,
         mut alpha: EvalScore,
         beta: EvalScore,
@@ -227,16 +335,28 @@ impl<'a> Searcher<'a> {
         let is_drawn =
             self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
 
-        if !is_root && is_drawn {
-            return 0;
+        if !is_root {
+            if is_drawn {
+                return 0;
+            }
+
+            // MATE DISTANCE PRUNING
+            let mate_alpha = alpha.max(i32::from(ply) - MATE_THRESHOLD);
+            let mate_beta = beta.min(MATE_THRESHOLD - (i32::from(ply) + 1));
+            if mate_alpha >= mate_beta {
+                return mate_alpha;
+            }
         }
 
-        if depth == 0 {
+        // CHECK EXTENSION
+        if in_check { depth += 1 };
+
+        if depth == 0 || ply >= MAX_PLY {
             return self.qsearch(board, ply, alpha, beta);
         }
 
         if self.is_out_of_time() {
-            self.out_of_time = true;
+            write_stop_flag(true);
             return 0;
         }
 
@@ -252,14 +372,31 @@ impl<'a> Searcher<'a> {
 
             entry.best_move
         } else {
+            // INTERNAL ITERATIVE REDUCTION (IIR)
+            const MIN_IIR_DEPTH: Depth = 3;
+            if depth >= MIN_IIR_DEPTH {
+                depth -= 1;
+            }
+
             Move::nullmove()
         };
 
+        // SYZYGY TABLEBASE PROBING
+        if !is_root {
+            if let Some(score) = self.tb.probe_score(board, ply) {
+                self.thread_data.increment_tb_hits();
+                self.tt.store(TTFlag::EXACT, score, hash, ply, depth, Move::nullmove());
+                return score;
+            }
+        }
+
         if !is_pv && !in_check {
+            let static_eval = evaluate(board);
+
             // NULL MOVE PRUNING
             const NMP_MIN_DEPTH: Depth = 3;
-            if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH && !board.we_only_have_pawns() {
-                let mut reduction = 3;
+            if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH && !board.we_only_have_pawns() && static_eval >= beta {
+                let mut reduction = 3 + depth / 3 + (3.min((static_eval - beta) / 200) as Depth);
                 reduction = reduction.min(depth);
 
                 let mut nmp_board = board.clone();
@@ -281,9 +418,8 @@ impl<'a> Searcher<'a> {
 
             // REVERSE FUTILITY PRUNING
             const RFP_MAX_DEPTH: Depth = 8;
-            const RFP_MARGIN: EvalScore = 120;
+            const RFP_MARGIN: EvalScore = 90;
 
-            let static_eval = evaluate(board);
             if depth <= RFP_MAX_DEPTH && static_eval >= (beta + RFP_MARGIN * i32::from(depth)) {
                 return static_eval;
             }
@@ -304,7 +440,7 @@ impl<'a> Searcher<'a> {
                 continue;
             }
 
-            self.node_count += 1;
+            self.thread_data.increment_nodes();
             moves_played += 1;
 
             let mut score = 0;
@@ -343,20 +479,23 @@ impl<'a> Searcher<'a> {
 
             self.zobrist_stack.revert_state();
 
-            if self.out_of_time || stop_flag_is_set() {
+            if stop_flag_is_set() {
                 return 0;
             }
 
-            let is_quiet = generator.is_quiet_stage();
-            // I am well aware that this does not include killer moves, but for
-            // some reason it loses Elo when I include them. Screw engine development.
+            let is_quiet = mv.is_quiet();
             if is_quiet {
                 quiets.push(mv);
             }
 
             if score > best_score {
-                best_move = mv;
                 best_score = score;
+
+                if score > alpha {
+                    best_move = mv;
+                    alpha = score;
+                    self.pv_table.update(ply, mv);
+                }
 
                 if score >= beta {
                     if is_quiet {
@@ -364,11 +503,6 @@ impl<'a> Searcher<'a> {
                         self.history.update(board, quiets.as_slice(), depth);
                     }
                     break;
-                }
-
-                if score > alpha {
-                    alpha = score;
-                    self.pv_table.update(ply, mv);
                 }
             }
         }
@@ -395,7 +529,7 @@ impl<'a> Searcher<'a> {
         beta: EvalScore,
     ) -> EvalScore {
         if self.is_out_of_time() {
-            self.out_of_time = true;
+            write_stop_flag(true);
             return 0;
         }
 
@@ -411,10 +545,18 @@ impl<'a> Searcher<'a> {
         }
 
         let hash_base = ZobristHash::incremental_update_base(board);
+        let hash = self.zobrist_stack.current_zobrist_hash();
+        if let Some(entry) = self.tt.probe(hash) {
+            if entry.cutoff_is_possible(alpha, beta, 0) {
+                return entry.score_from_tt(ply);
+            }
+        }
 
         let mut generator = MoveGenerator::new();
 
+        let old_alpha = alpha;
         let mut best_score = stand_pat;
+        let mut best_move = Move::nullmove();
         while let Some(mv) =
             generator.next::<false>(board, &self.history, Move::nullmove(), Move::nullmove())
         {
@@ -424,29 +566,32 @@ impl<'a> Searcher<'a> {
                 continue;
             }
 
-            self.node_count += 1;
+            self.thread_data.increment_nodes();
 
             let score = -self.qsearch(&next_board, ply + 1, -beta, -alpha);
 
             self.zobrist_stack.revert_state();
 
-            if self.out_of_time || stop_flag_is_set() {
+            if stop_flag_is_set() {
                 return 0;
             }
 
             if score > best_score {
                 best_score = score;
 
-                if score >= beta {
-                    break;
+                if score > alpha {
+                    best_move = mv;
+                    alpha = score;
                 }
 
-                if score > alpha {
-                    alpha = score;
+                if score >= beta {
+                    break;
                 }
             }
         }
 
+        let flag = TTFlag::determine(best_score, old_alpha, alpha, beta);
+        self.tt.store(flag, best_score, hash, ply, 0, best_move);
         best_score
     }
 }

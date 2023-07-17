@@ -1,7 +1,8 @@
 use crate::{
-    board_representation::{Board, NUM_COLORS, NUM_PIECES, NUM_SQUARES},
-    chess_move::Move,
-    search::Depth, evaluation::EvalScore,
+    board::board_representation::{Board, NUM_COLORS, NUM_PIECES, NUM_SQUARES},
+    board::chess_move::Move,
+    eval::evaluation::EvalScore,
+    search::search::Depth,
 };
 
 #[derive(Debug, Clone)]

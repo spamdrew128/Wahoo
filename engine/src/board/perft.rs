@@ -1,6 +1,7 @@
-use crate::board_representation::{Board, START_FEN};
-use crate::movegen::MoveGenerator;
+use super::board_representation::{Board, START_FEN};
+use super::movegen::MoveGenerator;
 
+#[allow(dead_code)]
 pub struct PerftTest {
     pub fen: &'static str,
     expected: Vec<u64>,
@@ -165,6 +166,7 @@ pub fn test_postions() -> Vec<PerftTest> {
     ]
 }
 
+#[allow(dead_code)]
 fn perft(board: &Board, depth: u16, count: &mut u64) {
     if depth == 0 {
         *count += 1;
@@ -186,6 +188,7 @@ fn perft(board: &Board, depth: u16, count: &mut u64) {
     }
 }
 
+#[allow(dead_code)]
 pub fn split_perft(fen: &str, depth: u16) {
     let board = Board::from_fen(fen);
     let mut generator = MoveGenerator::new();
@@ -200,6 +203,7 @@ pub fn split_perft(fen: &str, depth: u16) {
     }
 }
 
+#[allow(dead_code)]
 pub fn run_test_suite() {
     let test_vec: Vec<PerftTest> = test_postions();
     let mut index: usize = 0;
@@ -235,6 +239,7 @@ pub fn run_test_suite() {
 }
 
 #[allow(clippy::cast_precision_loss)]
+#[allow(dead_code)]
 pub fn speed_test() {
     let board = Board::from_fen(START_FEN);
     let timer = std::time::Instant::now();

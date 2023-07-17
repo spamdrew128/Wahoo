@@ -1,8 +1,8 @@
-use crate::chess_move::Move;
+use super::chess_move::Move;
+use super::zobrist::ZobristHash;
+use super::zobrist_stack::ZobristStack;
+use super::{attacks, chess_move::Flag};
 use crate::tuple_constants_enum;
-use crate::zobrist::ZobristHash;
-use crate::zobrist_stack::ZobristStack;
-use crate::{attacks, chess_move::Flag};
 use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
 type Row = u8;
@@ -231,6 +231,7 @@ pub struct Bitboard {
 }
 
 impl Bitboard {
+    pub const EMPTY: Self = Self::new(0);
     pub const A_FILE: Self = Self::new(0x0101010101010101);
     pub const H_FILE: Self = Self::new(0x8080808080808080);
 
@@ -272,7 +273,7 @@ impl Bitboard {
         }
     }
 
-    const fn xor(self, rhs: Self) -> Self {
+    pub const fn xor(self, rhs: Self) -> Self {
         Self {
             data: self.data ^ rhs.data,
         }
@@ -389,23 +390,23 @@ impl Bitboard {
         result
     }
 
-    pub fn fill(self, color: Color) -> Self {
+    pub const fn fill(self, color: Color) -> Self {
         let mut r = self;
         match color {
             Color::White => {
-                r |= r.shift_north(1);
-                r |= r.shift_north(2);
-                r | r.shift_north(4)
+                r = r.shift_north(1).union(r);
+                r = r.shift_north(2).union(r);
+                r.shift_north(4).union(r)
             }
             Color::Black => {
-                r |= r.shift_south(1);
-                r |= r.shift_south(2);
-                r | r.shift_south(4)
+                r = r.shift_south(1).union(r);
+                r = r.shift_south(2).union(r);
+                r.shift_south(4).union(r)
             }
         }
     }
 
-    pub fn file_fill(self) -> Self {
+    pub const fn file_fill(self) -> Self {
         self.fill(Color::White).fill(Color::Black)
     }
 
@@ -419,7 +420,7 @@ impl Bitboard {
         r | r.shift_west(4)
     }
 
-    pub fn forward_fill(self, color: Color) -> Self {
+    pub const fn forward_fill(self, color: Color) -> Self {
         let fill = self.fill(color);
         match color {
             Color::White => fill.north_one(),
@@ -526,6 +527,10 @@ impl CastleRights {
 
     const fn new(data: u8) -> Self {
         Self(data)
+    }
+
+    pub const fn not_empty(self) -> bool {
+        self.0 != 0
     }
 
     const fn has_kingside(self, color: Color) -> bool {
@@ -782,6 +787,10 @@ impl Board {
         self.piece_bb(Piece::KING, self.color_to_move).lsb()
     }
 
+    pub const fn color_king_sq(&self, color: Color) -> Square {
+        self.piece_bb(Piece::KING, color).lsb()
+    }
+
     pub const fn in_check(&self) -> bool {
         self.king_sq().is_attacked(self)
     }
@@ -950,7 +959,7 @@ impl Board {
     }
 
     pub const fn fifty_move_draw(&self) -> bool {
-        self.halfmoves >= 100
+        self.halfmoves > 100
     }
 
     const fn at_most_one_minor_piece(&self, color: Color) -> bool {
@@ -988,12 +997,27 @@ impl Board {
 
         our_pawns.without(opp_blocks)
     }
+
+    pub fn isolated_pawns(&self, color: Color) -> Bitboard {
+        let pawns = self.piece_bb(Piece::PAWN, color);
+        let pawn_files = pawns.file_fill();
+        let neighbor_files = pawn_files.west_one() | pawn_files.east_one();
+
+        pawns.without(neighbor_files)
+    }
+
+    pub const fn phalanx_pawns(&self, color: Color) -> Bitboard {
+        let pawns = self.piece_bb(Piece::PAWN, color);
+        let neighbor_spaces = pawns.east_one();
+
+        pawns.intersection(neighbor_spaces)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{Bitboard, Board, Color, Square, START_FEN};
-    use crate::{bb_from_squares, board_representation::CastleRights};
+    use crate::{bb_from_squares, board::board_representation::CastleRights};
 
     #[test]
     fn bit_and_works() {
@@ -1119,12 +1143,33 @@ mod tests {
     }
 
     #[test]
-    fn passed_pawns() {
+    fn passed_pawns_test() {
         let board = Board::from_fen("5k2/8/p1p4p/P4K2/8/1PP5/3PpP2/8 w - - 0 1");
         let w_expected = bb_from_squares!(F2);
         let b_expected = bb_from_squares!(E2, H6);
 
         assert_eq!(board.passed_pawns(Color::White), w_expected);
         assert_eq!(board.passed_pawns(Color::Black), b_expected);
+    }
+
+    #[test]
+    fn isolated_pawns_test() {
+        let board = Board::from_fen("8/8/8/K5pp/4P3/kpP2P2/8/8 w - - 0 1");
+        let w_expected = bb_from_squares!(C3);
+        let b_expected = bb_from_squares!(B3);
+
+        assert_eq!(board.isolated_pawns(Color::White), w_expected);
+        assert_eq!(board.isolated_pawns(Color::Black), b_expected);
+    }
+
+    #[test]
+    fn phalanx_pawns_test() {
+        let board =
+            Board::from_fen("rnbqkbnr/1pppppp1/p6p/8/3PP3/6P1/PPP2P1P/RNBQKBNR b KQkq - 0 3");
+        let w_expected = bb_from_squares!(B2, C2, E4);
+        let b_expected = bb_from_squares!(C7, D7, E7, F7, G7);
+
+        assert_eq!(board.phalanx_pawns(Color::White), w_expected);
+        assert_eq!(board.phalanx_pawns(Color::Black), b_expected);
     }
 }

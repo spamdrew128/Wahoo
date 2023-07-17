@@ -1,10 +1,12 @@
-use crate::board_representation::{Bitboard, Color, Square, NUM_COLORS, NUM_SQUARES};
-use crate::magic::{MagicEntry, MagicLookup};
+use super::{
+    board_representation::{Bitboard, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
+    magic::{MagicEntry, MagicLookup},
+};
 
 macro_rules! init_lookup {
     (|$sq_bb:ident|, $body:expr) => {{
         let mut i = 0;
-        let mut table = [Bitboard::new(0); NUM_SQUARES as usize];
+        let mut table = [Bitboard::EMPTY; NUM_SQUARES as usize];
         while i < NUM_SQUARES {
             let $sq_bb = Square::new(i).as_bitboard();
             table[i as usize] = $body;
@@ -93,12 +95,23 @@ pub const fn pawn_double_push(single_pushes: Bitboard, empty: Bitboard, color: C
     }
 }
 
+pub fn generic(piece: Piece, sq: Square, occupied: Bitboard) -> Bitboard {
+    match piece {
+        Piece::KNIGHT => knight(sq),
+        Piece::BISHOP => bishop(sq, occupied),
+        Piece::ROOK => rook(sq, occupied),
+        Piece::QUEEN => queen(sq, occupied),
+        Piece::KING => king(sq),
+        _ => panic!(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Bitboard, Square};
-    use crate::attacks;
     use crate::bb_from_squares;
-    use crate::board_representation::{Board, Color, Piece};
+    use crate::board::attacks;
+    use crate::board::board_representation::{Board, Color, Piece};
 
     #[test]
     fn king_attack_test() {
