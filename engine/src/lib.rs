@@ -11,27 +11,8 @@
 #![allow(clippy::items_after_statements)]
 #![allow(clippy::option_if_let_else)]
 
-pub mod attacks;
-pub mod bench;
-pub mod board_representation;
-pub mod chess_move;
-mod eval_constants;
-pub mod evaluation;
-pub mod history_table;
-mod killers;
-mod late_move_reductions;
-mod magic;
-pub mod movegen;
-mod perft;
-pub mod piece_loop_eval;
-mod piece_tables;
-mod pv_table;
+pub mod board;
+pub mod eval;
 pub mod search;
 pub mod tablebase;
-pub mod thread_data;
-pub mod time_management;
-pub mod trace;
-pub mod transposition_table;
 mod util_macros;
-pub mod zobrist;
-pub mod zobrist_stack;

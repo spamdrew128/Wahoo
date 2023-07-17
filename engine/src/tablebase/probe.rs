@@ -11,7 +11,7 @@ use std::{ffi::CString, ptr};
 use crate::{
     board_representation::{Board, Color, Piece, Square},
     chess_move::{Flag, Move},
-    evaluation::{EvalScore, TB_LOSS_SCORE, TB_WIN_SCORE},
+    eval::evaluation::{EvalScore, TB_LOSS_SCORE, TB_WIN_SCORE},
     movegen::MoveGenerator,
     search::Ply,
 };

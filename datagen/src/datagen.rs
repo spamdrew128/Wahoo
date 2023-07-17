@@ -10,7 +10,7 @@ use engine::{
     evaluation::{evaluate, EvalScore, INF, MATE_THRESHOLD},
     history_table::History,
     movegen::MoveGenerator,
-    search::{Ply, SearchLimit, SearchResults, Searcher, write_stop_flag},
+    search::{write_stop_flag, Ply, SearchLimit, SearchResults, Searcher},
     tablebase::probe::Syzygy,
     transposition_table::TranspositionTable,
     zobrist::ZobristHash,
