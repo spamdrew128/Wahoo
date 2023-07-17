@@ -221,7 +221,7 @@ impl Tuner {
         writeln!(output, "#![cfg_attr(rustfmt, rustfmt_skip)]").unwrap();
         writeln!(
             output,
-            "use crate::{{evaluation::ScoreTuple, board_representation::NUM_PIECES, piece_tables::{{Pst, Prt}}}};\n"
+            "use crate::{{eval::{{evaluation::ScoreTuple, piece_tables::{{Pst, Prt}}}}, board::board_representation::NUM_PIECES}};\n"
         )
         .unwrap();
 
