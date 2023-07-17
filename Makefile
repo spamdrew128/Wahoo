@@ -1,4 +1,4 @@
-EXE := wahoo
+EXE := wahoov3
 TUNER_EXE := tuner
 GENERATOR_EXE := data_generator
 
