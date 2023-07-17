@@ -115,14 +115,19 @@ impl Tuner {
     }
 
     pub fn load_from_file(&mut self, file_name: &str) {
+        println!("Loading file...\n");
+        let mut count = 0;
         for line in read_to_string(file_name).unwrap().lines() {
             let (fen, r) = line.split_once('[').unwrap();
             let game_result = r.split_once(']').unwrap().0.parse::<f64>().unwrap();
 
             let board = Board::from_fen(fen);
-            self.entries.push(Entry::new(&board, game_result));
+            if !board.in_check() {
+                self.entries.push(Entry::new(&board, game_result));
+                count += 1;
+            }
         }
-        println!("Loaded file: begin tuning...\n");
+        println!("Loaded {count} positions: begin tuning...\n");
     }
 
     pub fn reset_gradient(&mut self) {
