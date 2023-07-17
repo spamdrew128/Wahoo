@@ -1,5 +1,5 @@
 use std::{
-    sync::atomic::{AtomicBool, AtomicU64, Ordering},
+    sync::atomic::{AtomicBool, Ordering},
     time::Instant,
 };
 
@@ -15,20 +15,19 @@ use crate::{
     movegen::MoveGenerator,
     pv_table::PvTable,
     tablebase::probe::Syzygy,
+    thread_data::{Nodes, ThreadData},
     time_management::{Milliseconds, SearchTimer},
     transposition_table::{TTFlag, TranspositionTable},
     zobrist::ZobristHash,
     zobrist_stack::ZobristStack,
 };
 
-pub type Nodes = u64;
 pub type Depth = i8;
 pub type Ply = u8;
 const MAX_DEPTH: Depth = i8::MAX;
 pub const MAX_PLY: Ply = MAX_DEPTH as u8;
 
 static STOP_FLAG: AtomicBool = AtomicBool::new(false);
-static NODE_COUNT: AtomicU64 = AtomicU64::new(0);
 
 pub fn write_stop_flag(val: bool) {
     STOP_FLAG.store(val, Ordering::Relaxed);
@@ -36,18 +35,6 @@ pub fn write_stop_flag(val: bool) {
 
 pub fn stop_flag_is_set() -> bool {
     STOP_FLAG.load(Ordering::Relaxed)
-}
-
-fn reset_node_count() {
-    NODE_COUNT.store(0, Ordering::Relaxed);
-}
-
-fn update_node_count(nodes: Nodes) {
-    NODE_COUNT.fetch_add(nodes, Ordering::Relaxed);
-}
-
-fn node_count() -> Nodes {
-    NODE_COUNT.load(Ordering::Relaxed)
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -82,8 +69,7 @@ pub struct Searcher<'a> {
     tt: &'a TranspositionTable,
     tb: Syzygy,
 
-    node_count: Nodes,
-    tb_hits: u64,
+    thread_data: ThreadData<'a>,
     timer: Option<SearchTimer>,
     seldepth: u8,
 }
@@ -97,6 +83,7 @@ impl<'a> Searcher<'a> {
         history: &History,
         tt: &'a TranspositionTable,
         tb: Syzygy,
+        thread_data: ThreadData<'a>,
     ) -> Self {
         Self {
             search_limits,
@@ -106,8 +93,7 @@ impl<'a> Searcher<'a> {
             tt,
             tb,
             pv_table: PvTable::new(),
-            node_count: 0,
-            tb_hits: 0,
+            thread_data,
             timer: None,
             seldepth: 0,
         }
@@ -119,8 +105,10 @@ impl<'a> Searcher<'a> {
     }
 
     fn report_search_info(&self, score: EvalScore, depth: Depth, stopwatch: Instant) {
+        let (nodes, tb_hits) = self.thread_data.combined();
+
         let elapsed = stopwatch.elapsed();
-        let nps = (u128::from(node_count()) * 1_000_000) / elapsed.as_micros().max(1);
+        let nps = (u128::from(nodes) * 1_000_000) / elapsed.as_micros().max(1);
 
         let score_str = if score >= MATE_THRESHOLD {
             let ply = EVAL_MAX - score;
@@ -138,11 +126,11 @@ impl<'a> Searcher<'a> {
 
         println!(
             "info score {score_str} nodes {} time {} nps {nps} depth {depth} seldepth {} hashfull {} tbhits {} pv {}",
-            node_count(),
+            nodes,
             elapsed.as_millis(),
             self.seldepth,
             self.tt.hashfull(),
-            self.tb_hits,
+            tb_hits,
             self.pv_table.pv_string()
         );
     }
@@ -170,7 +158,7 @@ impl<'a> Searcher<'a> {
             result |= match limit {
                 SearchLimit::Time(_) => self.timer.unwrap().is_soft_expired(),
                 SearchLimit::Depth(depth_limit) => depth > depth_limit,
-                SearchLimit::Nodes(node_limit) => node_count() > node_limit,
+                SearchLimit::Nodes(node_limit) => self.thread_data.thread_node_count() > node_limit,
             }
         }
 
@@ -178,7 +166,7 @@ impl<'a> Searcher<'a> {
     }
 
     fn is_out_of_time(&self) -> bool {
-        if self.node_count % Self::TIMER_CHECK_FREQ == 0 {
+        if self.thread_data.thread_node_count() % Self::TIMER_CHECK_FREQ == 0 {
             if let Some(timer) = self.timer {
                 return timer.is_expired();
             }
@@ -188,7 +176,6 @@ impl<'a> Searcher<'a> {
     }
 
     pub fn bench(&mut self, board: &Board, depth: Depth) -> Nodes {
-        write_stop_flag(false);
         let mut prev_score = 0;
         for d in 1..depth {
             prev_score = self.aspiration_window_search(
@@ -199,9 +186,8 @@ impl<'a> Searcher<'a> {
                 &mut vec![],
             );
         }
-        write_stop_flag(true);
 
-        self.node_count
+        self.thread_data.thread_node_count()
     }
 
     pub fn go<const IS_PRIMARY: bool>(
@@ -210,9 +196,6 @@ impl<'a> Searcher<'a> {
         report_info: bool,
     ) -> SearchResults {
         if IS_PRIMARY {
-            write_stop_flag(false);
-            reset_node_count();
-
             for &limit in &self.search_limits {
                 if let SearchLimit::Time(t) = limit {
                     self.timer = Some(SearchTimer::new(t));
@@ -236,7 +219,6 @@ impl<'a> Searcher<'a> {
         let mut widenings = vec![];
         while !self.stop_searching::<IS_PRIMARY>(depth) {
             self.seldepth = 0;
-            self.node_count = 0;
             let score = self.aspiration_window_search(
                 board,
                 search_results.score,
@@ -244,7 +226,6 @@ impl<'a> Searcher<'a> {
                 &mut search_results.best_move,
                 &mut widenings,
             );
-            update_node_count(self.node_count);
 
             if stop_flag_is_set() {
                 break;
@@ -400,7 +381,7 @@ impl<'a> Searcher<'a> {
         // SYZYGY TABLEBASE PROBING
         if !is_root {
             if let Some(score) = self.tb.probe_score(board, ply) {
-                self.tb_hits += 1;
+                self.thread_data.increment_tb_hits();
                 self.tt.store(TTFlag::EXACT, score, hash, ply, depth, Move::nullmove());
                 return score;
             }
@@ -456,7 +437,7 @@ impl<'a> Searcher<'a> {
                 continue;
             }
 
-            self.node_count += 1;
+            self.thread_data.increment_nodes();
             moves_played += 1;
 
             let mut score = 0;
@@ -583,7 +564,7 @@ impl<'a> Searcher<'a> {
                 continue;
             }
 
-            self.node_count += 1;
+            self.thread_data.increment_nodes();
 
             let score = -self.qsearch(&next_board, ply + 1, -beta, -alpha);
 

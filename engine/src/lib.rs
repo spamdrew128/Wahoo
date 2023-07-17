@@ -28,6 +28,7 @@ mod piece_tables;
 mod pv_table;
 pub mod search;
 pub mod tablebase;
+pub mod thread_data;
 pub mod time_management;
 pub mod trace;
 pub mod transposition_table;

@@ -1,9 +1,11 @@
 use engine::{
     board_representation::{Board, Color, START_FEN},
     chess_move::Move,
+    create_thread_data,
     history_table::History,
-    search::{self, Depth, Nodes, SearchLimit, Searcher},
-    tablebase::probe::Syzygy,
+    search::{self, Depth, SearchLimit, Searcher},
+    tablebase::probe::{Syzygy, FATHOM_IS_COMPILED},
+    thread_data::Nodes,
     time_management::{Milliseconds, TimeArgs, TimeManager},
     transposition_table::TranspositionTable,
     zobrist::ZobristHash,
@@ -31,7 +33,7 @@ pub struct UciHandler {
     tt: TranspositionTable,
     time_manager: TimeManager,
     stored_message: Option<String>,
-    threads: usize,
+    num_threads: usize,
     tablebase: Syzygy,
 }
 
@@ -78,7 +80,7 @@ impl UciHandler {
             tt: TranspositionTable::new(Self::HASH_DEFAULT),
             time_manager: TimeManager::new(Self::OVERHEAD_DEFAULT),
             stored_message: None,
-            threads: Self::THREADS_DEFAULT,
+            num_threads: Self::THREADS_DEFAULT,
             tablebase: Syzygy::new(),
         }
     }
@@ -198,12 +200,14 @@ impl UciHandler {
                     Self::THREADS_MIN,
                     Self::THREADS_MAX
                 );
-                send_uci_option!(
-                    "SyzygyPath",
-                    "string",
-                    "default {}",
-                    Self::SYZYGY_PATH_DEFAULT
-                );
+                if FATHOM_IS_COMPILED {
+                    send_uci_option!(
+                        "SyzygyPath",
+                        "string",
+                        "default {}",
+                        Self::SYZYGY_PATH_DEFAULT
+                    );
+                }
 
                 println!("uciok");
             }
@@ -299,27 +303,33 @@ impl UciHandler {
                     ));
                 }
 
-                let mut searcher = Searcher::new(
-                    search_limits.clone(),
-                    &self.zobrist_stack,
-                    &self.history,
-                    &self.tt,
-                    self.tablebase,
-                );
+                create_thread_data!(thread_data, self.num_threads);
+
                 let mut secondary_searchers = vec![];
-                for _ in 1..self.threads {
+                for id in 1..self.num_threads {
                     secondary_searchers.push(Searcher::new(
                         search_limits.clone(),
                         &self.zobrist_stack,
                         &self.history,
                         &self.tt,
                         self.tablebase,
+                        thread_data.get_secondary(id),
                     ));
                 }
 
+                let mut primary_searcher = Searcher::new(
+                    search_limits.clone(),
+                    &self.zobrist_stack,
+                    &self.history,
+                    &self.tt,
+                    self.tablebase,
+                    thread_data,
+                );
+
+                search::write_stop_flag(false);
                 thread::scope(|s| {
                     s.spawn(|| {
-                        searcher.go::<true>(&self.board, true);
+                        primary_searcher.go::<true>(&self.board, true);
                     });
 
                     for searcher in secondary_searchers.iter_mut() {
@@ -331,7 +341,7 @@ impl UciHandler {
                     Self::handle_stop_and_quit(&mut self.stored_message);
                 });
 
-                searcher.search_complete_actions(&mut self.history);
+                primary_searcher.search_complete_actions(&mut self.history);
                 self.tt.age_table();
             }
             UciCommand::SetOptionOverhead(overhead) => {
@@ -342,7 +352,7 @@ impl UciHandler {
                 self.tt = TranspositionTable::new(megabytes.clamp(Self::HASH_MIN, Self::HASH_MAX));
             }
             UciCommand::SetOptionThreads(count) => {
-                self.threads = count.clamp(Self::THREADS_MIN, Self::THREADS_MAX);
+                self.num_threads = count.clamp(Self::THREADS_MIN, Self::THREADS_MAX);
             }
             UciCommand::SetOptionSyzygyPath(path) => {
                 if path != Self::SYZYGY_PATH_DEFAULT {
