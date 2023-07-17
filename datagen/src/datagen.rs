@@ -10,7 +10,7 @@ use engine::{
     evaluation::{evaluate, EvalScore, INF, MATE_THRESHOLD},
     history_table::History,
     movegen::MoveGenerator,
-    search::{Ply, SearchLimit, SearchResults, Searcher},
+    search::{Ply, SearchLimit, SearchResults, Searcher, write_stop_flag},
     tablebase::probe::Syzygy,
     transposition_table::TranspositionTable,
     zobrist::ZobristHash,
@@ -144,6 +144,7 @@ impl DataGenerator {
         let tt = TranspositionTable::new(16);
         loop {
             create_thread_data!(thread_data);
+            write_stop_flag(false);
 
             let mut searcher = Searcher::new(
                 self.search_limits.clone(),
