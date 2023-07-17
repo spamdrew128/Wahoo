@@ -8,21 +8,21 @@ use arrayvec::ArrayVec;
 use super::{
     history_table::History,
     killers::Killers,
+    late_move_reductions::get_reduction,
     pv_table::PvTable,
     thread_data::{Nodes, ThreadData},
     time_management::{Milliseconds, SearchTimer},
     transposition_table::{TTFlag, TranspositionTable},
-    late_move_reductions::get_reduction,
 };
 
 use crate::{
     board::board_representation::Board,
     board::chess_move::{Move, MAX_MOVECOUNT},
-    eval::evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     board::movegen::MoveGenerator,
-    tablebase::probe::Syzygy,
     board::zobrist::ZobristHash,
     board::zobrist_stack::ZobristStack,
+    eval::evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
+    tablebase::probe::Syzygy,
 };
 
 pub type Depth = i8;

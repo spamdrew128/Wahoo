@@ -1,12 +1,12 @@
 use engine::{
-    board_representation::{Board, Piece, Square, NUM_RANKS, NUM_SQUARES},
-    evaluation::{
+    board::board_representation::{Board, Piece, Square, NUM_RANKS, NUM_SQUARES},
+    eval::evaluation::{
         phase, trace_of_position, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX,
     },
-    piece_loop_eval::MoveCounts,
-    trace::{
+    eval::piece_loop_eval::MoveCounts,
+    eval::trace::{
         BishopPair, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer, PasserBlocker,
-        PhalanxPawns, Safety, TempoBonus, Threats,
+        PhalanxPawns, Safety, TempoBonus, Threats, TRACE_LEN,
     },
 };
 use std::{
@@ -17,7 +17,7 @@ use std::{
 
 use crate::prev_weights::PREV_WEIGHTS;
 
-const TUNER_VEC_LEN: usize = engine::trace::TRACE_LEN;
+const TUNER_VEC_LEN: usize = TRACE_LEN;
 type TunerVec = [[f64; TUNER_VEC_LEN]; NUM_PHASES];
 
 struct Feature {

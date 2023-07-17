@@ -1,8 +1,8 @@
 use super::chess_move::Move;
-use crate::tuple_constants_enum;
 use super::zobrist::ZobristHash;
 use super::zobrist_stack::ZobristStack;
 use super::{attacks, chess_move::Flag};
+use crate::tuple_constants_enum;
 use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
 type Row = u8;

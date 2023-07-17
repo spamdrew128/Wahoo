@@ -1,5 +1,6 @@
 use crate::{
-    board::attacks, bitloop,
+    bitloop,
+    board::attacks,
     board::board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
     eval::eval_constants::{
         BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT, BISHOP_THREAT_ON_QUEEN,

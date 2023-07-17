@@ -4,17 +4,17 @@ use std::{
 };
 
 use engine::{
-    board_representation::{Board, Color, START_FEN},
-    chess_move::Move,
+    board::board_representation::{Board, Color, START_FEN},
+    board::chess_move::Move,
+    board::movegen::MoveGenerator,
+    board::zobrist::ZobristHash,
+    board::zobrist_stack::ZobristStack,
     create_thread_data,
-    evaluation::{evaluate, EvalScore, INF, MATE_THRESHOLD},
-    history_table::History,
-    movegen::MoveGenerator,
-    search::{write_stop_flag, Ply, SearchLimit, SearchResults, Searcher},
+    eval::evaluation::{evaluate, EvalScore, INF, MATE_THRESHOLD},
+    search::history_table::History,
+    search::search::{write_stop_flag, Ply, SearchLimit, SearchResults, Searcher},
+    search::transposition_table::TranspositionTable,
     tablebase::probe::Syzygy,
-    transposition_table::TranspositionTable,
-    zobrist::ZobristHash,
-    zobrist_stack::ZobristStack,
 };
 
 use crate::rng::Rng;

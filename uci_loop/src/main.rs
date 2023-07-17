@@ -1,4 +1,4 @@
-use engine::bench;
+use engine::search::bench;
 mod uci;
 
 fn main() {

@@ -1,15 +1,15 @@
 use engine::{
-    board_representation::{Board, Color, START_FEN},
-    chess_move::Move,
+    board::board_representation::{Board, Color, START_FEN},
+    board::chess_move::Move,
+    board::zobrist::ZobristHash,
+    board::zobrist_stack::ZobristStack,
     create_thread_data,
-    history_table::History,
-    search::{self, Depth, SearchLimit, Searcher},
+    search::history_table::History,
+    search::search::{self, Depth, SearchLimit, Searcher},
+    search::thread_data::Nodes,
+    search::time_management::{Milliseconds, TimeArgs, TimeManager},
+    search::transposition_table::TranspositionTable,
     tablebase::probe::{Syzygy, FATHOM_IS_COMPILED},
-    thread_data::Nodes,
-    time_management::{Milliseconds, TimeArgs, TimeManager},
-    transposition_table::TranspositionTable,
-    zobrist::ZobristHash,
-    zobrist_stack::ZobristStack,
 };
 
 use std::thread;

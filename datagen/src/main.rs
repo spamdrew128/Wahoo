@@ -1,4 +1,4 @@
-use engine::search::SearchLimit;
+use engine::search::search::SearchLimit;
 
 mod datagen;
 mod rng;

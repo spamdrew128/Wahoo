@@ -2,9 +2,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::{
     board::chess_move::Move,
+    board::zobrist::ZobristHash,
     eval::evaluation::{EvalScore, MATE_THRESHOLD, TB_LOSS_SCORE, TB_WIN_SCORE},
     search::search::{Depth, Ply},
-    board::zobrist::ZobristHash,
 };
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]

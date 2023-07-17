@@ -8,11 +8,11 @@ use crate::{
         PHALANX_PAWNS_PRT, TEMPO_BONUS,
     },
     eval::piece_loop_eval::mobility_threats_safety,
-    search::search::MAX_PLY,
     eval::trace::{
         color_adjust, empty_trace, BishopPair, IsolatedPawns, MaterialPst, Passer, PasserBlocker,
         PhalanxPawns, TempoBonus, Trace,
     },
+    search::search::MAX_PLY,
     trace_update,
 };
 
