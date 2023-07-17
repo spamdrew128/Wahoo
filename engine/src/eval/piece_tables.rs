@@ -1,6 +1,6 @@
 use crate::{
-    board_representation::{Color, Square, NUM_COLORS, NUM_RANKS, NUM_SQUARES},
-    evaluation::ScoreTuple,
+    board::board_representation::{Color, Square, NUM_COLORS, NUM_RANKS, NUM_SQUARES},
+    eval::evaluation::ScoreTuple,
 };
 
 pub struct Pst {

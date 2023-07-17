@@ -1,8 +1,8 @@
-use crate::chess_move::Move;
+use super::chess_move::Move;
+use super::zobrist::ZobristHash;
+use super::zobrist_stack::ZobristStack;
+use super::{attacks, chess_move::Flag};
 use crate::tuple_constants_enum;
-use crate::zobrist::ZobristHash;
-use crate::zobrist_stack::ZobristStack;
-use crate::{attacks, chess_move::Flag};
 use std::ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
 type Row = u8;
@@ -1017,7 +1017,7 @@ impl Board {
 #[cfg(test)]
 mod tests {
     use super::{Bitboard, Board, Color, Square, START_FEN};
-    use crate::{bb_from_squares, board_representation::CastleRights};
+    use crate::{bb_from_squares, board::board_representation::CastleRights};
 
     #[test]
     fn bit_and_works() {

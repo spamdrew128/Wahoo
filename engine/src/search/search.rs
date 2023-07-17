@@ -5,21 +5,24 @@ use std::{
 
 use arrayvec::ArrayVec;
 
-use crate::{
-    board_representation::Board,
-    chess_move::{Move, MAX_MOVECOUNT},
-    evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
+use super::{
     history_table::History,
     killers::Killers,
     late_move_reductions::get_reduction,
-    movegen::MoveGenerator,
     pv_table::PvTable,
-    tablebase::probe::Syzygy,
     thread_data::{Nodes, ThreadData},
     time_management::{Milliseconds, SearchTimer},
     transposition_table::{TTFlag, TranspositionTable},
-    zobrist::ZobristHash,
-    zobrist_stack::ZobristStack,
+};
+
+use crate::{
+    board::board_representation::Board,
+    board::chess_move::{Move, MAX_MOVECOUNT},
+    board::movegen::MoveGenerator,
+    board::zobrist::ZobristHash,
+    board::zobrist_stack::ZobristStack,
+    eval::evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
+    tablebase::probe::Syzygy,
 };
 
 pub type Depth = i8;

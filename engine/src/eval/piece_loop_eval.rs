@@ -1,7 +1,8 @@
 use crate::{
-    attacks, bitloop,
-    board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
-    eval_constants::{
+    bitloop,
+    board::attacks,
+    board::board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
+    eval::eval_constants::{
         BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT, BISHOP_THREAT_ON_QUEEN,
         BISHOP_THREAT_ON_ROOK, KING_ZONE_ATTACKS, KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY,
         KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN, KNIGHT_THREAT_ON_ROOK,
@@ -9,8 +10,8 @@ use crate::{
         QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY,
         ROOK_THREAT_ON_QUEEN,
     },
-    evaluation::ScoreTuple,
-    trace::{ForwardMobility, Mobility, Safety, Threats, Trace},
+    eval::evaluation::ScoreTuple,
+    eval::trace::{ForwardMobility, Mobility, Safety, Threats, Trace},
     trace_threat_update, trace_update,
 };
 
@@ -323,9 +324,9 @@ pub fn mobility_threats_safety<const TRACE: bool>(
 #[cfg(test)]
 mod tests {
     use crate::{
-        attacks,
-        board_representation::{Board, Color, Square},
-        piece_loop_eval::forward_mobility,
+        board::attacks,
+        board::board_representation::{Board, Color, Square},
+        eval::piece_loop_eval::forward_mobility,
     };
 
     use super::enemy_virtual_mobility;

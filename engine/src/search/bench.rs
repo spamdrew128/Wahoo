@@ -1,12 +1,12 @@
 use crate::{
-    board_representation::Board,
+    board::board_representation::Board,
+    board::perft::{test_postions, PerftTest},
+    board::zobrist_stack::ZobristStack,
     create_thread_data,
-    history_table::History,
-    perft::{test_postions, PerftTest},
-    search::Searcher,
+    search::history_table::History,
+    search::search::Searcher,
+    search::transposition_table::TranspositionTable,
     tablebase::probe::Syzygy,
-    transposition_table::TranspositionTable,
-    zobrist_stack::ZobristStack,
 };
 
 pub fn bench() {

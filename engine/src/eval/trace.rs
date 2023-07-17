@@ -1,6 +1,6 @@
 use crate::{
-    board_representation::{Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES},
-    piece_loop_eval::MoveCounts,
+    board::board_representation::{Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES},
+    eval::piece_loop_eval::MoveCounts,
 };
 
 pub const TRACE_LEN: usize = MaterialPst::LEN

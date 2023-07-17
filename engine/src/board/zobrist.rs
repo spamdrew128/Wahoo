@@ -1,6 +1,6 @@
 use crate::{
     bitloop,
-    board_representation::{
+    board::board_representation::{
         Board, CastleRights, Color, Piece, Square, NUM_COLORS, NUM_PIECES, NUM_SQUARES,
     },
 };
@@ -100,7 +100,7 @@ mod tests {
         // credit to Cozy Chess for this test
         // https://github.com/analog-hors/cozy-chess/blob/master/cozy-chess/src/board/zobrist.rs#L191 
         use super::*;
-        use crate::chess_move::Move;
+        use crate::board::chess_move::Move;
         const MOVES: &[[[&str; 4]; 2]] = &[
             [["e2c4", "h8f8", "d2h6", "b4b3"], ["e2c4", "b4b3", "d2h6", "h8f8"]],
             [["c3a4", "f6g8", "e1d1", "a8c8"], ["c3a4", "a8c8", "e1d1", "f6g8"]],

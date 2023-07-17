@@ -1,6 +1,6 @@
 use crate::{
-    chess_move::MAX_MOVECOUNT,
-    search::{Depth, MAX_PLY},
+    board::chess_move::MAX_MOVECOUNT,
+    search::search::{Depth, MAX_PLY},
 };
 
 const LMR_TABLE: [[Depth; MAX_MOVECOUNT]; MAX_PLY as usize] =

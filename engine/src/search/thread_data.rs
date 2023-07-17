@@ -6,8 +6,8 @@ pub type TbHits = u64;
 #[macro_export]
 macro_rules! create_thread_data {
     ($name:ident, $thread_count:expr) => {
-        let v = $crate::thread_data::ThreadData::elem_vec($thread_count);
-        let $name = $crate::thread_data::ThreadData::new_primary(&v);
+        let v = $crate::search::thread_data::ThreadData::elem_vec($thread_count);
+        let $name = $crate::search::thread_data::ThreadData::new_primary(&v);
     };
 
     ($name:ident) => {
