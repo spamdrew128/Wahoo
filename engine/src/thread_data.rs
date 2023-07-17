@@ -16,6 +16,7 @@ macro_rules! create_thread_data {
 }
 
 #[derive(Debug, Default)]
+#[repr(align(64))]
 pub struct ThreadDataElem {
     nodes: AtomicU64,
     tb_hits: AtomicU64,
@@ -53,8 +54,8 @@ impl<'a> ThreadData<'a> {
         let mut nodes = 0;
         let mut tb_hits = 0;
         self.data.iter().for_each(|x| {
-            nodes += x.nodes.load(Ordering::SeqCst);
-            tb_hits += x.tb_hits.load(Ordering::SeqCst);
+            nodes += x.nodes.load(Ordering::Relaxed);
+            tb_hits += x.tb_hits.load(Ordering::Relaxed);
         });
         (nodes, tb_hits)
     }
