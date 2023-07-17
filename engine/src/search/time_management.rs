@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use crate::board_representation::{Color, NUM_COLORS};
+use crate::board::board_representation::{Color, NUM_COLORS};
 
 pub type Milliseconds = u128;
 

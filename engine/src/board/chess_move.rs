@@ -1,4 +1,4 @@
-use crate::{
+use super::{
     attacks,
     board_representation::{Bitboard, Board, Piece, Square},
 };
@@ -256,7 +256,7 @@ impl Move {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
+    use super::super::{
         board_representation::Board,
         movegen::MoveGenerator,
         perft::{test_postions, PerftTest},

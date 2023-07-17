@@ -9,11 +9,11 @@
 use std::{ffi::CString, ptr};
 
 use crate::{
-    board_representation::{Board, Color, Piece, Square},
-    chess_move::{Flag, Move},
+    board::board_representation::{Board, Color, Piece, Square},
+    board::chess_move::{Flag, Move},
     eval::evaluation::{EvalScore, TB_LOSS_SCORE, TB_WIN_SCORE},
-    movegen::MoveGenerator,
-    search::Ply,
+    board::movegen::MoveGenerator,
+    search::search::Ply,
 };
 
 use super::bindings::{
@@ -194,7 +194,7 @@ impl Syzygy {
 
 #[cfg(test)]
 mod tests {
-    use crate::{board_representation::Board, evaluation::TB_WIN_SCORE};
+    use crate::{board::board_representation::Board, eval::evaluation::TB_WIN_SCORE};
 
     use super::Syzygy;
 

@@ -1,6 +1,6 @@
 use crate::{
-    chess_move::Move,
-    search::{Ply, MAX_PLY},
+    board::chess_move::Move,
+    search::search::{Ply, MAX_PLY},
 };
 
 #[derive(Debug)]

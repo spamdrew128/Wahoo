@@ -1,4 +1,4 @@
-use crate::board_representation::{Bitboard, Square, NUM_SQUARES};
+use super::board_representation::{Bitboard, Square, NUM_SQUARES};
 pub type Magic = u64;
 
 const NUM_HASH_ENTRIES: usize = 107648;

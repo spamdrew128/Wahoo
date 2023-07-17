@@ -2,14 +2,14 @@ use std::ops::{Add, AddAssign, Sub};
 
 use crate::{
     bitloop,
-    board_representation::{Board, Color, Piece, Square},
-    eval_constants::{
+    board::board_representation::{Board, Color, Piece, Square},
+    eval::eval_constants::{
         BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS, PASSER_BLOCKERS_PRT, PASSER_PST,
         PHALANX_PAWNS_PRT, TEMPO_BONUS,
     },
-    piece_loop_eval::mobility_threats_safety,
-    search::MAX_PLY,
-    trace::{
+    eval::piece_loop_eval::mobility_threats_safety,
+    search::search::MAX_PLY,
+    eval::trace::{
         color_adjust, empty_trace, BishopPair, IsolatedPawns, MaterialPst, Passer, PasserBlocker,
         PhalanxPawns, TempoBonus, Trace,
     },

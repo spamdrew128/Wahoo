@@ -1,5 +1,5 @@
-use crate::board_representation::{Board, START_FEN};
-use crate::movegen::MoveGenerator;
+use super::board_representation::{Board, START_FEN};
+use super::movegen::MoveGenerator;
 
 #[allow(dead_code)]
 pub struct PerftTest {

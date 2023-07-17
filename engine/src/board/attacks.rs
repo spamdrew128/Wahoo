@@ -1,5 +1,4 @@
-use crate::board_representation::{Bitboard, Color, Piece, Square, NUM_COLORS, NUM_SQUARES};
-use crate::magic::{MagicEntry, MagicLookup};
+use super::{board_representation::{Bitboard, Color, NUM_SQUARES, Square, NUM_COLORS, Piece}, magic::MagicLookup};
 
 macro_rules! init_lookup {
     (|$sq_bb:ident|, $body:expr) => {{
@@ -107,9 +106,9 @@ pub fn generic(piece: Piece, sq: Square, occupied: Bitboard) -> Bitboard {
 #[cfg(test)]
 mod tests {
     use super::{Bitboard, Square};
-    use crate::attacks;
+    use crate::board::attacks;
     use crate::bb_from_squares;
-    use crate::board_representation::{Board, Color, Piece};
+    use crate::board::board_representation::{Board, Color, Piece};
 
     #[test]
     fn king_attack_test() {

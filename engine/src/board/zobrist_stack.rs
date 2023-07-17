@@ -1,4 +1,4 @@
-use crate::{board_representation::Board, zobrist::ZobristHash};
+use super::{board_representation::Board, zobrist::ZobristHash};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ZobristStack {
@@ -51,7 +51,7 @@ impl ZobristStack {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
+    use crate::board::{
         board_representation::Board, chess_move::Move, zobrist::ZobristHash,
         zobrist_stack::ZobristStack,
     };
@@ -59,9 +59,9 @@ mod tests {
     #[test]
     fn twofold_repetition_works() {
         use super::*;
-        use crate::board_representation::START_FEN;
-        use crate::chess_move::Flag;
-        use crate::{board_representation::Square, chess_move::Move};
+        use crate::board::board_representation::START_FEN;
+        use crate::board::chess_move::Flag;
+        use crate::board::{board_representation::Square, chess_move::Move};
 
         let mut board = Board::from_fen(START_FEN);
         let mut zobrist_stack = ZobristStack::new(&board);

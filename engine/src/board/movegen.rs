@@ -1,9 +1,9 @@
-use crate::attacks;
+use super::attacks;
 use crate::bitloop;
-use crate::board_representation::{Bitboard, Board, Piece, Square, NUM_PIECES};
-use crate::chess_move::MAX_MOVECOUNT;
-use crate::chess_move::{Flag, Move};
-use crate::history_table::History;
+use super::board_representation::{Bitboard, Board, Piece, Square, NUM_PIECES};
+use super::chess_move::MAX_MOVECOUNT;
+use super::chess_move::{Flag, Move};
+use crate::search::history_table::History;
 use crate::tuple_constants_enum;
 
 macro_rules! into_moves {

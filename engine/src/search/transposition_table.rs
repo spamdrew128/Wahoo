@@ -1,10 +1,10 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::{
-    chess_move::Move,
-    evaluation::{EvalScore, MATE_THRESHOLD, TB_LOSS_SCORE, TB_WIN_SCORE},
-    search::{Depth, Ply},
-    zobrist::ZobristHash,
+    board::chess_move::Move,
+    eval::evaluation::{EvalScore, MATE_THRESHOLD, TB_LOSS_SCORE, TB_WIN_SCORE},
+    search::search::{Depth, Ply},
+    board::zobrist::ZobristHash,
 };
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
@@ -252,7 +252,7 @@ impl TranspositionTable {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
+    use crate::board::{
         board_representation::{Board, START_FEN},
         chess_move::Move,
         zobrist::ZobristHash,
