@@ -365,9 +365,16 @@ impl<'a> Searcher<'a> {
         let hash_base = ZobristHash::incremental_update_base(board);
         let hash = self.zobrist_stack.current_zobrist_hash();
 
+        let mut static_eval = evaluate(board);
         let tt_move = if let Some(entry) = self.tt.probe(hash) {
+            let flag = entry.flag();
+            let tt_score = entry.score_from_tt(ply);
             if !is_pv && entry.cutoff_is_possible(alpha, beta, depth) {
-                return entry.score_from_tt(ply);
+                return tt_score;
+            }
+
+            if !((static_eval > tt_score && flag == TTFlag::LOWER_BOUND) || (static_eval < tt_score && flag == TTFlag::UPPER_BOUND)) {
+                static_eval = tt_score;
             }
 
             entry.best_move
@@ -391,8 +398,6 @@ impl<'a> Searcher<'a> {
         }
 
         if !is_pv && !in_check {
-            let static_eval = evaluate(board);
-
             // NULL MOVE PRUNING
             const NMP_MIN_DEPTH: Depth = 3;
             if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH && !board.we_only_have_pawns() && static_eval >= beta {
