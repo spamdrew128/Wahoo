@@ -1,4 +1,4 @@
-#[warn(clippy::module_inception)]
+#[allow(clippy::module_inception)]
 pub mod bench;
 pub mod history_table;
 mod killers;
