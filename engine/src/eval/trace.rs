@@ -13,7 +13,8 @@ pub const TRACE_LEN: usize = MaterialPst::LEN
     + PhalanxPawns::LEN
     + Threats::LEN
     + TempoBonus::LEN
-    + ForwardMobility::LEN;
+    + ForwardMobility::LEN
+    + BackwardsPawns::LEN;
 
 pub type Trace = [i8; TRACE_LEN];
 
@@ -198,5 +199,15 @@ impl ForwardMobility {
 
     pub const fn index(piece: Piece, f_mobility: usize) -> usize {
         Self::START + f_mobility + Self::PIECE_OFFSETS[piece.as_index()]
+    }
+}
+
+pub struct BackwardsPawns;
+impl BackwardsPawns {
+    pub const START: usize = ForwardMobility::START + ForwardMobility::LEN;
+    pub const LEN: usize = (NUM_RANKS as usize);
+
+    pub const fn index(rank: u8) -> usize {
+        Self::START + rank as usize
     }
 }

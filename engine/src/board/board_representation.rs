@@ -1194,7 +1194,8 @@ mod tests {
 
     #[test]
     fn backward_pawns_test() {
-        let board = Board::from_fen("1rbqkb1r/p1p1npp1/2np4/1p1P4/1P4Pp/P1P2P2/3N2P1/1RBQKBNR w Kk - 0 12");
+        let board =
+            Board::from_fen("1rbqkb1r/p1p1npp1/2np4/1p1P4/1P4Pp/P1P2P2/3N2P1/1RBQKBNR w Kk - 0 12");
         let w_expected = bb_from_squares!(A3, C3, G2);
         let b_expected = bb_from_squares!(C7);
         assert_eq!(board.backwards_pawns(Color::White), w_expected);

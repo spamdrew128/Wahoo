@@ -116,6 +116,17 @@ pub const PHALANX_PAWNS_PRT: Prt = Prt::new([
   s(0, 0),
 ]);
 
+pub const BACKWARDS_PAWNS_PRT: Prt = Prt::new([
+  s(0, 0),
+  s(79, 372),
+  s(203, 136),
+  s(48, 52),
+  s(18, 16),
+  s(-6, -7),
+  s(6, -8),
+  s(0, 0),
+]);
+
 pub const BISHOP_PAIR_BONUS: ScoreTuple = s(30, 70);
 
 pub const KNIGHT_MOBILITY: [ScoreTuple; 9] = [

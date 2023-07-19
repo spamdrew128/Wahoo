@@ -7,11 +7,11 @@ use crate::{
         BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS, PASSER_BLOCKERS_PRT, PASSER_PST,
         PHALANX_PAWNS_PRT, TEMPO_BONUS,
     },
-    eval::piece_loop_eval::mobility_threats_safety,
     eval::trace::{
         color_adjust, empty_trace, BishopPair, IsolatedPawns, MaterialPst, Passer, PasserBlocker,
-        PhalanxPawns, TempoBonus, Trace,
+        PhalanxPawns, TempoBonus, Trace, BackwardsPawns,
     },
+    eval::{eval_constants::BACKWARDS_PAWNS_PRT, piece_loop_eval::mobility_threats_safety},
     search::search::MAX_PLY,
     trace_update,
 };
@@ -178,6 +178,22 @@ fn phalanx_pawns<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) 
     score
 }
 
+fn backwards_pawns<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) -> ScoreTuple {
+    let mut score = ScoreTuple::new(0, 0);
+
+    let mut backwards = board.backwards_pawns(color);
+    bitloop!(|sq| backwards, {
+        score += BACKWARDS_PAWNS_PRT.access(color, sq);
+
+        if TRACE {
+            let rank = color_adjust(sq, color).rank();
+            trace_update!(t, BackwardsPawns, (rank), color, 1);
+        }
+    });
+
+    score
+}
+
 fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
     let us = board.color_to_move;
     let them = board.color_to_move.flip();
@@ -193,6 +209,7 @@ fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
     score_tuple += passed_pawns::<TRACE>(board, us, t) - passed_pawns::<TRACE>(board, them, t);
     score_tuple += isolated_pawns::<TRACE>(board, us, t) - isolated_pawns::<TRACE>(board, them, t);
     score_tuple += phalanx_pawns::<TRACE>(board, us, t) - phalanx_pawns::<TRACE>(board, them, t);
+    score_tuple += backwards_pawns::<TRACE>(board, us, t) - backwards_pawns::<TRACE>(board, them, t);
     score_tuple += mobility_threats_safety::<TRACE>(board, us, t)
         - mobility_threats_safety::<TRACE>(board, them, t);
 
