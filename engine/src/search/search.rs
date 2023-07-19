@@ -398,6 +398,14 @@ impl<'a> Searcher<'a> {
         }
 
         if !is_pv && !in_check {
+            // REVERSE FUTILITY PRUNING
+            const RFP_MAX_DEPTH: Depth = 8;
+            const RFP_MARGIN: EvalScore = 90;
+
+            if depth <= RFP_MAX_DEPTH && static_eval >= (beta + RFP_MARGIN * i32::from(depth)) {
+                return static_eval;
+            }
+
             // NULL MOVE PRUNING
             const NMP_MIN_DEPTH: Depth = 3;
             if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH && !board.we_only_have_pawns() && static_eval >= beta {
@@ -419,14 +427,6 @@ impl<'a> Searcher<'a> {
                 if null_move_score >= beta {
                     return null_move_score;
                 }
-            }
-
-            // REVERSE FUTILITY PRUNING
-            const RFP_MAX_DEPTH: Depth = 8;
-            const RFP_MARGIN: EvalScore = 90;
-
-            if depth <= RFP_MAX_DEPTH && static_eval >= (beta + RFP_MARGIN * i32::from(depth)) {
-                return static_eval;
             }
         }
 
