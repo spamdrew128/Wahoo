@@ -1,5 +1,5 @@
 #![cfg_attr(rustfmt, rustfmt_skip)]
-use crate::{eval::{evaluation::ScoreTuple, piece_tables::{Pst, Prt}}, board::board_representation::NUM_PIECES};
+use crate::{eval::{evaluation::ScoreTuple, piece_tables::{Pst, Prt, Pft}}, board::board_representation::NUM_PIECES};
 
 const fn s(mg: i32, eg: i32) -> ScoreTuple { ScoreTuple::new(mg, eg) }
 
@@ -116,7 +116,7 @@ pub const PHALANX_PAWNS_PRT: Prt = Prt::new([
   s(0, 0),
 ]);
 
-pub const BACKWARDS_PAWNS_PRT: Prt = Prt::new([
+pub const BACKWARDS_PAWNS_PFT: Pft = Pft::new([
   s(0, 0),
   s(0, 0),
   s(0, 0),

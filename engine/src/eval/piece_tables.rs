@@ -1,5 +1,5 @@
 use crate::{
-    board::board_representation::{Color, Square, NUM_COLORS, NUM_RANKS, NUM_SQUARES},
+    board::board_representation::{Color, Square, NUM_COLORS, NUM_RANKS, NUM_SQUARES, NUM_FILES},
     eval::evaluation::ScoreTuple,
 };
 
@@ -51,5 +51,19 @@ impl Prt {
 
     pub const fn access(&self, color: Color, sq: Square) -> ScoreTuple {
         self.table[color.as_index()][sq.rank() as usize]
+    }
+}
+
+pub struct Pft {
+    table: [ScoreTuple; NUM_FILES as usize],
+}
+
+impl Pft {
+    pub const fn new(before: [ScoreTuple; NUM_FILES as usize]) -> Self {
+        Self { table: before }
+    }
+
+    pub const fn access(&self, sq: Square) -> ScoreTuple {
+        self.table[sq.file() as usize]
     }
 }

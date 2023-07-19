@@ -207,7 +207,7 @@ impl BackwardsPawns {
     pub const START: usize = ForwardMobility::START + ForwardMobility::LEN;
     pub const LEN: usize = (NUM_RANKS as usize);
 
-    pub const fn index(rank: u8) -> usize {
-        Self::START + rank as usize
+    pub const fn index(file: u8) -> usize {
+        Self::START + file as usize
     }
 }

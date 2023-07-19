@@ -5,13 +5,13 @@ use crate::{
     board::board_representation::{Board, Color, Piece, Square},
     eval::eval_constants::{
         BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS, PASSER_BLOCKERS_PRT, PASSER_PST,
-        PHALANX_PAWNS_PRT, TEMPO_BONUS,
+        PHALANX_PAWNS_PRT, TEMPO_BONUS, BACKWARDS_PAWNS_PFT
     },
     eval::trace::{
         color_adjust, empty_trace, BishopPair, IsolatedPawns, MaterialPst, Passer, PasserBlocker,
         PhalanxPawns, TempoBonus, Trace, BackwardsPawns,
     },
-    eval::{eval_constants::BACKWARDS_PAWNS_PRT, piece_loop_eval::mobility_threats_safety},
+    eval::piece_loop_eval::mobility_threats_safety,
     search::search::MAX_PLY,
     trace_update,
 };
@@ -183,11 +183,11 @@ fn backwards_pawns<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace
 
     let mut backwards = board.backwards_pawns(color);
     bitloop!(|sq| backwards, {
-        score += BACKWARDS_PAWNS_PRT.access(color, sq);
+        score += BACKWARDS_PAWNS_PFT.access(sq);
 
         if TRACE {
-            let rank = color_adjust(sq, color).rank();
-            trace_update!(t, BackwardsPawns, (rank), color, 1);
+            let file = sq.file();
+            trace_update!(t, BackwardsPawns, (file), color, 1);
         }
     });
 

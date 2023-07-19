@@ -1,5 +1,5 @@
 use engine::{
-    board::board_representation::{Board, Piece, Square, NUM_RANKS, NUM_SQUARES},
+    board::board_representation::{Board, Piece, Square, NUM_RANKS, NUM_SQUARES, NUM_FILES},
     eval::evaluation::{
         phase, trace_of_position, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX,
     },
@@ -221,7 +221,7 @@ impl Tuner {
         writeln!(output, "#![cfg_attr(rustfmt, rustfmt_skip)]").unwrap();
         writeln!(
             output,
-            "use crate::{{eval::{{evaluation::ScoreTuple, piece_tables::{{Pst, Prt}}}}, board::board_representation::NUM_PIECES}};\n"
+            "use crate::{{eval::{{evaluation::ScoreTuple, piece_tables::{{Pst, Prt, Pft}}}}, board::board_representation::NUM_PIECES}};\n"
         )
         .unwrap();
 
@@ -270,6 +270,23 @@ impl Tuner {
         writeln!(output, "\n]){closing_str}").unwrap();
     }
 
+    fn write_pft<F>(&self, output: &mut BufWriter<File>, closing_str: &str, index_fn: F)
+    where
+        F: Fn(u8) -> usize,
+    {
+        write!(output, "Pft::new([\n  ").unwrap();
+        for i in 0..NUM_FILES {
+            write!(
+                output,
+                "s({}, {}), ",
+                self.weights[MG][index_fn(i)] as EvalScore,
+                self.weights[EG][index_fn(i)] as EvalScore,
+            )
+            .unwrap();
+        }
+        writeln!(output, "\n]){closing_str}").unwrap();
+    }
+
     fn write_material_psts(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
@@ -305,9 +322,9 @@ impl Tuner {
         self.write_prt(output, ";\n", PhalanxPawns::index);
     }
 
-    fn write_backwards_prt(&self, output: &mut BufWriter<File>) {
-        write!(output, "pub const BACKWARDS_PAWNS_PRT: Prt = ").unwrap();
-        self.write_prt(output, ";\n", BackwardsPawns::index);
+    fn write_backwards_pft(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const BACKWARDS_PAWNS_PFT: Pft = ").unwrap();
+        self.write_pft(output, ";\n", BackwardsPawns::index);
     }
 
     fn write_bishop_pair(&self, output: &mut BufWriter<File>) {
@@ -434,7 +451,7 @@ impl Tuner {
         self.write_passer_blocker_prt(&mut output);
         self.write_isolated_prt(&mut output);
         self.write_phalanx_prt(&mut output);
-        self.write_backwards_prt(&mut output);
+        self.write_backwards_pft(&mut output);
         self.write_bishop_pair(&mut output);
         self.write_mobility(&mut output);
         self.write_forward_mobility(&mut output);
