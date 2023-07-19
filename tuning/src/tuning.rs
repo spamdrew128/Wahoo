@@ -3,7 +3,7 @@ use engine::{
     eval::evaluation::{
         phase, trace_of_position, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX,
     },
-    eval::piece_loop_eval::MoveCounts,
+    eval::{piece_loop_eval::MoveCounts, trace::BackwardsPawns},
     eval::trace::{
         BishopPair, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer, PasserBlocker,
         PhalanxPawns, Safety, TempoBonus, Threats, TRACE_LEN,
@@ -305,6 +305,11 @@ impl Tuner {
         self.write_prt(output, ";\n", PhalanxPawns::index);
     }
 
+    fn write_backwards_prt(&self, output: &mut BufWriter<File>) {
+        write!(output, "pub const BACKWARDS_PAWNS_PRT: Prt = ").unwrap();
+        self.write_prt(output, ";\n", BackwardsPawns::index);
+    }
+
     fn write_bishop_pair(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
@@ -429,6 +434,7 @@ impl Tuner {
         self.write_passer_blocker_prt(&mut output);
         self.write_isolated_prt(&mut output);
         self.write_phalanx_prt(&mut output);
+        self.write_backwards_prt(&mut output);
         self.write_bishop_pair(&mut output);
         self.write_mobility(&mut output);
         self.write_forward_mobility(&mut output);
