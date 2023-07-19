@@ -428,6 +428,13 @@ impl Bitboard {
         }
     }
 
+    pub const fn advance_one(self, color: Color) -> Self {
+        match color {
+            Color::White => self.north_one(),
+            Color::Black => self.south_one(),
+        }
+    }
+
     pub fn print(self) {
         for i in 0..NUM_SQUARES {
             let bitset = fen_index_as_bitboard(i);
@@ -1012,6 +1019,18 @@ impl Board {
 
         pawns.intersection(neighbor_spaces)
     }
+
+    pub const fn backwards_pawns(&self, color: Color) -> Bitboard {
+        let opp_color = color.flip();
+        let our_pawns = self.piece_bb(Piece::PAWN, color);
+        let opp_pawns = self.piece_bb(Piece::PAWN, opp_color);
+
+        let neighbor_sq_spans = our_pawns.west_one().union(our_pawns.east_one()).fill(color);
+        let backwards_candidates = our_pawns.without(neighbor_sq_spans);
+        let opp_controlled = attacks::pawn_setwise(opp_pawns, opp_color).advance_one(opp_color);
+
+        backwards_candidates.intersection(opp_controlled)
+    }
 }
 
 #[cfg(test)]
@@ -1171,5 +1190,14 @@ mod tests {
 
         assert_eq!(board.phalanx_pawns(Color::White), w_expected);
         assert_eq!(board.phalanx_pawns(Color::Black), b_expected);
+    }
+
+    #[test]
+    fn backward_pawns_test() {
+        let board = Board::from_fen("1rbqkb1r/p1p1npp1/2np4/1p1P4/1P4Pp/P1P2P2/3N2P1/1RBQKBNR w Kk - 0 12");
+        let w_expected = bb_from_squares!(A3, C3, G2);
+        let b_expected = bb_from_squares!(C7);
+        assert_eq!(board.backwards_pawns(Color::White), w_expected);
+        assert_eq!(board.backwards_pawns(Color::Black), b_expected);
     }
 }
