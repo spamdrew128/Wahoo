@@ -9,8 +9,8 @@ use crate::{
     },
     eval::piece_loop_eval::mobility_threats_safety,
     eval::trace::{
-        color_adjust, BishopPair, IsolatedPawns, MaterialPst, Passer, PasserBlocker,
-        PhalanxPawns, TempoBonus, Trace,
+        color_adjust, BishopPair, IsolatedPawns, MaterialPst, Passer, PasserBlocker, PhalanxPawns,
+        TempoBonus, Trace,
     },
     search::search::MAX_PLY,
     trace_update,

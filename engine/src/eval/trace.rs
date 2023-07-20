@@ -1,5 +1,7 @@
 use crate::{
-    board::board_representation::{Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES, NUM_COLORS},
+    board::board_representation::{
+        Color, Piece, Square, NUM_COLORS, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
+    },
     eval::piece_loop_eval::MoveCounts,
 };
 
@@ -14,7 +16,11 @@ pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
     + TempoBonus::LEN
     + ForwardMobility::LEN;
 
-pub const SAFETY_TRACE_LEN: usize = Safety::LEN;
+pub const SAFETY_TRACE_LEN: usize = EnemyVirtMobility::LEN
+    + Attacks::LEN
+    + Defenses::LEN
+    + InnerPawnShield::LEN
+    + OuterPawnShield::LEN;
 
 pub struct Trace {
     pub linear: [i8; LINEAR_TRACE_LEN],
