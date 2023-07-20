@@ -9,7 +9,7 @@ use crate::{
     },
     eval::piece_loop_eval::mobility_threats_safety,
     eval::trace::{
-        color_adjust, empty_trace, BishopPair, IsolatedPawns, MaterialPst, Passer, PasserBlocker,
+        color_adjust, BishopPair, IsolatedPawns, MaterialPst, Passer, PasserBlocker,
         PhalanxPawns, TempoBonus, Trace,
     },
     search::search::MAX_PLY,
@@ -203,11 +203,11 @@ fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
 }
 
 pub fn evaluate(board: &Board) -> EvalScore {
-    eval_or_trace::<false>(board, &mut empty_trace())
+    eval_or_trace::<false>(board, &mut Trace::empty())
 }
 
 pub fn trace_of_position(board: &Board) -> Trace {
-    let mut trace = empty_trace();
+    let mut trace = Trace::empty();
     eval_or_trace::<true>(board, &mut trace);
     trace
 }

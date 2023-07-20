@@ -1,24 +1,33 @@
 use crate::{
-    board::board_representation::{Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES},
+    board::board_representation::{Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES, NUM_COLORS},
     eval::piece_loop_eval::MoveCounts,
 };
 
-pub const TRACE_LEN: usize = MaterialPst::LEN
+pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
     + Passer::LEN
     + PasserBlocker::LEN
     + BishopPair::LEN
     + Mobility::LEN
-    + Safety::LEN
     + IsolatedPawns::LEN
     + PhalanxPawns::LEN
     + Threats::LEN
     + TempoBonus::LEN
     + ForwardMobility::LEN;
 
-pub type Trace = [i8; TRACE_LEN];
+pub const SAFETY_TRACE_LEN: usize = Safety::LEN;
 
-pub const fn empty_trace() -> Trace {
-    [0; TRACE_LEN]
+pub struct Trace {
+    pub linear: [i8; LINEAR_TRACE_LEN],
+    pub safety: [[i8; SAFETY_TRACE_LEN]; NUM_COLORS as usize],
+}
+
+impl Trace {
+    pub const fn empty() -> Self {
+        Self {
+            linear: [0; LINEAR_TRACE_LEN],
+            safety: [[0; SAFETY_TRACE_LEN]; NUM_COLORS as usize],
+        }
+    }
 }
 
 pub const fn color_adjust(sq: Square, color: Color) -> Square {
@@ -36,7 +45,7 @@ macro_rules! trace_update {
             Color::Black => -1,
         };
         let index = $name::index($($arg,)*);
-        $trace[index] += mult * ($val as i8);
+        $trace.linear[index] += mult * ($val as i8);
     };
 }
 
@@ -48,7 +57,7 @@ macro_rules! trace_threat_update {
             Color::Black => -1,
         };
         let val = ($attacks & $enemy).popcount();
-        $trace[Threats::$index_name] += mult * (val as i8);
+        $trace.linear[Threats::$index_name] += mult * (val as i8);
     };
 }
 
@@ -115,19 +124,9 @@ impl Mobility {
     }
 }
 
-pub struct Safety;
-impl Safety {
-    const START: usize = Mobility::START + Mobility::LEN;
-    const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 1) as usize);
-
-    pub const fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
-        Self::START + MoveCounts::QUEEN * piece.as_index() + enemy_virt_mobility
-    }
-}
-
 pub struct IsolatedPawns;
 impl IsolatedPawns {
-    pub const START: usize = Safety::START + Safety::LEN;
+    pub const START: usize = Mobility::START + Mobility::LEN;
     pub const LEN: usize = (NUM_RANKS as usize);
 
     pub const fn index(rank: u8) -> usize {
@@ -198,5 +197,15 @@ impl ForwardMobility {
 
     pub const fn index(piece: Piece, f_mobility: usize) -> usize {
         Self::START + f_mobility + Self::PIECE_OFFSETS[piece.as_index()]
+    }
+}
+
+pub struct Safety;
+impl Safety {
+    const START: usize = ForwardMobility::START + ForwardMobility::LEN;
+    const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 1) as usize);
+
+    pub const fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
+        Self::START + MoveCounts::QUEEN * piece.as_index() + enemy_virt_mobility
     }
 }
