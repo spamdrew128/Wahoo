@@ -11,12 +11,12 @@ use crate::{
         ROOK_THREAT_ON_QUEEN,
     },
     eval::evaluation::ScoreTuple,
-    eval::trace::{ForwardMobility, Mobility, Safety, Threats, Trace},
+    eval::trace::{ForwardMobility, Mobility, Threats, Trace},
     trace_threat_update, trace_update,
 };
 
-const fn enemy_king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
-    let mut enemy_king_zones = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
+const fn king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
+    let mut king_zones = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
     let mut i = 0;
     while i < NUM_SQUARES {
         let sq = Square::new(i);
@@ -44,12 +44,12 @@ const fn enemy_king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLOR
             .union(b_shield.shift_south(1))
             .union(b_shield.shift_south(2));
 
-        enemy_king_zones[Color::White.as_index()][sq.as_index()] = black_zone;
-        enemy_king_zones[Color::Black.as_index()][sq.as_index()] = white_zone;
+            king_zones[Color::White.as_index()][sq.as_index()] = white_zone;
+            king_zones[Color::Black.as_index()][sq.as_index()] = black_zone;
         i += 1;
     }
 
-    enemy_king_zones
+    king_zones
 }
 
 const fn forward_masks_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
@@ -73,14 +73,14 @@ const fn forward_masks_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS a
     result
 }
 
-const ENEMY_KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] =
-    enemy_king_zones_init();
+const KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] =
+    king_zones_init();
 
 const FORWARD_MASKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = forward_masks_init();
 
-pub const fn enemy_king_zone(board: &Board, attacking_color: Color) -> Bitboard {
-    let enemy_king_sq = board.color_king_sq(attacking_color.flip());
-    ENEMY_KING_ZONES[attacking_color.as_index()][enemy_king_sq.as_index()]
+pub const fn king_zone(board: &Board, color: Color) -> Bitboard {
+    let king_sq = board.color_king_sq(color);
+    KING_ZONES[color.as_index()][king_sq.as_index()]
 }
 
 pub const fn forward_mobility(moves: Bitboard, sq: Square, color: Color) -> usize {
@@ -153,6 +153,7 @@ struct LoopEvaluator {
     color: Color,
     availible: Bitboard,
     enemy_king_zone: Bitboard,
+    friendly_king_zone: Bitboard,
     enemy_virt_mobility: usize,
     enemy_knights: Bitboard,
     enemy_bishops: Bitboard,
@@ -163,7 +164,8 @@ struct LoopEvaluator {
 impl LoopEvaluator {
     fn new(board: &Board, color: Color) -> Self {
         let availible = availible(board, color);
-        let enemy_king_zone = enemy_king_zone(board, color);
+        let friendly_king_zone = king_zone(board, color);
+        let enemy_king_zone = king_zone(board, color.flip());
         let enemy_virt_mobility = enemy_virtual_mobility(board, color);
 
         let opp_color = color.flip();
@@ -176,6 +178,7 @@ impl LoopEvaluator {
             color,
             availible,
             enemy_king_zone,
+            friendly_king_zone,
             enemy_virt_mobility,
             enemy_knights,
             enemy_bishops,
