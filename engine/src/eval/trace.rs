@@ -67,6 +67,14 @@ macro_rules! trace_threat_update {
     };
 }
 
+#[macro_export]
+macro_rules! trace_safety_update {
+    ($trace:ident, $name:ident, ($($arg:ident),*), $color:expr, $val:expr) => {
+        let index = $name::index($($arg,)*);
+        $trace.safety[$color.as_index()][index] += $val as i8;
+    };
+}
+
 pub struct MaterialPst;
 impl MaterialPst {
     pub const START: usize = 0;
@@ -212,7 +220,7 @@ impl EnemyVirtMobility {
     const START: usize = 0;
     const LEN: usize = MoveCounts::QUEEN;
 
-    pub const fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
+    pub const fn index(enemy_virt_mobility: usize) -> usize {
         Self::START + enemy_virt_mobility
     }
 }

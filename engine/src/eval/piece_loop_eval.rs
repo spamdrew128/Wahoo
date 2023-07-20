@@ -3,19 +3,20 @@ use crate::{
     board::attacks,
     board::board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
     eval::eval_constants::{
-        BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT, BISHOP_THREAT_ON_QUEEN,
-        BISHOP_THREAT_ON_ROOK, ENEMY_VIRT_MOBILITY, KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY,
-        KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN, KNIGHT_THREAT_ON_ROOK,
-        PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK,
-        QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY,
-        ROOK_THREAT_ON_QUEEN,
+        ATTACKS, BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT,
+        BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK, DEFENSES, ENEMY_VIRT_MOBILITY,
+        KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN,
+        KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN,
+        PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY,
+        ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
     },
-    eval::evaluation::ScoreTuple,
-    eval::trace::{ForwardMobility, Mobility, Threats, Trace},
-    trace_threat_update, trace_update,
+    eval::trace::{Attacks, ForwardMobility, Mobility, Threats, Trace},
+    eval::{
+        evaluation::ScoreTuple,
+        trace::{Defenses, EnemyVirtMobility},
+    },
+    trace_safety_update, trace_threat_update, trace_update,
 };
-
-use super::{trace::SAFETY_TRACE_LEN, eval_constants::{ATTACKS, DEFENSES}};
 
 const fn king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
     let mut king_zones = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
@@ -252,6 +253,9 @@ impl LoopEvaluator {
         }
 
         if TRACE {
+            trace_safety_update!(t, Attacks, (piece), self.color, kz_attacks);
+            trace_safety_update!(t, Defenses, (piece), self.color.flip(), kz_defenses);
+
             // we fix 0 mobility at 0 for eval constants readability
             if mobility > 0 {
                 trace_update!(t, Mobility, (piece, mobility), self.color, 1);
@@ -275,6 +279,9 @@ impl LoopEvaluator {
         attack_power[color.flip().as_index()] += DEFENSES[piece.as_index()].mult(kz_defenses);
 
         if TRACE {
+            trace_safety_update!(t, Attacks, (piece), self.color, kz_attacks);
+            trace_safety_update!(t, Defenses, (piece), self.color.flip(), kz_defenses);
+
             trace_threat_update!(t, PAWN_THREAT_ON_KNIGHT, self.color, pawn_attacks, self.enemy_knights);
             trace_threat_update!(t, PAWN_THREAT_ON_BISHOP, self.color, pawn_attacks, self.enemy_bishops);
             trace_threat_update!(t, PAWN_THREAT_ON_ROOK, self.color, pawn_attacks, self.enemy_rooks);
@@ -308,7 +315,12 @@ pub fn one_sided_eval<const TRACE: bool>(
     color: Color,
     t: &mut Trace,
 ) -> ScoreTuple {
-    attack_power[color.as_index()] += ENEMY_VIRT_MOBILITY[enemy_virtual_mobility(board, color)];
+    let enemy_virt_mobility = enemy_virtual_mobility(board, color);
+    attack_power[color.as_index()] += ENEMY_VIRT_MOBILITY[enemy_virt_mobility];
+
+    if TRACE {
+        trace_safety_update!(t, EnemyVirtMobility, (enemy_virt_mobility), color, 1);
+    }
 
     let knights = board.piece_bb(Piece::KNIGHT, color);
     let bishops = board.piece_bb(Piece::BISHOP, color);
@@ -331,7 +343,8 @@ pub fn mobility_threats_safety<const TRACE: bool>(
     t: &mut Trace,
 ) -> ScoreTuple {
     let mut attack_power = [ScoreTuple::new(0, 0), ScoreTuple::new(0, 0)];
-    one_sided_eval::<TRACE>(board, &mut attack_power, us, t) - one_sided_eval::<TRACE>(board, &mut attack_power, them, t)
+    one_sided_eval::<TRACE>(board, &mut attack_power, us, t)
+        - one_sided_eval::<TRACE>(board, &mut attack_power, them, t)
 }
 
 #[cfg(test)]
