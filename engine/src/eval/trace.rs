@@ -200,12 +200,53 @@ impl ForwardMobility {
     }
 }
 
-pub struct Safety;
-impl Safety {
-    const START: usize = ForwardMobility::START + ForwardMobility::LEN;
-    const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 1) as usize);
+// SAFETY STUFF
+pub struct EnemyVirtMobility;
+impl EnemyVirtMobility {
+    const START: usize = 0;
+    const LEN: usize = MoveCounts::QUEEN;
 
     pub const fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
-        Self::START + MoveCounts::QUEEN * piece.as_index() + enemy_virt_mobility
+        Self::START + enemy_virt_mobility
+    }
+}
+
+pub struct Attacks;
+impl Attacks {
+    const START: usize = EnemyVirtMobility::START + EnemyVirtMobility::LEN;
+    const LEN: usize = (NUM_PIECES - 1) as usize;
+
+    pub const fn index(piece: Piece) -> usize {
+        Self::START + piece.as_index()
+    }
+}
+
+pub struct Defenses;
+impl Defenses {
+    const START: usize = Attacks::START + Attacks::LEN;
+    const LEN: usize = (NUM_PIECES - 1) as usize;
+
+    pub const fn index(piece: Piece) -> usize {
+        Self::START + piece.as_index()
+    }
+}
+
+pub struct InnerPawnShield;
+impl InnerPawnShield {
+    const START: usize = Defenses::START + Defenses::LEN;
+    const LEN: usize = 1;
+
+    pub const fn index() -> usize {
+        Self::START
+    }
+}
+
+pub struct OuterPawnShield;
+impl OuterPawnShield {
+    const START: usize = InnerPawnShield::START + InnerPawnShield::LEN;
+    const LEN: usize = 1;
+
+    pub const fn index() -> usize {
+        Self::START
     }
 }
