@@ -49,6 +49,14 @@ impl ScoreTuple {
     pub const fn mult(self, multiplier: i32) -> Self {
         Self(self.0 * multiplier, self.1 * multiplier)
     }
+
+    pub fn king_safety_formula(self) -> Self {
+        const LIMIT: i32 = 720;
+
+        let mg = self.mg().max(0);
+        let eg = self.eg().max(0);
+        Self((mg * mg).min(LIMIT), (eg * eg).min(LIMIT))
+    }
 }
 
 impl Add for ScoreTuple {

@@ -345,6 +345,8 @@ pub fn mobility_threats_safety<const TRACE: bool>(
     let mut attack_power = [ScoreTuple::new(0, 0), ScoreTuple::new(0, 0)];
     one_sided_eval::<TRACE>(board, &mut attack_power, us, t)
         - one_sided_eval::<TRACE>(board, &mut attack_power, them, t)
+        + (attack_power[us.as_index()].king_safety_formula()
+            - attack_power[them.as_index()].king_safety_formula())
 }
 
 #[cfg(test)]
