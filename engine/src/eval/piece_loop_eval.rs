@@ -4,7 +4,7 @@ use crate::{
     board::board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
     eval::eval_constants::{
         BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT, BISHOP_THREAT_ON_QUEEN,
-        BISHOP_THREAT_ON_ROOK, KING_ZONE_ATTACKS, KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY,
+        BISHOP_THREAT_ON_ROOK, KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY,
         KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN, KNIGHT_THREAT_ON_ROOK,
         PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK,
         QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY,
@@ -302,7 +302,7 @@ impl LoopEvaluator {
     }
 }
 
-pub fn mobility_threats_safety<const TRACE: bool>(
+pub fn one_sided_eval<const TRACE: bool>(
     board: &Board,
     color: Color,
     t: &mut Trace,
@@ -319,6 +319,15 @@ pub fn mobility_threats_safety<const TRACE: bool>(
         + looper.piece_loop::<{ ConstPiece::ROOK }, TRACE>(board, rooks, t)
         + looper.piece_loop::<{ ConstPiece::QUEEN }, TRACE>(board, queens, t)
         + looper.pawn_score::<TRACE>(pawns, color, t)
+}
+
+pub fn mobility_threats_safety<const TRACE: bool>(
+    board: &Board,
+    us: Color,
+    them: Color,
+    t: &mut Trace,
+) -> ScoreTuple {
+    one_sided_eval(board, us, t) - one_sided_eval(board, them, t)
 }
 
 #[cfg(test)]
