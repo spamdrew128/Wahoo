@@ -8,7 +8,7 @@ use crate::{
         INNER_PAWN_SHIELD, KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP,
         KNIGHT_THREAT_ON_QUEEN, KNIGHT_THREAT_ON_ROOK, OUTER_PAWN_SHIELD, PAWN_THREAT_ON_BISHOP,
         PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY,
-        QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
+        QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN, BIAS
     },
     eval::trace::{
         Attacks, ForwardMobility, InnerPawnShield, Mobility, OuterPawnShield, Threats, Trace,
@@ -394,10 +394,11 @@ pub fn mobility_threats_safety<const TRACE: bool>(
     them: Color,
     t: &mut Trace,
 ) -> ScoreTuple {
-    let mut attack_power = [ScoreTuple::new(0, 0), ScoreTuple::new(0, 0)];
+    let mut attack_power = [BIAS, BIAS];
 
     let mobility_and_threats = one_sided_eval::<TRACE>(board, &mut attack_power, us, t)
         - one_sided_eval::<TRACE>(board, &mut attack_power, them, t);
+
     let safety = attack_power[us.as_index()].king_safety_formula()
         - attack_power[them.as_index()].king_safety_formula();
 

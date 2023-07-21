@@ -215,9 +215,19 @@ impl ForwardMobility {
 }
 
 // SAFETY STUFF
+pub struct Bias;
+impl Bias {
+    const START: usize = 0;
+    const LEN: usize = 1;
+
+    pub const fn index() -> usize {
+        Self::START
+    }
+}
+
 pub struct EnemyVirtMobility;
 impl EnemyVirtMobility {
-    const START: usize = 0;
+    const START: usize = Bias::START + Bias::LEN;
     const LEN: usize = MoveCounts::QUEEN;
 
     pub const fn index(enemy_virt_mobility: usize) -> usize {
