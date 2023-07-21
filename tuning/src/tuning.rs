@@ -574,6 +574,13 @@ impl Tuner {
         self.write_forward_mobility(&mut output);
         self.write_threats(&mut output);
         self.write_tempo(&mut output);
+
+        writeln!(
+            output,
+            "// KING SAFETY FEATURES"
+        )
+        .unwrap();
+        self.write_safety(&mut output);
     }
 
     // fn create_weights_file(&self) {
