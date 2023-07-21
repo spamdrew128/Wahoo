@@ -491,9 +491,9 @@ impl Tuner {
     }
 
     fn write_safety(&self, output: &mut BufWriter<File>) {
-        writeln!(
+        write!(
             output,
-            "\npub const ENEMY_VIRT_MOBILITY: [ScoreTuple; 28] = [",
+            "\npub const ENEMY_VIRT_MOBILITY: [ScoreTuple; 28] = [\n  ",
         )
         .unwrap();
         for i in 0..EnemyVirtMobility::LEN {
