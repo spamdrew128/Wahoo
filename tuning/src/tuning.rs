@@ -3,7 +3,7 @@ use engine::{
     eval::evaluation::{
         phase, trace_of_position, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX,
     },
-    eval::{piece_loop_eval::MoveCounts, trace::{SAFETY_TRACE_LEN, Bias}, evaluation::SAFETY_LIMIT},
+    eval::{trace::{SAFETY_TRACE_LEN, Bias}, evaluation::SAFETY_LIMIT},
     eval::trace::{
         BishopPair, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer, PasserBlocker,
         PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN,
@@ -74,6 +74,18 @@ impl Entry {
         entry
     }
 
+    fn inner_safety_score(&self, phase: usize, weights: &TunerStruct) -> (f64, f64) {
+        let bias = weights.safety[phase][Bias::index()];
+        let mut attack_power = [bias, bias];
+        for color in Color::LIST {
+            for feature in &self.safety_feature_vec[color.as_index()] {
+                attack_power[color.as_index()] += f64::from(feature.value) * weights.safety[phase][feature.index];
+            }
+        }
+
+        (attack_power[Color::White.as_index()], attack_power[Color::Black.as_index()])
+    }
+
     fn evaluation(&self, weights: &TunerStruct) -> f64 {
         let mut scores = [0.0, 0.0];
 
@@ -82,16 +94,9 @@ impl Entry {
                 scores[phase] += f64::from(feature.value) * weights.linear[phase][feature.index];
             }
 
-            let bias = weights.safety[phase][Bias::index()];
-            let mut attack_power = [bias, bias];
-            for color in Color::LIST {
-                for feature in &self.safety_feature_vec[color.as_index()] {
-                    attack_power[color.as_index()] += f64::from(feature.value) * weights.safety[phase][feature.index];
-                }
-            }
-            let (w_ap, b_ap) = (attack_power[Color::White.as_index()].max(0.0), attack_power[Color::Black.as_index()].max(0.0));
+            let (w_ap, b_ap) = self.inner_safety_score(phase, weights);
             let limit = f64::from(SAFETY_LIMIT);
-            scores[phase] += (w_ap * w_ap).min(limit) - (b_ap * b_ap).min(limit);
+            scores[phase] += (w_ap.max(0.0).powi(2)).min(limit) - (b_ap.max(0.0).powi(2)).min(limit);
         }
 
         (scores[MG] * self.mg_phase() + scores[EG] * self.eg_phase()) / f64::from(PHASE_MAX)
@@ -168,6 +173,14 @@ impl Tuner {
         sigmoid * (1.0 - sigmoid)
     }
 
+    fn safety_prime(x: f64) -> f64 {
+        if x < 0.0 && x < f64::from(SAFETY_LIMIT).sqrt() {
+            2.0 * x
+        } else {
+            0.0
+        }
+    }
+
     fn update_entry_gradient_component(entry: &Entry, gradient: &mut TunerStruct, weights: &TunerStruct) {
         let r = entry.game_result;
         let eval = entry.evaluation(weights);
@@ -183,6 +196,18 @@ impl Tuner {
             for feature in &entry.feature_vec {
                 gradient.linear[phase][feature.index] += coeffs[phase] * f64::from(feature.value);
             }
+
+            let (x_w, x_b) = entry.inner_safety_score(phase, weights);
+            let (x_w_prime, x_b_prime) = (Self::safety_prime(x_w), Self::safety_prime(x_b));
+            for color in Color::LIST {
+                let x_prime = if color == Color::White {x_w_prime} else {-x_b_prime};
+
+                for feature in &entry.safety_feature_vec[color.as_index()] {
+                    gradient.safety[phase][feature.index] += coeffs[phase] * x_prime * f64::from(feature.value);
+                }
+            }
+
+            gradient.safety[phase][Bias::index()] += x_w_prime - x_b_prime;
         }
     }
 
