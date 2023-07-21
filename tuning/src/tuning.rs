@@ -1,5 +1,5 @@
 use engine::{
-    board::board_representation::{Board, Piece, Square, NUM_RANKS, NUM_SQUARES},
+    board::board_representation::{Board, Piece, Square, NUM_RANKS, NUM_SQUARES, NUM_COLORS, Color},
     eval::evaluation::{
         phase, trace_of_position, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX,
     },
@@ -42,6 +42,7 @@ impl Feature {
 
 struct Entry {
     feature_vec: Vec<Feature>,
+    safety_feature_vec: [Vec<Feature>; NUM_COLORS as usize],
     phase: Phase,
     game_result: f64,
 }
@@ -50,6 +51,7 @@ impl Entry {
     fn new(board: &Board, game_result: f64) -> Self {
         let mut entry = Self {
             feature_vec: vec![],
+            safety_feature_vec: [vec![], vec![]],
             phase: phase(board),
             game_result,
         };
@@ -58,6 +60,14 @@ impl Entry {
         for (i, &value) in trace.linear.iter().enumerate() {
             if value != 0 {
                 entry.feature_vec.push(Feature::new(value, i));
+            }
+        }
+
+        for color in Color::LIST {
+            for (i, &value) in trace.safety[color.as_index()].iter().enumerate() {
+                if value != 0 {
+                    entry.safety_feature_vec[color.as_index()].push(Feature::new(value, i));
+                }
             }
         }
 
