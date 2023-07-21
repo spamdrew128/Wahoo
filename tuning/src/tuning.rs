@@ -508,7 +508,7 @@ impl Tuner {
         }
         writeln!(output, "\n];",).unwrap();
 
-        writeln!(
+        write!(
             output,
             "\npub const ATTACKS: [ScoreTuple; (NUM_PIECES - 1) as usize] = [\n  ",
         )
