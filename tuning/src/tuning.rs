@@ -513,7 +513,7 @@ impl Tuner {
             "\npub const ATTACKS: [ScoreTuple; (NUM_PIECES - 1) as usize] = [",
         )
         .unwrap();
-        for piece in Piece::LIST {
+        for &piece in Piece::LIST.iter().take(5) {
             let index = Attacks::index(piece);
             write!(
                 output,
@@ -530,7 +530,7 @@ impl Tuner {
             "\npub const DEFENSES: [ScoreTuple; (NUM_PIECES - 1) as usize] = [",
         )
         .unwrap();
-        for piece in Piece::LIST {
+        for &piece in Piece::LIST.iter().take(5) {
             let index = Defenses::index(piece);
             write!(
                 output,
@@ -575,9 +575,9 @@ impl Tuner {
         self.write_threats(&mut output);
         self.write_tempo(&mut output);
 
-        writeln!(
+        write!(
             output,
-            "// KING SAFETY FEATURES"
+            "\n// KING SAFETY FEATURES"
         )
         .unwrap();
         self.write_safety(&mut output);
