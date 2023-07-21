@@ -16,7 +16,8 @@ pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
     + TempoBonus::LEN
     + ForwardMobility::LEN;
 
-pub const SAFETY_TRACE_LEN: usize = EnemyVirtMobility::LEN
+pub const SAFETY_TRACE_LEN: usize = Bias::LEN
+    + EnemyVirtMobility::LEN
     + Attacks::LEN
     + Defenses::LEN
     + InnerPawnShield::LEN
