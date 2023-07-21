@@ -470,22 +470,22 @@ mod tests {
         w[Attacks::index(Piece::BISHOP)] += 3;
         w[Attacks::index(Piece::PAWN)] += 1;
 
-        b[Attacks::index(Piece::BISHOP)] += 2;
+        b[Attacks::index(Piece::BISHOP)] += 1;
         b[Attacks::index(Piece::PAWN)] += 2;
         b[Attacks::index(Piece::QUEEN)] += 2;
 
-        w[Defenses::index(Piece::BISHOP)] += 2;
+        b[Defenses::index(Piece::BISHOP)] += 3;
+        b[Defenses::index(Piece::PAWN)] += 3;
+        b[Defenses::index(Piece::KNIGHT)] += 2;
+        b[Defenses::index(Piece::ROOK)] += 4;
+
+        w[Defenses::index(Piece::ROOK)] += 1;
         w[Defenses::index(Piece::PAWN)] += 3;
-        w[Defenses::index(Piece::KNIGHT)] += 2;
-        w[Defenses::index(Piece::ROOK)] += 4;
 
-        b[Defenses::index(Piece::ROOK)] += 1;
-        b[Defenses::index(Piece::PAWN)] += 2;
+        b[InnerPawnShield::index()] += 2;
 
-        w[InnerPawnShield::index()] += 2;
-
-        b[InnerPawnShield::index()] += 1;
-        b[OuterPawnShield::index()] += 1;
+        w[InnerPawnShield::index()] += 1;
+        w[OuterPawnShield::index()] += 1;
 
         assert_eq!([w, b], actual.safety);
     }
