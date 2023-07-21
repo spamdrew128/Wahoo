@@ -6,7 +6,7 @@ use engine::{
     eval::piece_loop_eval::MoveCounts,
     eval::trace::{
         BishopPair, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer, PasserBlocker,
-        PhalanxPawns, Safety, TempoBonus, Threats, LINEAR_TRACE_LEN,
+        PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN,
     },
 };
 use std::{

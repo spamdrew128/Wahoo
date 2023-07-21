@@ -410,7 +410,7 @@ mod tests {
     use crate::{
         board::attacks,
         board::board_representation::{Board, Color, Square},
-        eval::piece_loop_eval::forward_mobility,
+        eval::piece_loop_eval::{forward_mobility, pawn_shields},
     };
 
     use super::enemy_virtual_mobility;
@@ -433,5 +433,21 @@ mod tests {
         let f_mobility = forward_mobility(moves, sq, Color::Black);
 
         assert_eq!(f_mobility, 5);
+    }
+
+    #[test]
+    fn pawn_shields_test() {
+        let board = Board::from_fen("B2r2k1/3p1p2/p4PpB/1p3b2/8/2Nq2PP/PP2R1NK/3R4 b - - 2 23");
+        let (w_inner_expected, w_outer_expected) = (2, 0);
+        let (b_inner_expected, b_outer_expected) = (1, 1);
+
+        assert_eq!(
+            (w_inner_expected, w_outer_expected),
+            pawn_shields(&board, Color::White)
+        );
+        assert_eq!(
+            (b_inner_expected, b_outer_expected),
+            pawn_shields(&board, Color::Black)
+        );
     }
 }
