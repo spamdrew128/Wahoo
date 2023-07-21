@@ -409,8 +409,8 @@ pub fn mobility_threats_safety<const TRACE: bool>(
 mod tests {
     use crate::{
         board::attacks,
-        board::board_representation::{Board, Color, Square},
-        eval::piece_loop_eval::{forward_mobility, pawn_shields},
+        board::board_representation::{Board, Color, Square, Piece},
+        eval::{piece_loop_eval::{forward_mobility, pawn_shields}, trace::{SAFETY_TRACE_LEN, EnemyVirtMobility, Attacks, Defenses, InnerPawnShield, OuterPawnShield}, evaluation::trace_of_position},
     };
 
     use super::enemy_virtual_mobility;
@@ -449,5 +449,39 @@ mod tests {
             (b_inner_expected, b_outer_expected),
             pawn_shields(&board, Color::Black)
         );
+    }
+
+    #[test]
+    fn safety_trace_test() {
+        let board = Board::from_fen("B2r2k1/3p1p2/p4PpB/1p3b2/8/2Nq2PP/PP2R1NK/3R4 b - - 2 23");
+        let actual = trace_of_position(&board);
+        let (mut w, mut b)  = ([0; SAFETY_TRACE_LEN], [0; SAFETY_TRACE_LEN]);
+
+        w[EnemyVirtMobility::index(5)] += 1;
+        b[EnemyVirtMobility::index(2)] += 1;
+
+
+        w[Attacks::index(Piece::BISHOP)] += 3;
+        w[Attacks::index(Piece::PAWN)] += 1;
+
+        b[Attacks::index(Piece::BISHOP)] += 2;
+        b[Attacks::index(Piece::PAWN)] += 2;
+        b[Attacks::index(Piece::QUEEN)] += 2;
+
+
+        w[Defenses::index(Piece::BISHOP)] += 2;
+        w[Defenses::index(Piece::PAWN)] += 3;
+        w[Defenses::index(Piece::KNIGHT)] += 2;
+        w[Defenses::index(Piece::ROOK)] += 4;
+
+        b[Defenses::index(Piece::ROOK)] += 1;
+        b[Defenses::index(Piece::PAWN)] += 2;
+
+        w[InnerPawnShield::index()] += 2;
+
+        b[InnerPawnShield::index()] += 1;
+        b[OuterPawnShield::index()] += 1;
+
+        assert_eq!([w, b], actual.safety);
     }
 }
