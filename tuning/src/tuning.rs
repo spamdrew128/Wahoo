@@ -517,7 +517,7 @@ impl Tuner {
             let index = Attacks::index(piece);
             write!(
                 output,
-                "s({}, {}), ",
+                "  s({}, {}), ",
                 self.weights.linear[MG][index] as EvalScore,
                 self.weights.linear[EG][index] as EvalScore,
             )
@@ -534,7 +534,7 @@ impl Tuner {
             let index = Defenses::index(piece);
             write!(
                 output,
-                "s({}, {}), ",
+                "  s({}, {}), ",
                 self.weights.linear[MG][index] as EvalScore,
                 self.weights.linear[EG][index] as EvalScore,
             )
