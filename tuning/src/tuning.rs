@@ -227,10 +227,22 @@ impl Tuner {
             for phase in PHASES {
                 // we left off k eariler, so we add it back here
                 let grad_component: f64 = -2.0 * Self::K * self.gradient.linear[phase][i] / (self.entries.len() as f64);
+
                 self.momentum.linear[phase][i] = BETA1 * self.momentum.linear[phase][i] + (1.0 - BETA1) * grad_component;
                 self.velocity.linear[phase][i] = BETA2 * self.velocity.linear[phase][i] + (1.0 - BETA2) * (grad_component * grad_component);
 
                 self.weights.linear[phase][i] -= (self.momentum.linear[phase][i] / (EPSILON + self.velocity.linear[phase][i].sqrt())) * Self::LEARN_RATE;
+            }
+        }
+
+        for i in 0..self.gradient.safety[0].len() {
+            for phase in PHASES {
+                let grad_component: f64 = -2.0 * Self::K * self.gradient.safety[phase][i] / (self.entries.len() as f64);
+
+                self.momentum.safety[phase][i] = BETA1 * self.momentum.safety[phase][i] + (1.0 - BETA1) * grad_component;
+                self.velocity.safety[phase][i] = BETA2 * self.velocity.safety[phase][i] + (1.0 - BETA2) * (grad_component * grad_component);
+
+                self.weights.safety[phase][i] -= (self.momentum.safety[phase][i] / (EPSILON + self.velocity.safety[phase][i].sqrt())) * Self::LEARN_RATE;
             }
         }
     }
