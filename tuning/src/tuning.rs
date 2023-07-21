@@ -510,14 +510,14 @@ impl Tuner {
 
         writeln!(
             output,
-            "\npub const ATTACKS: [ScoreTuple; (NUM_PIECES - 1) as usize] = [",
+            "\npub const ATTACKS: [ScoreTuple; (NUM_PIECES - 1) as usize] = [\n  ",
         )
         .unwrap();
         for &piece in Piece::LIST.iter().take(5) {
             let index = Attacks::index(piece);
             write!(
                 output,
-                "  s({}, {}), ",
+                "s({}, {}), ",
                 self.weights.linear[MG][index] as EvalScore,
                 self.weights.linear[EG][index] as EvalScore,
             )
@@ -525,16 +525,16 @@ impl Tuner {
         }
         writeln!(output, "\n];",).unwrap();
 
-        writeln!(
+        write!(
             output,
-            "\npub const DEFENSES: [ScoreTuple; (NUM_PIECES - 1) as usize] = [",
+            "\npub const DEFENSES: [ScoreTuple; (NUM_PIECES - 1) as usize] = [\n  ",
         )
         .unwrap();
         for &piece in Piece::LIST.iter().take(5) {
             let index = Defenses::index(piece);
             write!(
                 output,
-                "  s({}, {}), ",
+                "s({}, {}), ",
                 self.weights.linear[MG][index] as EvalScore,
                 self.weights.linear[EG][index] as EvalScore,
             )
