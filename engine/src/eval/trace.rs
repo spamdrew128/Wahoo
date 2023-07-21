@@ -218,8 +218,8 @@ impl ForwardMobility {
 // SAFETY STUFF
 pub struct Bias;
 impl Bias {
-    const START: usize = 0;
-    const LEN: usize = 1;
+    pub const START: usize = 0;
+    pub const LEN: usize = 1;
 
     pub const fn index() -> usize {
         Self::START
@@ -228,8 +228,8 @@ impl Bias {
 
 pub struct EnemyVirtMobility;
 impl EnemyVirtMobility {
-    const START: usize = Bias::START + Bias::LEN;
-    const LEN: usize = MoveCounts::QUEEN;
+    pub const START: usize = Bias::START + Bias::LEN;
+    pub const LEN: usize = MoveCounts::QUEEN;
 
     pub const fn index(enemy_virt_mobility: usize) -> usize {
         Self::START + enemy_virt_mobility
@@ -238,8 +238,8 @@ impl EnemyVirtMobility {
 
 pub struct Attacks;
 impl Attacks {
-    const START: usize = EnemyVirtMobility::START + EnemyVirtMobility::LEN;
-    const LEN: usize = (NUM_PIECES - 1) as usize;
+    pub const START: usize = EnemyVirtMobility::START + EnemyVirtMobility::LEN;
+    pub const LEN: usize = (NUM_PIECES - 1) as usize;
 
     pub const fn index(piece: Piece) -> usize {
         Self::START + piece.as_index()
@@ -248,8 +248,8 @@ impl Attacks {
 
 pub struct Defenses;
 impl Defenses {
-    const START: usize = Attacks::START + Attacks::LEN;
-    const LEN: usize = (NUM_PIECES - 1) as usize;
+    pub const START: usize = Attacks::START + Attacks::LEN;
+    pub const LEN: usize = (NUM_PIECES - 1) as usize;
 
     pub const fn index(piece: Piece) -> usize {
         Self::START + piece.as_index()
@@ -258,8 +258,8 @@ impl Defenses {
 
 pub struct InnerPawnShield;
 impl InnerPawnShield {
-    const START: usize = Defenses::START + Defenses::LEN;
-    const LEN: usize = 1;
+    pub const START: usize = Defenses::START + Defenses::LEN;
+    pub const LEN: usize = 1;
 
     pub const fn index() -> usize {
         Self::START
@@ -268,8 +268,8 @@ impl InnerPawnShield {
 
 pub struct OuterPawnShield;
 impl OuterPawnShield {
-    const START: usize = InnerPawnShield::START + InnerPawnShield::LEN;
-    const LEN: usize = 1;
+    pub const START: usize = InnerPawnShield::START + InnerPawnShield::LEN;
+    pub const LEN: usize = 1;
 
     pub const fn index() -> usize {
         Self::START

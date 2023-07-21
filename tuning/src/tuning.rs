@@ -1,12 +1,20 @@
 use engine::{
-    board::board_representation::{Board, Piece, Square, NUM_RANKS, NUM_SQUARES, NUM_COLORS, Color},
+    board::board_representation::{
+        Board, Color, Piece, Square, NUM_COLORS, NUM_RANKS, NUM_SQUARES,
+    },
     eval::evaluation::{
         phase, trace_of_position, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX,
     },
-    eval::{trace::{SAFETY_TRACE_LEN, Bias}, evaluation::SAFETY_LIMIT},
     eval::trace::{
         BishopPair, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer, PasserBlocker,
         PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN,
+    },
+    eval::{
+        evaluation::SAFETY_LIMIT,
+        trace::{
+            Attacks, Bias, Defenses, EnemyVirtMobility, InnerPawnShield, OuterPawnShield,
+            SAFETY_TRACE_LEN,
+        },
     },
 };
 use std::{
@@ -79,11 +87,15 @@ impl Entry {
         let mut attack_power = [bias, bias];
         for color in Color::LIST {
             for feature in &self.safety_feature_vec[color.as_index()] {
-                attack_power[color.as_index()] += f64::from(feature.value) * weights.safety[phase][feature.index];
+                attack_power[color.as_index()] +=
+                    f64::from(feature.value) * weights.safety[phase][feature.index];
             }
         }
 
-        (attack_power[Color::White.as_index()], attack_power[Color::Black.as_index()])
+        (
+            attack_power[Color::White.as_index()],
+            attack_power[Color::Black.as_index()],
+        )
     }
 
     fn evaluation(&self, weights: &TunerStruct) -> f64 {
@@ -96,7 +108,8 @@ impl Entry {
 
             let (w_ap, b_ap) = self.inner_safety_score(phase, weights);
             let limit = f64::from(SAFETY_LIMIT);
-            scores[phase] += (w_ap.max(0.0).powi(2)).min(limit) - (b_ap.max(0.0).powi(2)).min(limit);
+            scores[phase] +=
+                (w_ap.max(0.0).powi(2)).min(limit) - (b_ap.max(0.0).powi(2)).min(limit);
         }
 
         (scores[MG] * self.mg_phase() + scores[EG] * self.eg_phase()) / f64::from(PHASE_MAX)
@@ -181,7 +194,11 @@ impl Tuner {
         }
     }
 
-    fn update_entry_gradient_component(entry: &Entry, gradient: &mut TunerStruct, weights: &TunerStruct) {
+    fn update_entry_gradient_component(
+        entry: &Entry,
+        gradient: &mut TunerStruct,
+        weights: &TunerStruct,
+    ) {
         let r = entry.game_result;
         let eval = entry.evaluation(weights);
         let sigmoid = Self::sigmoid(eval);
@@ -200,10 +217,15 @@ impl Tuner {
             let (x_w, x_b) = entry.inner_safety_score(phase, weights);
             let (x_w_prime, x_b_prime) = (Self::safety_prime(x_w), Self::safety_prime(x_b));
             for color in Color::LIST {
-                let x_prime = if color == Color::White {x_w_prime} else {-x_b_prime};
+                let x_prime = if color == Color::White {
+                    x_w_prime
+                } else {
+                    -x_b_prime
+                };
 
                 for feature in &entry.safety_feature_vec[color.as_index()] {
-                    gradient.safety[phase][feature.index] += coeffs[phase] * x_prime * f64::from(feature.value);
+                    gradient.safety[phase][feature.index] +=
+                        coeffs[phase] * x_prime * f64::from(feature.value);
                 }
             }
 
@@ -397,7 +419,8 @@ impl Tuner {
                 write!(
                     output,
                     "s({}, {}), ",
-                    self.weights.linear[MG][index] as EvalScore, self.weights.linear[EG][index] as EvalScore,
+                    self.weights.linear[MG][index] as EvalScore,
+                    self.weights.linear[EG][index] as EvalScore,
                 )
                 .unwrap();
             }
@@ -420,7 +443,8 @@ impl Tuner {
                 write!(
                     output,
                     "s({}, {}), ",
-                    self.weights.linear[MG][index] as EvalScore, self.weights.linear[EG][index] as EvalScore,
+                    self.weights.linear[MG][index] as EvalScore,
+                    self.weights.linear[EG][index] as EvalScore,
                 )
                 .unwrap();
             }
@@ -448,7 +472,9 @@ impl Tuner {
             writeln!(
                 output,
                 "pub const {}: ScoreTuple = s({}, {});",
-                s, self.weights.linear[MG][index] as EvalScore, self.weights.linear[EG][index] as EvalScore,
+                s,
+                self.weights.linear[MG][index] as EvalScore,
+                self.weights.linear[EG][index] as EvalScore,
             )
             .unwrap();
         }
@@ -460,6 +486,77 @@ impl Tuner {
             "\npub const TEMPO_BONUS: ScoreTuple = s({}, {});",
             self.weights.linear[MG][TempoBonus::index()] as EvalScore,
             self.weights.linear[EG][TempoBonus::index()] as EvalScore,
+        )
+        .unwrap();
+    }
+
+    fn write_safety(&self, output: &mut BufWriter<File>) {
+        writeln!(
+            output,
+            "\npub const ENEMY_VIRT_MOBILITY: [ScoreTuple; 28] = [",
+        )
+        .unwrap();
+        for i in 0..EnemyVirtMobility::LEN {
+            let index = EnemyVirtMobility::index(i);
+            write!(
+                output,
+                "s({}, {}), ",
+                self.weights.linear[MG][index] as EvalScore,
+                self.weights.linear[EG][index] as EvalScore,
+            )
+            .unwrap();
+        }
+        writeln!(output, "\n];",).unwrap();
+
+        writeln!(
+            output,
+            "\npub const ATTACKS: [ScoreTuple; (NUM_PIECES - 1) as usize] = [",
+        )
+        .unwrap();
+        for piece in Piece::LIST {
+            let index = Attacks::index(piece);
+            write!(
+                output,
+                "s({}, {}), ",
+                self.weights.linear[MG][index] as EvalScore,
+                self.weights.linear[EG][index] as EvalScore,
+            )
+            .unwrap();
+        }
+        writeln!(output, "\n];",).unwrap();
+
+        writeln!(
+            output,
+            "\npub const DEFENSES: [ScoreTuple; (NUM_PIECES - 1) as usize] = [",
+        )
+        .unwrap();
+        for piece in Piece::LIST {
+            let index = Defenses::index(piece);
+            write!(
+                output,
+                "s({}, {}), ",
+                self.weights.linear[MG][index] as EvalScore,
+                self.weights.linear[EG][index] as EvalScore,
+            )
+            .unwrap();
+        }
+        writeln!(output, "\n];",).unwrap();
+
+        writeln!(
+            output,
+            "\npub const INNER_PAWN_SHIELD: ScoreTuple = s({}, {});\npub const OUTER_PAWN_SHIELD: ScoreTuple = s({}, {});",
+            self.weights.linear[MG][InnerPawnShield::index()] as EvalScore,
+            self.weights.linear[EG][InnerPawnShield::index()] as EvalScore,
+            self.weights.linear[MG][OuterPawnShield::index()] as EvalScore,
+            self.weights.linear[EG][OuterPawnShield::index()] as EvalScore,
+        )
+        .unwrap();
+
+        writeln!(
+            output,
+            "\npub const BIAS: ScoreTuple = s({}, {});",
+            self.weights.linear[MG][Bias::index()] as EvalScore,
+            self.weights.linear[EG][Bias::index()] as EvalScore,
         )
         .unwrap();
     }
