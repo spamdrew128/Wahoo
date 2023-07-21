@@ -575,11 +575,7 @@ impl Tuner {
         self.write_threats(&mut output);
         self.write_tempo(&mut output);
 
-        write!(
-            output,
-            "\n// KING SAFETY FEATURES"
-        )
-        .unwrap();
+        write!(output, "\n// KING SAFETY FEATURES").unwrap();
         self.write_safety(&mut output);
     }
 
