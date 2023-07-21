@@ -33,6 +33,7 @@ pub const TB_LOSS_SCORE: EvalScore = -TB_WIN_SCORE;
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ScoreTuple(EvalScore, EvalScore);
 
+pub const SAFETY_LIMIT: i32 = 720;
 impl ScoreTuple {
     pub const fn new(mg: EvalScore, eg: EvalScore) -> Self {
         Self(mg, eg)
@@ -51,11 +52,9 @@ impl ScoreTuple {
     }
 
     pub fn king_safety_formula(self) -> Self {
-        const LIMIT: i32 = 720;
-
         let mg = self.mg().max(0);
         let eg = self.eg().max(0);
-        Self((mg * mg).min(LIMIT), (eg * eg).min(LIMIT))
+        Self((mg * mg).min(SAFETY_LIMIT), (eg * eg).min(SAFETY_LIMIT))
     }
 }
 

@@ -3,7 +3,7 @@ use engine::{
     eval::evaluation::{
         phase, trace_of_position, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX,
     },
-    eval::{piece_loop_eval::MoveCounts, trace::SAFETY_TRACE_LEN},
+    eval::{piece_loop_eval::MoveCounts, trace::{SAFETY_TRACE_LEN, Bias}, evaluation::SAFETY_LIMIT},
     eval::trace::{
         BishopPair, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer, PasserBlocker,
         PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN,
@@ -81,6 +81,17 @@ impl Entry {
             for feature in &self.feature_vec {
                 scores[phase] += f64::from(feature.value) * weights.linear[phase][feature.index];
             }
+
+            let bias = weights.safety[phase][Bias::index()];
+            let mut attack_power = [bias, bias];
+            for color in Color::LIST {
+                for feature in &self.safety_feature_vec[color.as_index()] {
+                    attack_power[color.as_index()] += f64::from(feature.value) * weights.safety[phase][feature.index];
+                }
+            }
+            let (w_ap, b_ap) = (attack_power[Color::White.as_index()].max(0.0), attack_power[Color::Black.as_index()].max(0.0));
+            let limit = f64::from(SAFETY_LIMIT);
+            scores[phase] += (w_ap * w_ap).min(limit) - (b_ap * b_ap).min(limit);
         }
 
         (scores[MG] * self.mg_phase() + scores[EG] * self.eg_phase()) / f64::from(PHASE_MAX)
