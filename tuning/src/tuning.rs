@@ -139,24 +139,25 @@ impl Tuner {
     const MAX_EPOCHS: u32 = 20000;
     const LEARN_RATE: f64 = 0.12;
 
-    // fn new_weights(from_previous: bool) -> TunerStruct {
-    //     let mut result = [[0.0; TUNER_VEC_LEN]; NUM_PHASES];
-    //     if from_previous {
-    //         for phase in PHASES {
-    //             for (i, &w) in PREV_WEIGHTS[phase].iter().enumerate() {
-    //                 result[phase][i] = w;
-    //             }
-    //         }
-    //     }
+    fn new_weights() -> TunerStruct {
+        let mut result = TunerStruct::new();
+        let vals = [300.0, 300.0, 500.0, 900.0, 100.0, 0.0];
+        for piece in Piece::LIST {
+            let w = vals[piece.as_index()];
+            for sq in 0..NUM_SQUARES {
+                result.linear[MG][MaterialPst::index(piece, Square::new(sq))] = w;
+                result.linear[EG][MaterialPst::index(piece, Square::new(sq))] = w;
+            }
+        }
 
-    //     result
-    // }
+        result
+    }
 
-    pub fn new(from_previous: bool) -> Self {
+    pub fn new() -> Self {
         Self {
             entries: vec![],
             gradient: TunerStruct::new(),
-            weights: TunerStruct::new(),
+            weights: Self::new_weights(),
             momentum: TunerStruct::new(),
             velocity: TunerStruct::new(),
         }
@@ -578,21 +579,4 @@ impl Tuner {
         write!(output, "\n// KING SAFETY FEATURES").unwrap();
         self.write_safety(&mut output);
     }
-
-    // fn create_weights_file(&self) {
-    //     let mut output = BufWriter::new(File::create("prev_weights.rs").unwrap());
-    //     writeln!(
-    //         output,
-    //         "#[rustfmt::skip]\npub const PREV_WEIGHTS: [[f64; {TUNER_VEC_LEN}]; {NUM_PHASES}] = [",
-    //     )
-    //     .unwrap();
-    //     for phase in PHASES {
-    //         writeln!(output, "[",).unwrap();
-    //         for w in self.weights[phase] {
-    //             write!(output, "{:.2}, ", w).unwrap();
-    //         }
-    //         writeln!(output, "],",).unwrap();
-    //     }
-    //     writeln!(output, "];",).unwrap();
-    // }
 }
