@@ -236,7 +236,7 @@ impl Tuner {
                 }
             }
 
-            gradient.safety[phase][Bias::index()] += x_w_prime - x_b_prime;
+            gradient.safety[phase][Bias::index()] += coeffs[phase] * (x_w_prime - x_b_prime);
         }
     }
 
