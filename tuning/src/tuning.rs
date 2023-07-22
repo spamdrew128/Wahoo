@@ -502,8 +502,8 @@ impl Tuner {
             write!(
                 output,
                 "s({}, {}), ",
-                self.weights.linear[MG][index] as EvalScore,
-                self.weights.linear[EG][index] as EvalScore,
+                self.weights.safety[MG][index] as EvalScore,
+                self.weights.safety[EG][index] as EvalScore,
             )
             .unwrap();
         }
@@ -519,8 +519,8 @@ impl Tuner {
             write!(
                 output,
                 "s({}, {}), ",
-                self.weights.linear[MG][index] as EvalScore,
-                self.weights.linear[EG][index] as EvalScore,
+                self.weights.safety[MG][index] as EvalScore,
+                self.weights.safety[EG][index] as EvalScore,
             )
             .unwrap();
         }
@@ -536,8 +536,8 @@ impl Tuner {
             write!(
                 output,
                 "s({}, {}), ",
-                self.weights.linear[MG][index] as EvalScore,
-                self.weights.linear[EG][index] as EvalScore,
+                self.weights.safety[MG][index] as EvalScore,
+                self.weights.safety[EG][index] as EvalScore,
             )
             .unwrap();
         }
@@ -546,18 +546,18 @@ impl Tuner {
         writeln!(
             output,
             "\npub const INNER_PAWN_SHIELD: ScoreTuple = s({}, {});\npub const OUTER_PAWN_SHIELD: ScoreTuple = s({}, {});",
-            self.weights.linear[MG][InnerPawnShield::index()] as EvalScore,
-            self.weights.linear[EG][InnerPawnShield::index()] as EvalScore,
-            self.weights.linear[MG][OuterPawnShield::index()] as EvalScore,
-            self.weights.linear[EG][OuterPawnShield::index()] as EvalScore,
+            self.weights.safety[MG][InnerPawnShield::index()] as EvalScore,
+            self.weights.safety[EG][InnerPawnShield::index()] as EvalScore,
+            self.weights.safety[MG][OuterPawnShield::index()] as EvalScore,
+            self.weights.safety[EG][OuterPawnShield::index()] as EvalScore,
         )
         .unwrap();
 
         writeln!(
             output,
             "\npub const BIAS: ScoreTuple = s({}, {});",
-            self.weights.linear[MG][Bias::index()] as EvalScore,
-            self.weights.linear[EG][Bias::index()] as EvalScore,
+            self.weights.safety[MG][Bias::index()] as EvalScore,
+            self.weights.safety[EG][Bias::index()] as EvalScore,
         )
         .unwrap();
     }
