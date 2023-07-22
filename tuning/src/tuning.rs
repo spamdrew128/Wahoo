@@ -152,7 +152,7 @@ impl Tuner {
 
         for p in PHASES {
             for w in result.safety[p].iter_mut() {
-                *w = 15.0
+                *w = 0.1;
             }
         }
  
