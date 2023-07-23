@@ -11,10 +11,7 @@ use engine::{
     },
     eval::{
         evaluation::SAFETY_LIMIT,
-        trace::{
-            Attacks, Bias, Defenses, EnemyVirtMobility, InnerPawnShield, OuterPawnShield,
-            SAFETY_TRACE_LEN,
-        },
+        trace::{Attacks, Defenses, EnemyVirtMobility, SAFETY_TRACE_LEN},
     },
 };
 use std::{
@@ -83,8 +80,7 @@ impl Entry {
     }
 
     fn inner_safety_score(&self, phase: usize, weights: &TunerStruct) -> (f64, f64) {
-        let bias = weights.safety[phase][Bias::index()];
-        let mut attack_power = [bias, bias];
+        let mut attack_power = [0.0, 0.0];
         for color in Color::LIST {
             for feature in &self.safety_feature_vec[color.as_index()] {
                 attack_power[color.as_index()] +=
@@ -108,8 +104,8 @@ impl Entry {
 
             let (w_ap, b_ap) = self.inner_safety_score(phase, weights);
             let limit = f64::from(SAFETY_LIMIT);
-            scores[phase] +=
-                (0.01*w_ap.max(0.0)).powi(2).min(limit) - (0.01*b_ap.max(0.0)).powi(2).min(limit);
+            scores[phase] += (0.01 * w_ap.max(0.0)).powi(2).min(limit)
+                - (0.01 * b_ap.max(0.0)).powi(2).min(limit);
         }
 
         (scores[MG] * self.mg_phase() + scores[EG] * self.eg_phase()) / f64::from(PHASE_MAX)
@@ -155,7 +151,7 @@ impl Tuner {
                 *w = 1.0;
             }
         }
- 
+
         result
     }
 
@@ -235,8 +231,6 @@ impl Tuner {
                         coeffs[phase] * x_prime * f64::from(feature.value);
                 }
             }
-
-            gradient.safety[phase][Bias::index()] += coeffs[phase] * (x_w_prime - x_b_prime);
         }
     }
 
@@ -549,23 +543,7 @@ impl Tuner {
         }
         writeln!(output, "\n];",).unwrap();
 
-        writeln!(
-            output,
-            "\npub const INNER_PAWN_SHIELD: ScoreTuple = s({}, {});\npub const OUTER_PAWN_SHIELD: ScoreTuple = s({}, {});",
-            self.weights.safety[MG][InnerPawnShield::index()] as EvalScore,
-            self.weights.safety[EG][InnerPawnShield::index()] as EvalScore,
-            self.weights.safety[MG][OuterPawnShield::index()] as EvalScore,
-            self.weights.safety[EG][OuterPawnShield::index()] as EvalScore,
-        )
-        .unwrap();
-
-        writeln!(
-            output,
-            "\npub const BIAS: ScoreTuple = s({}, {});",
-            self.weights.safety[MG][Bias::index()] as EvalScore,
-            self.weights.safety[EG][Bias::index()] as EvalScore,
-        )
-        .unwrap();
+        writeln!(output, "\npub const BIAS: ScoreTuple = s(0, 0);",).unwrap();
     }
 
     fn create_output_file(&self) {

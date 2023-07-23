@@ -5,14 +5,12 @@ use crate::{
     eval::eval_constants::{
         ATTACKS, BIAS, BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT,
         BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK, DEFENSES, ENEMY_VIRT_MOBILITY,
-        INNER_PAWN_SHIELD, KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP,
-        KNIGHT_THREAT_ON_QUEEN, KNIGHT_THREAT_ON_ROOK, OUTER_PAWN_SHIELD, PAWN_THREAT_ON_BISHOP,
-        PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY,
-        QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
+        KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN,
+        KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN,
+        PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY,
+        ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
     },
-    eval::trace::{
-        Attacks, ForwardMobility, InnerPawnShield, Mobility, OuterPawnShield, Threats, Trace,
-    },
+    eval::trace::{Attacks, ForwardMobility, Mobility, Threats, Trace},
     eval::{
         evaluation::ScoreTuple,
         trace::{Defenses, EnemyVirtMobility},
@@ -78,38 +76,9 @@ const fn forward_masks_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS a
     result
 }
 
-const fn king_pawn_shield_init(
-    shift: u8,
-) -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
-    let mut result = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
-
-    let mut i = 0;
-    while i < NUM_SQUARES {
-        let sq = Square::new(i);
-        let sq_bb = sq.as_bitboard();
-        let row = sq_bb.union(sq_bb.east_one()).union(sq_bb.west_one());
-
-        let w_shield = row.shift_north(shift);
-        let b_shield = row.shift_south(shift);
-
-        result[Color::White.as_index()][sq.as_index()] = w_shield;
-        result[Color::Black.as_index()][sq.as_index()] = b_shield;
-
-        i += 1;
-    }
-
-    result
-}
-
 const KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = king_zones_init();
 
 const FORWARD_MASKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = forward_masks_init();
-
-const INNER_PAWN_SHIELD_MASKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] =
-    king_pawn_shield_init(1);
-
-const OUTER_PAWN_SHIELD_MASKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] =
-    king_pawn_shield_init(2);
 
 pub const fn king_zone(board: &Board, color: Color) -> Bitboard {
     let king_sq = board.color_king_sq(color);
@@ -120,20 +89,6 @@ pub const fn forward_mobility(moves: Bitboard, sq: Square, color: Color) -> usiz
     moves
         .intersection(FORWARD_MASKS[color.as_index()][sq.as_index()])
         .popcount() as usize
-}
-
-#[allow(clippy::cast_possible_wrap)]
-pub const fn pawn_shields(board: &Board, color: Color) -> (i32, i32) {
-    let king_sq = board.color_king_sq(color).as_index();
-    let pawns = board.piece_bb(Piece::PAWN, color);
-    let inner = INNER_PAWN_SHIELD_MASKS[color.as_index()][king_sq]
-        .intersection(pawns)
-        .popcount();
-    let outer = OUTER_PAWN_SHIELD_MASKS[color.as_index()][king_sq]
-        .intersection(pawns)
-        .popcount();
-
-    (inner as i32, outer as i32)
 }
 
 pub const fn availible(board: &Board, color: Color) -> Bitboard {
@@ -363,15 +318,8 @@ pub fn one_sided_eval<const TRACE: bool>(
     let enemy_virt_mobility = enemy_virtual_mobility(board, color);
     attack_power[color.as_index()] += ENEMY_VIRT_MOBILITY[enemy_virt_mobility];
 
-    let opp_color = color.flip();
-    let (inner, outer) = pawn_shields(board, color);
-    attack_power[opp_color.as_index()] += INNER_PAWN_SHIELD.mult(inner);
-    attack_power[opp_color.as_index()] += OUTER_PAWN_SHIELD.mult(outer);
-
     if TRACE {
         trace_safety_update!(t, EnemyVirtMobility, (enemy_virt_mobility), color, 1);
-        trace_safety_update!(t, InnerPawnShield, (), opp_color, inner);
-        trace_safety_update!(t, OuterPawnShield, (), opp_color, outer);
     }
 
     let knights = board.piece_bb(Piece::KNIGHT, color);
@@ -412,11 +360,8 @@ mod tests {
         board::board_representation::{Board, Color, Piece, Square},
         eval::{
             evaluation::trace_of_position,
-            piece_loop_eval::{forward_mobility, pawn_shields},
-            trace::{
-                Attacks, Defenses, EnemyVirtMobility, InnerPawnShield, OuterPawnShield,
-                SAFETY_TRACE_LEN,
-            },
+            piece_loop_eval::forward_mobility,
+            trace::{Attacks, Defenses, EnemyVirtMobility, SAFETY_TRACE_LEN},
         },
     };
 
@@ -443,22 +388,6 @@ mod tests {
     }
 
     #[test]
-    fn pawn_shields_test() {
-        let board = Board::from_fen("B2r2k1/3p1p2/p4PpB/1p3b2/8/2Nq2PP/PP2R1NK/3R4 b - - 2 23");
-        let (w_inner_expected, w_outer_expected) = (2, 0);
-        let (b_inner_expected, b_outer_expected) = (1, 1);
-
-        assert_eq!(
-            (w_inner_expected, w_outer_expected),
-            pawn_shields(&board, Color::White)
-        );
-        assert_eq!(
-            (b_inner_expected, b_outer_expected),
-            pawn_shields(&board, Color::Black)
-        );
-    }
-
-    #[test]
     fn safety_trace_test() {
         let board = Board::from_fen("B2r2k1/3p1p2/p4PpB/1p3b2/8/2Nq2PP/PP2R1NK/3R4 b - - 2 23");
         let actual = trace_of_position(&board);
@@ -481,11 +410,6 @@ mod tests {
 
         w[Defenses::index(Piece::ROOK)] += 1;
         w[Defenses::index(Piece::PAWN)] += 3;
-
-        b[InnerPawnShield::index()] += 2;
-
-        w[InnerPawnShield::index()] += 1;
-        w[OuterPawnShield::index()] += 1;
 
         assert_eq!([w, b], actual.safety);
     }

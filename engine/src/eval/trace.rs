@@ -16,12 +16,7 @@ pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
     + TempoBonus::LEN
     + ForwardMobility::LEN;
 
-pub const SAFETY_TRACE_LEN: usize = Bias::LEN
-    + EnemyVirtMobility::LEN
-    + Attacks::LEN
-    + Defenses::LEN
-    + InnerPawnShield::LEN
-    + OuterPawnShield::LEN;
+pub const SAFETY_TRACE_LEN: usize = EnemyVirtMobility::LEN + Attacks::LEN + Defenses::LEN;
 
 pub struct Trace {
     pub linear: [i8; LINEAR_TRACE_LEN],
@@ -216,19 +211,9 @@ impl ForwardMobility {
 }
 
 // SAFETY STUFF
-pub struct Bias;
-impl Bias {
-    pub const START: usize = 0;
-    pub const LEN: usize = 1;
-
-    pub const fn index() -> usize {
-        Self::START
-    }
-}
-
 pub struct EnemyVirtMobility;
 impl EnemyVirtMobility {
-    pub const START: usize = Bias::START + Bias::LEN;
+    pub const START: usize = 0;
     pub const LEN: usize = MoveCounts::QUEEN;
 
     pub const fn index(enemy_virt_mobility: usize) -> usize {
@@ -253,25 +238,5 @@ impl Defenses {
 
     pub const fn index(piece: Piece) -> usize {
         Self::START + piece.as_index()
-    }
-}
-
-pub struct InnerPawnShield;
-impl InnerPawnShield {
-    pub const START: usize = Defenses::START + Defenses::LEN;
-    pub const LEN: usize = 1;
-
-    pub const fn index() -> usize {
-        Self::START
-    }
-}
-
-pub struct OuterPawnShield;
-impl OuterPawnShield {
-    pub const START: usize = InnerPawnShield::START + InnerPawnShield::LEN;
-    pub const LEN: usize = 1;
-
-    pub const fn index() -> usize {
-        Self::START
     }
 }
