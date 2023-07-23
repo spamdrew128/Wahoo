@@ -194,7 +194,7 @@ impl Tuner {
     }
 
     fn safety_prime(x: f64) -> f64 {
-        if x > 0.0 && x < f64::from(SAFETY_LIMIT).sqrt() {
+        if x > 0.0 && x < 10.0 * f64::from(SAFETY_LIMIT).sqrt() {
             0.01 * 2.0 * x
         } else {
             0.0
