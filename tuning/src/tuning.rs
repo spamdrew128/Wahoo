@@ -109,7 +109,7 @@ impl Entry {
             let (w_ap, b_ap) = self.inner_safety_score(phase, weights);
             let limit = f64::from(SAFETY_LIMIT);
             scores[phase] +=
-                (w_ap.max(0.0).powi(2)).min(limit) - (b_ap.max(0.0).powi(2)).min(limit);
+                (0.01*w_ap.max(0.0)).powi(2).min(limit) - (0.01*b_ap.max(0.0)).powi(2).min(limit);
         }
 
         (scores[MG] * self.mg_phase() + scores[EG] * self.eg_phase()) / f64::from(PHASE_MAX)
@@ -152,7 +152,7 @@ impl Tuner {
 
         for p in PHASES {
             for w in result.safety[p].iter_mut() {
-                *w = 0.1;
+                *w = 1.0;
             }
         }
  
@@ -195,7 +195,7 @@ impl Tuner {
 
     fn safety_prime(x: f64) -> f64 {
         if x > 0.0 && x < f64::from(SAFETY_LIMIT).sqrt() {
-            2.0 * x
+            0.01 * 2.0 * x
         } else {
             0.0
         }
