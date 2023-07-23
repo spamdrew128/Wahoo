@@ -7,7 +7,7 @@ use engine::{
     },
     eval::trace::{
         BishopPair, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer, PasserBlocker,
-        PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN,
+        PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN, InnerPawnShield, OuterPawnShield,
     },
     eval::{
         evaluation::SAFETY_LIMIT,
@@ -542,6 +542,16 @@ impl Tuner {
             .unwrap();
         }
         writeln!(output, "\n];",).unwrap();
+
+        writeln!(
+            output,
+            "\npub const INNER_PAWN_SHIELD: ScoreTuple = s({}, {});\npub const OUTER_PAWN_SHIELD: ScoreTuple = s({}, {});",
+            self.weights.safety[MG][InnerPawnShield::index()] as EvalScore,
+            self.weights.safety[EG][InnerPawnShield::index()] as EvalScore,
+            self.weights.safety[MG][OuterPawnShield::index()] as EvalScore,
+            self.weights.safety[EG][OuterPawnShield::index()] as EvalScore,
+        )
+        .unwrap();
 
         writeln!(output, "\npub const BIAS: ScoreTuple = s(0, 0);",).unwrap();
     }
