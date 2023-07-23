@@ -8,9 +8,9 @@ use crate::{
         KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN,
         KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN,
         PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY,
-        ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
+        ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN, INNER_PAWN_SHIELD, OUTER_PAWN_SHIELD
     },
-    eval::trace::{Attacks, ForwardMobility, Mobility, Threats, Trace},
+    eval::trace::{Attacks, ForwardMobility, Mobility, Threats, Trace, InnerPawnShield, OuterPawnShield},
     eval::{
         evaluation::ScoreTuple,
         trace::{Defenses, EnemyVirtMobility},
@@ -368,6 +368,8 @@ pub fn one_sided_eval<const TRACE: bool>(
 
     if TRACE {
         trace_safety_update!(t, EnemyVirtMobility, (enemy_virt_mobility), color, 1);
+        trace_safety_update!(t, InnerPawnShield, (), opp_color, inner);
+        trace_safety_update!(t, OuterPawnShield, (), opp_color, outer);
     }
 
     let knights = board.piece_bb(Piece::KNIGHT, color);

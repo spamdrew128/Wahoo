@@ -177,4 +177,8 @@ pub const DEFENSES: [ScoreTuple; (NUM_PIECES - 1) as usize] = [
   s(-7, 13), s(-7, 4), s(-3, 4), s(-1, 5), s(-9, -24), 
 ];
 
+pub const INNER_PAWN_SHIELD: ScoreTuple = s(41, 29);
+
+pub const OUTER_PAWN_SHIELD: ScoreTuple = s(41, 29);
+
 pub const BIAS: ScoreTuple = s(0, 0);
