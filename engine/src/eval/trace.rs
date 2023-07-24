@@ -14,7 +14,7 @@ pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
     + PhalanxPawns::LEN
     + Threats::LEN
     + TempoBonus::LEN
-    + ForwardMobility::LEN;
+    + ForwardMobility::LEN + EnemyKingRank::LEN;
 
 pub const SAFETY_TRACE_LEN: usize = EnemyVirtMobility::LEN + Attacks::LEN + Defenses::LEN;
 
@@ -241,13 +241,13 @@ impl Defenses {
     }
 }
 
-pub struct RankSafety;
-impl RankSafety {
+pub struct EnemyKingRank;
+impl EnemyKingRank {
     pub const START: usize = Defenses::START + Defenses::LEN;
     pub const LEN: usize = NUM_RANKS as usize;
 
-    pub const fn index(rank: usize) -> usize {
-        Self::START + rank
+    pub const fn index(rank: u8) -> usize {
+        Self::START + rank as usize
     }
 }
 
