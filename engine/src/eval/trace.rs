@@ -14,10 +14,10 @@ pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
     + PhalanxPawns::LEN
     + Threats::LEN
     + TempoBonus::LEN
-    + ForwardMobility::LEN
-    + EnemyKingRank::LEN;
+    + ForwardMobility::LEN;
 
-pub const SAFETY_TRACE_LEN: usize = EnemyVirtMobility::LEN + Attacks::LEN + Defenses::LEN;
+pub const SAFETY_TRACE_LEN: usize =
+    EnemyVirtMobility::LEN + Attacks::LEN + Defenses::LEN + EnemyKingRank::LEN;
 
 pub struct Trace {
     pub linear: [i8; LINEAR_TRACE_LEN],
