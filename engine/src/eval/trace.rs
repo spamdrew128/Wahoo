@@ -14,7 +14,8 @@ pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
     + PhalanxPawns::LEN
     + Threats::LEN
     + TempoBonus::LEN
-    + ForwardMobility::LEN + EnemyKingRank::LEN;
+    + ForwardMobility::LEN
+    + EnemyKingRank::LEN;
 
 pub const SAFETY_TRACE_LEN: usize = EnemyVirtMobility::LEN + Attacks::LEN + Defenses::LEN;
 
@@ -250,4 +251,3 @@ impl EnemyKingRank {
         Self::START + rank as usize
     }
 }
-

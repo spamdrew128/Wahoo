@@ -7,7 +7,7 @@ use engine::{
     },
     eval::trace::{
         BishopPair, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer, PasserBlocker,
-        PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN,
+        PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN, EnemyKingRank,
     },
     eval::{
         evaluation::SAFETY_LIMIT,
@@ -543,7 +543,8 @@ impl Tuner {
         }
         writeln!(output, "\n];",).unwrap();
 
-        writeln!(output, "\npub const BIAS: ScoreTuple = s(0, 0);",).unwrap();
+        write!(output, "pub const ENEMY_KING_RANK: Prt = ").unwrap();
+        self.write_prt(output, ";\n", EnemyKingRank::index);
     }
 
     fn create_output_file(&self) {

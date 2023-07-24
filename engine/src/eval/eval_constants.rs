@@ -187,5 +187,3 @@ pub const ENEMY_KING_RANK: Prt = Prt::new([
   s(6, -9),
   s(0, 0),
 ]);
-
-pub const BIAS: ScoreTuple = s(0, 0);
