@@ -130,7 +130,7 @@ pub struct Tuner {
 
 impl Tuner {
     const K: f64 = 0.006634;
-    const CONVERGENCE_DELTA: f64 = 2e-7;
+    const CONVERGENCE_DELTA: f64 = 7e-7;
     const CONVERGENCE_CHECK_FREQ: u32 = 50;
     const MAX_EPOCHS: u32 = 20000;
     const LEARN_RATE: f64 = 0.12;
