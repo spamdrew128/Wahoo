@@ -10,13 +10,15 @@ use crate::{
         PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY,
         ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
     },
-    eval::trace::{Attacks, ForwardMobility, Mobility, Threats, Trace},
+    eval::trace::{Attacks, ForwardMobility, Mobility, Threats, Trace, color_adjust, RankSafety},
     eval::{
         evaluation::ScoreTuple,
         trace::{Defenses, EnemyVirtMobility},
     },
     trace_safety_update, trace_threat_update, trace_update,
 };
+
+use super::eval_constants::KING_RANK_PRT;
 
 const fn king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
     let mut king_zones = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
@@ -318,8 +320,14 @@ pub fn one_sided_eval<const TRACE: bool>(
     let enemy_virt_mobility = enemy_virtual_mobility(board, color);
     attack_power[color.as_index()] += ENEMY_VIRT_MOBILITY[enemy_virt_mobility];
 
+    let king_sq = board.color_king_sq(color);
+    attack_power[color.flip().as_index()] += KING_RANK_PRT.access(color, king_sq);
+
     if TRACE {
         trace_safety_update!(t, EnemyVirtMobility, (enemy_virt_mobility), color, 1);
+
+        let rank = color_adjust(king_sq, color).rank();
+        trace_safety_update!(t, RankSafety, (rank), color.flip(), 1);
     }
 
     let knights = board.piece_bb(Piece::KNIGHT, color);

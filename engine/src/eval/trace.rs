@@ -240,3 +240,14 @@ impl Defenses {
         Self::START + piece.as_index()
     }
 }
+
+pub struct RankSafety;
+impl RankSafety {
+    pub const START: usize = Defenses::START + Defenses::LEN;
+    pub const LEN: usize = NUM_RANKS as usize;
+
+    pub const fn index(rank: usize) -> usize {
+        Self::START + rank
+    }
+}
+
