@@ -553,7 +553,7 @@ impl Tuner {
         }
         writeln!(output, "\n];",).unwrap();
 
-        write!(output, "pub const ENEMY_KING_RANK: Prt = ").unwrap();
+        write!(output, "\npub const ENEMY_KING_RANK: Prt = ").unwrap();
         self.write_prt(output, ";\n", false, EnemyKingRank::index);
     }
 

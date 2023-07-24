@@ -176,6 +176,7 @@ pub const ATTACKS: [ScoreTuple; (NUM_PIECES - 1) as usize] = [
 pub const DEFENSES: [ScoreTuple; (NUM_PIECES - 1) as usize] = [
   s(-7, 13), s(-7, 5), s(-3, 4), s(0, 6), s(-8, -22), 
 ];
+
 pub const ENEMY_KING_RANK: Prt = Prt::new([
   s(40, 10),
   s(15, 23),
