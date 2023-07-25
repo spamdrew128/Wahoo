@@ -17,7 +17,7 @@ use engine::{
 use std::{
     fs::{read_to_string, File},
     io::BufWriter,
-    io::Write, ops::{Div, Mul, AddAssign, Sub}, fmt::{Display, self},
+    io::Write, ops::{Div, Mul, AddAssign, Sub, Add}, fmt::{Display, self},
 };
 
 #[derive(Copy, Clone)]
@@ -79,6 +79,13 @@ impl Mul<S> for S {
 impl AddAssign for S {
     fn add_assign(&mut self, rhs: Self) {
         *self = Self(self.0 + rhs.0, self.1 + rhs.1);
+    }
+}
+
+impl Add for S {
+    type Output = S;
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0, self.1 + rhs.1)
     }
 }
 
