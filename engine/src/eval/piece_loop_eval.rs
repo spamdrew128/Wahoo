@@ -132,16 +132,6 @@ impl ConstPiece {
     const ROOK: u8 = 2;
     const QUEEN: u8 = 3;
 
-    const fn moves<const PIECE: u8>(board: &Board, sq: Square) -> Bitboard {
-        match PIECE {
-            Self::KNIGHT => attacks::knight(sq),
-            Self::BISHOP => attacks::bishop(sq, board.occupied()),
-            Self::ROOK => attacks::rook(sq, board.occupied()),
-            Self::QUEEN => attacks::queen(sq, board.occupied()),
-            _ => panic!("Unexpected Piece!"),
-        }
-    }
-
     const fn piece<const PIECE: u8>() -> Piece {
         match PIECE {
             Self::KNIGHT => Piece::KNIGHT,
@@ -162,10 +152,12 @@ struct LoopEvaluator {
     enemy_bishops: Bitboard,
     enemy_rooks: Bitboard,
     enemy_queens: Bitboard,
+    hv_occupied: Bitboard,
+    d12_occupied: Bitboard,
 }
 
 impl LoopEvaluator {
-    const fn new(board: &Board, color: Color) -> Self {
+    fn new(board: &Board, color: Color) -> Self {
         let availible = availible(board, color);
         let friendly_king_zone = king_zone(board, color);
         let enemy_king_zone = king_zone(board, color.flip());
@@ -176,6 +168,12 @@ impl LoopEvaluator {
         let enemy_rooks = board.piece_bb(Piece::ROOK, opp_color);
         let enemy_queens = board.piece_bb(Piece::QUEEN, opp_color);
 
+        let occ = board.occupied();
+        let hv_sliders = board.piece_bb(Piece::ROOK, color) | board.piece_bb(Piece::QUEEN, color);
+        let d12_sliders =
+            board.piece_bb(Piece::BISHOP, color) | board.piece_bb(Piece::QUEEN, color);
+        let hv_occupied = occ ^ hv_sliders;
+        let d12_occupied = occ ^ d12_sliders;
         Self {
             color,
             availible,
@@ -185,17 +183,30 @@ impl LoopEvaluator {
             enemy_bishops,
             enemy_rooks,
             enemy_queens,
+            hv_occupied,
+            d12_occupied,
+        }
+    }
+    const fn moves<const PIECE: u8>(&self, sq: Square) -> Bitboard {
+        match PIECE {
+            ConstPiece::KNIGHT => attacks::knight(sq),
+            ConstPiece::BISHOP => attacks::bishop(sq, self.d12_occupied),
+            ConstPiece::ROOK => attacks::rook(sq, self.hv_occupied),
+            ConstPiece::QUEEN => {
+                attacks::bishop(sq, self.d12_occupied).union(attacks::rook(sq, self.hv_occupied))
+            }
+            _ => panic!("Unexpected Piece!"),
         }
     }
 
     #[allow(clippy::cast_possible_wrap)]
     #[rustfmt::skip]
-    fn single_score<const PIECE: u8, const TRACE: bool>(&self, board: &Board, sq: Square, attack_power: &mut [ScoreTuple; 2], t: &mut Trace) -> ScoreTuple {
+    fn single_score<const PIECE: u8, const TRACE: bool>(&self, sq: Square, attack_power: &mut [ScoreTuple; 2], t: &mut Trace) -> ScoreTuple {
         let mut score = ScoreTuple::new(0, 0);
         let color = self.color;
         let opp_color = self.color.flip();
         let piece = ConstPiece::piece::<PIECE>();
-        let attacks = ConstPiece::moves::<PIECE>(board, sq);
+        let attacks = self.moves::<PIECE>(sq);
         let moves = attacks & self.availible;
 
         let mobility = moves.popcount() as usize;
@@ -298,14 +309,13 @@ impl LoopEvaluator {
 
     fn piece_loop<const PIECE: u8, const TRACE: bool>(
         &self,
-        board: &Board,
         mut piece_bb: Bitboard,
         attack_power: &mut [ScoreTuple; 2],
         t: &mut Trace,
     ) -> ScoreTuple {
         let mut score = ScoreTuple::new(0, 0);
         bitloop!(|sq| piece_bb, {
-            score += self.single_score::<PIECE, TRACE>(board, sq, attack_power, t);
+            score += self.single_score::<PIECE, TRACE>(sq, attack_power, t);
         });
         score
     }
@@ -337,10 +347,10 @@ pub fn one_sided_eval<const TRACE: bool>(
     let pawns = board.piece_bb(Piece::PAWN, color);
 
     let looper = LoopEvaluator::new(board, color);
-    looper.piece_loop::<{ ConstPiece::KNIGHT }, TRACE>(board, knights, attack_power, t)
-        + looper.piece_loop::<{ ConstPiece::BISHOP }, TRACE>(board, bishops, attack_power, t)
-        + looper.piece_loop::<{ ConstPiece::ROOK }, TRACE>(board, rooks, attack_power, t)
-        + looper.piece_loop::<{ ConstPiece::QUEEN }, TRACE>(board, queens, attack_power, t)
+    looper.piece_loop::<{ ConstPiece::KNIGHT }, TRACE>(knights, attack_power, t)
+        + looper.piece_loop::<{ ConstPiece::BISHOP }, TRACE>(bishops, attack_power, t)
+        + looper.piece_loop::<{ ConstPiece::ROOK }, TRACE>(rooks, attack_power, t)
+        + looper.piece_loop::<{ ConstPiece::QUEEN }, TRACE>(queens, attack_power, t)
         + looper.pawn_score::<TRACE>(pawns, color, attack_power, t)
 }
 
