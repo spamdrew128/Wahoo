@@ -17,7 +17,7 @@ use engine::{
 use std::{
     fs::{read_to_string, File},
     io::BufWriter,
-    io::Write, ops::{Div, Mul},
+    io::Write, ops::{Div, Mul, AddAssign, Sub}, fmt::{Display, self},
 };
 
 #[derive(Copy, Clone)]
@@ -49,6 +49,12 @@ impl S {
     }
 }
 
+impl Display for S {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "s({}, {})", self.0, self.1)
+    }
+}
+
 impl Div<f64> for S {
     type Output = S;
     fn div(self, rhs: f64) -> Self::Output {
@@ -67,6 +73,20 @@ impl Mul<S> for S {
     type Output = S;
     fn mul(self, rhs: Self) -> Self::Output {
         Self(self.0 * rhs.0, self.1 * rhs.1)
+    }
+}
+
+impl AddAssign for S {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = Self(self.0 + rhs.0, self.1 + rhs.1);
+    }
+}
+
+impl Sub for S {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self {
+        Self(self.0 - rhs.0, self.1 - rhs.1)
     }
 }
 
