@@ -5,15 +5,15 @@ use crate::{
     eval::eval_constants::{
         ATTACKS, BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT,
         BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK, DEFENSES, ENEMY_KING_RANK,
-        KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP,
-        KNIGHT_THREAT_ON_QUEEN, KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP,
-        PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY,
-        QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
+        KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN,
+        KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN,
+        PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY,
+        ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
     },
+    eval::evaluation::ScoreTuple,
     eval::trace::{
         color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace,
     },
-    eval::evaluation::ScoreTuple,
     trace_safety_update, trace_threat_update, trace_update,
 };
 
@@ -103,7 +103,8 @@ pub fn virtual_mobility(board: &Board, color: Color) -> usize {
     let opp_color = color.flip();
     let king_sq = board.color_king_sq(color);
     let empty = board.empty();
-    let mobile_attacking_pieces = board.all[opp_color.as_index()] ^ board.piece_bb(Piece::PAWN, opp_color);
+    let mobile_attacking_pieces =
+        board.all[opp_color.as_index()] ^ board.piece_bb(Piece::PAWN, opp_color);
     let virtual_occupied = board.occupied() ^ mobile_attacking_pieces;
     let attackers_or_empty = board.all[opp_color.as_index()].union(empty);
 
@@ -146,6 +147,8 @@ struct LoopEvaluator {
     availible: Bitboard,
     enemy_king_zone: Bitboard,
     friendly_king_zone: Bitboard,
+    own_virt_mob: usize,
+    enemy_virt_mob: usize,
     enemy_knights: Bitboard,
     enemy_bishops: Bitboard,
     enemy_rooks: Bitboard,
@@ -155,7 +158,7 @@ struct LoopEvaluator {
 }
 
 impl LoopEvaluator {
-    fn new(board: &Board, color: Color) -> Self {
+    fn new(board: &Board, own_virt_mob: usize, enemy_virt_mob: usize, color: Color) -> Self {
         let availible = availible(board, color);
         let friendly_king_zone = king_zone(board, color);
         let enemy_king_zone = king_zone(board, color.flip());
@@ -177,6 +180,8 @@ impl LoopEvaluator {
             availible,
             enemy_king_zone,
             friendly_king_zone,
+            own_virt_mob,
+            enemy_virt_mob,
             enemy_knights,
             enemy_bishops,
             enemy_rooks,
@@ -341,7 +346,7 @@ pub fn one_sided_eval<const TRACE: bool>(
     let queens = board.piece_bb(Piece::QUEEN, color);
     let pawns = board.piece_bb(Piece::PAWN, color);
 
-    let looper = LoopEvaluator::new(board, color);
+    let looper = LoopEvaluator::new(board, own_virt_mob, enemy_virt_mob, color);
     looper.piece_loop::<{ ConstPiece::KNIGHT }, TRACE>(knights, attack_power, t)
         + looper.piece_loop::<{ ConstPiece::BISHOP }, TRACE>(bishops, attack_power, t)
         + looper.piece_loop::<{ ConstPiece::ROOK }, TRACE>(rooks, attack_power, t)
@@ -360,8 +365,16 @@ pub fn mobility_threats_safety<const TRACE: bool>(
     let us_virt_mob = virtual_mobility(board, us);
     let them_virt_mob = virtual_mobility(board, them);
 
-    let mobility_and_threats = one_sided_eval::<TRACE>(board, &mut attack_power, us_virt_mob, them_virt_mob, us, t)
-        - one_sided_eval::<TRACE>(board, &mut attack_power, them_virt_mob, us_virt_mob, them, t);
+    let mobility_and_threats =
+        one_sided_eval::<TRACE>(board, &mut attack_power, us_virt_mob, them_virt_mob, us, t)
+            - one_sided_eval::<TRACE>(
+                board,
+                &mut attack_power,
+                them_virt_mob,
+                us_virt_mob,
+                them,
+                t,
+            );
 
     let safety = attack_power[us.as_index()].king_safety_formula()
         - attack_power[them.as_index()].king_safety_formula();
