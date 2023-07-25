@@ -392,7 +392,7 @@ mod tests {
         eval::{
             evaluation::trace_of_position,
             piece_loop_eval::{forward_mobility, virtual_mobility},
-            trace::{Attacks, Defenses, SAFETY_TRACE_LEN},
+            trace::{Attacks, Defenses, SAFETY_TRACE_LEN, EnemyKingRank},
         },
     };
 
@@ -439,6 +439,9 @@ mod tests {
 
         w[Defenses::index(Piece::ROOK, w_virt_mob)] += 1;
         w[Defenses::index(Piece::PAWN, w_virt_mob)] += 3;
+
+        w[EnemyKingRank::index(0)] += 1;
+        b[EnemyKingRank::index(1)] += 1;
 
         assert_eq!([w, b], actual.safety);
     }
