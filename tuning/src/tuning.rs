@@ -241,22 +241,22 @@ impl Tuner {
         const EPSILON: f64 = 1e-8;
 
         for i in 0..self.gradient.linear.len() {
-                // we left off k eariler, so we add it back here
-                let grad_component: S = -2.0 * Self::K * self.gradient.linear[i] / (self.entries.len() as f64);
+            // we left off k eariler, so we add it back here
+            let grad_component: S = -2.0 * Self::K * self.gradient.linear[i] / (self.entries.len() as f64);
 
-                self.momentum.linear[i] = BETA1 * self.momentum.linear[i] + (1.0 - BETA1) * grad_component;
-                self.velocity.linear[i] = BETA2 * self.velocity.linear[i] + (1.0 - BETA2) * (grad_component * grad_component);
+            self.momentum.linear[i] = BETA1 * self.momentum.linear[i] + (1.0 - BETA1) * grad_component;
+            self.velocity.linear[i] = BETA2 * self.velocity.linear[i] + (1.0 - BETA2) * (grad_component * grad_component);
 
-                self.weights.linear[i] -= (self.momentum.linear[i] / (EPSILON + self.velocity.linear[i].sqrt())) * Self::LEARN_RATE;
+            self.weights.linear[i] -= (self.momentum.linear[i] / (EPSILON + self.velocity.linear[i].sqrt())) * Self::LEARN_RATE;
         }
 
         for i in 0..self.gradient.safety.len() {
-                let grad_component: S = -2.0 * Self::K * self.gradient.safety[i] / (self.entries.len() as f64);
+            let grad_component: S = -2.0 * Self::K * self.gradient.safety[i] / (self.entries.len() as f64);
 
-                self.momentum.safety[i] = BETA1 * self.momentum.safety[i] + (1.0 - BETA1) * grad_component;
-                self.velocity.safety[i] = BETA2 * self.velocity.safety[i] + (1.0 - BETA2) * (grad_component * grad_component);
+            self.momentum.safety[i] = BETA1 * self.momentum.safety[i] + (1.0 - BETA1) * grad_component;
+            self.velocity.safety[i] = BETA2 * self.velocity.safety[i] + (1.0 - BETA2) * (grad_component * grad_component);
 
-                self.weights.safety[i] -= (self.momentum.safety[i] / (EPSILON + self.velocity.safety[i].sqrt())) * Self::LEARN_RATE;
+            self.weights.safety[i] -= (self.momentum.safety[i] / (EPSILON + self.velocity.safety[i].sqrt())) * Self::LEARN_RATE;
         }
     }
 
