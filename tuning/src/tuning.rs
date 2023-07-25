@@ -2,9 +2,7 @@ use engine::{
     board::board_representation::{
         Board, Color, Piece, Square, NUM_COLORS, NUM_RANKS, NUM_SQUARES,
     },
-    eval::evaluation::{
-        phase, trace_of_position, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX,
-    },
+    eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
     eval::trace::{
         BishopPair, EnemyKingRank, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer,
         PasserBlocker, PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN,
@@ -19,7 +17,7 @@ use std::{
     fs::{read_to_string, File},
     io::BufWriter,
     io::Write,
-    ops::{Add, AddAssign, Div, Mul, Sub, Neg, SubAssign},
+    ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign},
 };
 
 #[derive(Copy, Clone)]
@@ -195,7 +193,8 @@ impl Entry {
         let mut attack_power = [S(0.0, 0.0), S(0.0, 0.0)];
         for color in Color::LIST {
             for feature in &self.safety_feature_vec[color.as_index()] {
-                attack_power[color.as_index()] += f64::from(feature.value) * weights.safety[feature.index];
+                attack_power[color.as_index()] +=
+                    f64::from(feature.value) * weights.safety[feature.index];
             }
         }
 
@@ -315,30 +314,27 @@ impl Tuner {
 
         let coeff = S(
             ((r - sigmoid) * sigmoid_prime * entry.mg_phase()) / f64::from(PHASE_MAX),
-            ((r - sigmoid) * sigmoid_prime * entry.eg_phase()) / f64::from(PHASE_MAX)
+            ((r - sigmoid) * sigmoid_prime * entry.eg_phase()) / f64::from(PHASE_MAX),
         );
 
-        for phase in PHASES {
-            for feature in &entry.feature_vec {
-                gradient.linear[feature.index] += coeff * f64::from(feature.value);
-            }
+        for feature in &entry.feature_vec {
+            gradient.linear[feature.index] += coeff * f64::from(feature.value);
+        }
 
-            let (x_w, x_b) = entry.inner_safety_score(weights);
-            let (x_w_prime, x_b_prime) = (
-                S(Self::safety_prime(x_w.mg()), Self::safety_prime(x_w.eg())),
-                S(Self::safety_prime(x_b.mg()), Self::safety_prime(x_b.eg())),
-            );
-            for color in Color::LIST {
-                let x_prime = if color == Color::White {
-                    x_w_prime
-                } else {
-                    -x_b_prime
-                };
+        let (x_w, x_b) = entry.inner_safety_score(weights);
+        let (x_w_prime, x_b_prime) = (
+            S(Self::safety_prime(x_w.mg()), Self::safety_prime(x_w.eg())),
+            S(Self::safety_prime(x_b.mg()), Self::safety_prime(x_b.eg())),
+        );
+        for color in Color::LIST {
+            let x_prime = if color == Color::White {
+                x_w_prime
+            } else {
+                -x_b_prime
+            };
 
-                for feature in &entry.safety_feature_vec[color.as_index()] {
-                    gradient.safety[feature.index] +=
-                        coeff * x_prime * f64::from(feature.value);
-                }
+            for feature in &entry.safety_feature_vec[color.as_index()] {
+                gradient.safety[feature.index] += coeff * x_prime * f64::from(feature.value);
             }
         }
     }
@@ -356,7 +352,6 @@ impl Tuner {
         const EPSILON: f64 = 1e-8;
 
         for i in 0..self.gradient.linear.len() {
-            for phase in PHASES {
                 // we left off k eariler, so we add it back here
                 let grad_component: S = -2.0 * Self::K * self.gradient.linear[i] / (self.entries.len() as f64);
 
@@ -364,18 +359,15 @@ impl Tuner {
                 self.velocity.linear[i] = BETA2 * self.velocity.linear[i] + (1.0 - BETA2) * (grad_component * grad_component);
 
                 self.weights.linear[i] -= (self.momentum.linear[i] / (EPSILON + self.velocity.linear[i].sqrt())) * Self::LEARN_RATE;
-            }
         }
 
         for i in 0..self.gradient.safety.len() {
-            for phase in PHASES {
                 let grad_component: S = -2.0 * Self::K * self.gradient.safety[i] / (self.entries.len() as f64);
 
                 self.momentum.safety[i] = BETA1 * self.momentum.safety[i] + (1.0 - BETA1) * grad_component;
                 self.velocity.safety[i] = BETA2 * self.velocity.safety[i] + (1.0 - BETA2) * (grad_component * grad_component);
 
                 self.weights.safety[i] -= (self.momentum.safety[i] / (EPSILON + self.velocity.safety[i].sqrt())) * Self::LEARN_RATE;
-            }
         }
     }
 
@@ -441,13 +433,8 @@ impl Tuner {
             if i % 8 == 0 {
                 write!(output, "\n  ").unwrap();
             }
-            write!(
-                output,
-                "s({}, {}), ",
-                self.weights.linear[MG][index_fn(sq)] as EvalScore,
-                self.weights.linear[EG][index_fn(sq)] as EvalScore,
-            )
-            .unwrap();
+            let w = self.weights.linear[index_fn(sq)];
+            write!(output, "{w}, ",).unwrap();
         }
         writeln!(output, "\n]){closing_str}").unwrap();
     }
@@ -463,18 +450,12 @@ impl Tuner {
     {
         write!(output, "Prt::new([").unwrap();
         for i in 0..NUM_RANKS {
-            let (mg, eg) = if is_linear {
-                (
-                    self.weights.linear[MG][index_fn(i)] as EvalScore,
-                    self.weights.linear[EG][index_fn(i)] as EvalScore,
-                )
+            let w = if is_linear {
+                self.weights.linear[index_fn(i)]
             } else {
-                (
-                    self.weights.safety[MG][index_fn(i)] as EvalScore,
-                    self.weights.safety[EG][index_fn(i)] as EvalScore,
-                )
+                self.weights.safety[index_fn(i)]
             };
-            write!(output, "\n  s({}, {}),", mg, eg).unwrap();
+            write!(output, "\n  {w},").unwrap();
         }
         writeln!(output, "\n]){closing_str}").unwrap();
     }
@@ -517,9 +498,8 @@ impl Tuner {
     fn write_bishop_pair(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
-            "pub const BISHOP_PAIR_BONUS: ScoreTuple = s({}, {});\n",
-            self.weights.linear[MG][BishopPair::index()] as EvalScore,
-            self.weights.linear[EG][BishopPair::index()] as EvalScore,
+            "pub const BISHOP_PAIR_BONUS: ScoreTuple = {};\n",
+            self.weights.linear[BishopPair::index()]
         )
         .unwrap();
     }
@@ -536,13 +516,8 @@ impl Tuner {
 
             for i in 0..Mobility::PIECE_MOVECOUNTS[piece.as_index()] {
                 let index = Mobility::index(piece, i);
-                write!(
-                    output,
-                    "s({}, {}), ",
-                    self.weights.linear[MG][index] as EvalScore,
-                    self.weights.linear[EG][index] as EvalScore,
-                )
-                .unwrap();
+                let w = self.weights.linear[index];
+                write!(output, "{w}, ",).unwrap();
             }
             writeln!(output, "\n];\n").unwrap();
         }
@@ -560,13 +535,8 @@ impl Tuner {
 
             for i in 0..ForwardMobility::PIECE_MOVECOUNTS[piece.as_index()] {
                 let index = ForwardMobility::index(piece, i);
-                write!(
-                    output,
-                    "s({}, {}), ",
-                    self.weights.linear[MG][index] as EvalScore,
-                    self.weights.linear[EG][index] as EvalScore,
-                )
-                .unwrap();
+                let w = self.weights.linear[index];
+                write!(output, "{w}, ",).unwrap();
             }
             writeln!(output, "\n];\n").unwrap();
         }
@@ -589,23 +559,16 @@ impl Tuner {
 
         for (i, s) in strings.iter().enumerate() {
             let index = Threats::START + i;
-            writeln!(
-                output,
-                "pub const {}: ScoreTuple = s({}, {});",
-                s,
-                self.weights.linear[MG][index] as EvalScore,
-                self.weights.linear[EG][index] as EvalScore,
-            )
-            .unwrap();
+            let w = self.weights.linear[index];
+            writeln!(output, "pub const {s}: ScoreTuple = {w};",).unwrap();
         }
     }
 
     fn write_tempo(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
-            "\npub const TEMPO_BONUS: ScoreTuple = s({}, {});",
-            self.weights.linear[MG][TempoBonus::index()] as EvalScore,
-            self.weights.linear[EG][TempoBonus::index()] as EvalScore,
+            "\npub const TEMPO_BONUS: ScoreTuple = {};",
+            self.weights.linear[TempoBonus::index()]
         )
         .unwrap();
     }
@@ -618,13 +581,8 @@ impl Tuner {
         .unwrap();
         for i in 0..EnemyVirtMobility::LEN {
             let index = EnemyVirtMobility::index(i);
-            write!(
-                output,
-                "s({}, {}), ",
-                self.weights.safety[MG][index] as EvalScore,
-                self.weights.safety[EG][index] as EvalScore,
-            )
-            .unwrap();
+            let w = self.weights.safety[index];
+            write!(output, "{w}, ").unwrap();
         }
         writeln!(output, "\n];",).unwrap();
 
@@ -635,13 +593,8 @@ impl Tuner {
         .unwrap();
         for &piece in Piece::LIST.iter().take(5) {
             let index = Attacks::index(piece);
-            write!(
-                output,
-                "s({}, {}), ",
-                self.weights.safety[MG][index] as EvalScore,
-                self.weights.safety[EG][index] as EvalScore,
-            )
-            .unwrap();
+            let w = self.weights.safety[index];
+            write!(output, "{w}, ").unwrap();
         }
         writeln!(output, "\n];",).unwrap();
 
@@ -652,13 +605,8 @@ impl Tuner {
         .unwrap();
         for &piece in Piece::LIST.iter().take(5) {
             let index = Defenses::index(piece);
-            write!(
-                output,
-                "s({}, {}), ",
-                self.weights.safety[MG][index] as EvalScore,
-                self.weights.safety[EG][index] as EvalScore,
-            )
-            .unwrap();
+            let w = self.weights.safety[index];
+            write!(output, "{w}, ",).unwrap();
         }
         writeln!(output, "\n];",).unwrap();
 
