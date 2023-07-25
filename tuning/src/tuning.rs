@@ -129,6 +129,7 @@ pub struct Tuner {
     weights: TunerStruct,
     momentum: TunerStruct,
     velocity: TunerStruct,
+    threads: usize,
 }
 
 macro_rules! update_weights {
@@ -173,13 +174,14 @@ impl Tuner {
         result
     }
 
-    pub fn new() -> Self {
+    pub fn new(threads: usize) -> Self {
         Self {
             entries: vec![],
             gradient: TunerStruct::new(),
             weights: Self::new_weights(),
             momentum: TunerStruct::new(),
             velocity: TunerStruct::new(),
+            threads,
         }
     }
 
