@@ -432,17 +432,23 @@ mod tests {
         b[Attacks::index(Piece::PAWN, w_virt_mob)] += 2;
         b[Attacks::index(Piece::QUEEN, w_virt_mob)] += 2;
 
-        b[Defenses::index(Piece::BISHOP, b_virt_mob)] += 3;
-        b[Defenses::index(Piece::PAWN, b_virt_mob)] += 3;
-        b[Defenses::index(Piece::KNIGHT, b_virt_mob)] += 2;
-        b[Defenses::index(Piece::ROOK, b_virt_mob)] += 4;
+        b[Defenses::index(Piece::BISHOP, w_virt_mob)] += 3;
+        b[Defenses::index(Piece::PAWN, w_virt_mob)] += 3;
+        b[Defenses::index(Piece::KNIGHT, w_virt_mob)] += 2;
+        b[Defenses::index(Piece::ROOK, w_virt_mob)] += 4;
 
-        w[Defenses::index(Piece::ROOK, w_virt_mob)] += 1;
-        w[Defenses::index(Piece::PAWN, w_virt_mob)] += 3;
+        w[Defenses::index(Piece::ROOK, b_virt_mob)] += 1;
+        w[Defenses::index(Piece::PAWN, b_virt_mob)] += 3;
 
         w[EnemyKingRank::index(0)] += 1;
         b[EnemyKingRank::index(1)] += 1;
 
-        assert_eq!([w, b], actual.safety);
+        for color in Color::LIST {
+            let actual = actual.safety[color.as_index()];
+            let expected = [w, b][color.as_index()];
+            for (i, (ac, ex)) in actual.iter().zip(expected.iter()).enumerate() {
+                assert_eq!(ac, ex, "Expected {ex}, found {ac} at index {i} and color {}", color.as_index());
+            }
+        }
     }
 }
