@@ -15,9 +15,11 @@ use engine::{
     },
 };
 use std::{
+    fmt::{self, Display},
     fs::{read_to_string, File},
     io::BufWriter,
-    io::Write, ops::{Div, Mul, AddAssign, Sub, Add}, fmt::{Display, self},
+    io::Write,
+    ops::{Add, AddAssign, Div, Mul, Sub},
 };
 
 #[derive(Copy, Clone)]
@@ -163,12 +165,11 @@ impl Entry {
         entry
     }
 
-    fn inner_safety_score(&self, phase: usize, weights: &TunerStruct) -> (S, S) {
+    fn inner_safety_score(&self, weights: &TunerStruct) -> (S, S) {
         let mut attack_power = [S(0.0, 0.0), S(0.0, 0.0)];
         for color in Color::LIST {
             for feature in &self.safety_feature_vec[color.as_index()] {
-                attack_power[color.as_index()] +=
-                    feature.value * weights.safety[feature.index];
+                attack_power[color.as_index()] += feature.value * weights.safety[feature.index];
             }
         }
 
@@ -179,20 +180,18 @@ impl Entry {
     }
 
     fn evaluation(&self, weights: &TunerStruct) -> f64 {
-        let mut scores = [0.0, 0.0];
+        let mut score = S(0.0, 0.0);
 
-        for phase in PHASES {
-            for feature in &self.feature_vec {
-                scores[phase] += f64::from(feature.value) * weights.linear[phase][feature.index];
-            }
-
-            let (w_ap, b_ap) = self.inner_safety_score(phase, weights);
-            let limit = f64::from(SAFETY_LIMIT);
-            scores[phase] += (0.01 * w_ap.max(0.0).powi(2)).min(limit)
-                - (0.01 * b_ap.max(0.0).powi(2)).min(limit);
+        for feature in &self.feature_vec {
+            score += feature.value * weights.linear[feature.index];
         }
 
-        (scores[MG] * self.mg_phase() + scores[EG] * self.eg_phase()) / f64::from(PHASE_MAX)
+        let (w_ap, b_ap) = self.inner_safety_score(weights);
+        let limit = f64::from(SAFETY_LIMIT);
+        score +=
+            (0.01 * w_ap.max(0.0).square()).min(limit) - (0.01 * b_ap.max(0.0).square()).min(limit);
+
+        (score.mg() * self.mg_phase() + score.eg() * self.eg_phase()) / f64::from(PHASE_MAX)
     }
 
     fn mg_phase(&self) -> f64 {
@@ -225,15 +224,12 @@ impl Tuner {
         for piece in Piece::LIST {
             let w = vals[piece.as_index()];
             for sq in 0..NUM_SQUARES {
-                result.linear[MG][MaterialPst::index(piece, Square::new(sq))] = w;
-                result.linear[EG][MaterialPst::index(piece, Square::new(sq))] = w;
+                result.linear[MaterialPst::index(piece, Square::new(sq))] = S(w, w);
             }
         }
 
-        for p in PHASES {
-            for w in result.safety[p].iter_mut() {
-                *w = 1.0;
-            }
+        for w in result.safety.iter_mut() {
+            *w = S(1.0, 1.0);
         }
 
         result
