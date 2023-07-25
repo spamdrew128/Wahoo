@@ -330,18 +330,14 @@ impl Tuner {
         &self,
         output: &mut BufWriter<File>,
         closing_str: &str,
-        is_linear: bool,
+        vals: &[S],
         index_fn: F,
     ) where
         F: Fn(u8) -> usize,
     {
         write!(output, "Prt::new([").unwrap();
         for i in 0..NUM_RANKS {
-            let w = if is_linear {
-                self.weights.linear[index_fn(i)]
-            } else {
-                self.weights.safety[index_fn(i)]
-            };
+            let w = vals[index_fn(i)];
             write!(output, "\n  {w},").unwrap();
         }
         writeln!(output, "\n]){closing_str}").unwrap();
@@ -369,17 +365,17 @@ impl Tuner {
 
     fn write_passer_blocker_prt(&self, output: &mut BufWriter<File>) {
         write!(output, "pub const PASSER_BLOCKERS_PRT: Prt = ").unwrap();
-        self.write_prt(output, ";\n", true, PasserBlocker::index);
+        self.write_prt(output, ";\n", self.weights.linear.as_slice(), PasserBlocker::index);
     }
 
     fn write_isolated_prt(&self, output: &mut BufWriter<File>) {
         write!(output, "pub const ISOLATED_PAWNS_PRT: Prt = ").unwrap();
-        self.write_prt(output, ";\n", true, IsolatedPawns::index);
+        self.write_prt(output, ";\n", self.weights.linear.as_slice(), IsolatedPawns::index);
     }
 
     fn write_phalanx_prt(&self, output: &mut BufWriter<File>) {
         write!(output, "pub const PHALANX_PAWNS_PRT: Prt = ").unwrap();
-        self.write_prt(output, ";\n", true, PhalanxPawns::index);
+        self.write_prt(output, ";\n", self.weights.linear.as_slice(), PhalanxPawns::index);
     }
 
     fn write_bishop_pair(&self, output: &mut BufWriter<File>) {
@@ -498,7 +494,7 @@ impl Tuner {
         writeln!(output, "\n];",).unwrap();
 
         write!(output, "\npub const ENEMY_KING_RANK: Prt = ").unwrap();
-        self.write_prt(output, ";\n", false, EnemyKingRank::index);
+        self.write_prt(output, ";\n", self.weights.safety.as_slice(), EnemyKingRank::index);
     }
 
     fn create_output_file(&self) {
