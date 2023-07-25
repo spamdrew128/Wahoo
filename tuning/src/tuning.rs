@@ -17,27 +17,8 @@ use engine::{
 use std::{
     fs::{read_to_string, File},
     io::BufWriter,
-    io::Write, ops::AddAssign,
+    io::Write,
 };
-
-struct TunerVal(f64, f64);
-
-impl TunerVal {
-    const fn new(mg: f64, eg: f64) -> Self {
-        Self(mg, eg)
-    }
-
-    pub fn mult(self, multiplier: i8) -> Self {
-        let m = f64::from(multiplier);
-        Self(self.0 * m, self.1 * m)
-    }
-}
-
-impl AddAssign for TunerVal {
-    fn add_assign(&mut self, rhs: Self) {
-        *self = Self(self.0 + rhs.0, self.1 + rhs.1);
-    }
-}
 
 struct TunerStruct {
     linear: [[f64; LINEAR_TRACE_LEN]; NUM_PHASES],
