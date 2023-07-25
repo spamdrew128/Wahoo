@@ -19,7 +19,7 @@ use std::{
     fs::{read_to_string, File},
     io::BufWriter,
     io::Write,
-    ops::{Add, AddAssign, Div, Mul, Sub},
+    ops::{Add, AddAssign, Div, Mul, Sub, Neg, SubAssign},
 };
 
 #[derive(Copy, Clone)]
@@ -57,10 +57,24 @@ impl Display for S {
     }
 }
 
+impl Div for S {
+    type Output = S;
+    fn div(self, rhs: Self) -> Self::Output {
+        Self(self.0 / rhs.0, self.1 / rhs.0)
+    }
+}
+
 impl Div<f64> for S {
     type Output = S;
     fn div(self, rhs: f64) -> Self::Output {
         Self(self.0 / rhs, self.1 / rhs)
+    }
+}
+
+impl Mul for S {
+    type Output = S;
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self(self.0 * rhs.0, self.1 * rhs.1)
     }
 }
 
@@ -71,23 +85,10 @@ impl Mul<S> for f64 {
     }
 }
 
-impl Mul<S> for i8 {
+impl Mul<f64> for S {
     type Output = S;
-    fn mul(self, rhs: S) -> Self::Output {
-        S(f64::from(self) * rhs.0, f64::from(self) * rhs.1)
-    }
-}
-
-impl Mul<S> for S {
-    type Output = S;
-    fn mul(self, rhs: Self) -> Self::Output {
-        Self(self.0 * rhs.0, self.1 * rhs.1)
-    }
-}
-
-impl AddAssign for S {
-    fn add_assign(&mut self, rhs: Self) {
-        *self = Self(self.0 + rhs.0, self.1 + rhs.1);
+    fn mul(self, rhs: f64) -> Self::Output {
+        S(self.0 * rhs, self.1 * rhs)
     }
 }
 
@@ -98,11 +99,36 @@ impl Add for S {
     }
 }
 
+impl Add<S> for f64 {
+    type Output = S;
+    fn add(self, rhs: S) -> Self::Output {
+        S(self + rhs.0, self + rhs.1)
+    }
+}
+
+impl AddAssign for S {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = Self(self.0 + rhs.0, self.1 + rhs.1);
+    }
+}
+
 impl Sub for S {
     type Output = Self;
-
     fn sub(self, rhs: Self) -> Self {
         Self(self.0 - rhs.0, self.1 - rhs.1)
+    }
+}
+
+impl SubAssign for S {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = Self(self.0 - rhs.0, self.1 - rhs.1);
+    }
+}
+
+impl Neg for S {
+    type Output = Self;
+    fn neg(self) -> Self {
+        Self(-self.0, -self.1)
     }
 }
 
@@ -169,7 +195,7 @@ impl Entry {
         let mut attack_power = [S(0.0, 0.0), S(0.0, 0.0)];
         for color in Color::LIST {
             for feature in &self.safety_feature_vec[color.as_index()] {
-                attack_power[color.as_index()] += feature.value * weights.safety[feature.index];
+                attack_power[color.as_index()] += f64::from(feature.value) * weights.safety[feature.index];
             }
         }
 
@@ -183,7 +209,7 @@ impl Entry {
         let mut score = S(0.0, 0.0);
 
         for feature in &self.feature_vec {
-            score += feature.value * weights.linear[feature.index];
+            score += f64::from(feature.value) * weights.linear[feature.index];
         }
 
         let (w_ap, b_ap) = self.inner_safety_score(weights);
@@ -287,18 +313,21 @@ impl Tuner {
         let sigmoid = Self::sigmoid(eval);
         let sigmoid_prime = Self::sigmoid_prime(sigmoid);
 
-        let coeffs: [f64; NUM_PHASES] = [
+        let coeff = S(
             ((r - sigmoid) * sigmoid_prime * entry.mg_phase()) / f64::from(PHASE_MAX),
-            ((r - sigmoid) * sigmoid_prime * entry.eg_phase()) / f64::from(PHASE_MAX),
-        ];
+            ((r - sigmoid) * sigmoid_prime * entry.eg_phase()) / f64::from(PHASE_MAX)
+        );
 
         for phase in PHASES {
             for feature in &entry.feature_vec {
-                gradient.linear[phase][feature.index] += coeffs[phase] * f64::from(feature.value);
+                gradient.linear[feature.index] += coeff * f64::from(feature.value);
             }
 
-            let (x_w, x_b) = entry.inner_safety_score(phase, weights);
-            let (x_w_prime, x_b_prime) = (Self::safety_prime(x_w), Self::safety_prime(x_b));
+            let (x_w, x_b) = entry.inner_safety_score(weights);
+            let (x_w_prime, x_b_prime) = (
+                S(Self::safety_prime(x_w.mg()), Self::safety_prime(x_w.eg())),
+                S(Self::safety_prime(x_b.mg()), Self::safety_prime(x_b.eg())),
+            );
             for color in Color::LIST {
                 let x_prime = if color == Color::White {
                     x_w_prime
@@ -307,8 +336,8 @@ impl Tuner {
                 };
 
                 for feature in &entry.safety_feature_vec[color.as_index()] {
-                    gradient.safety[phase][feature.index] +=
-                        coeffs[phase] * x_prime * f64::from(feature.value);
+                    gradient.safety[feature.index] +=
+                        coeff * x_prime * f64::from(feature.value);
                 }
             }
         }
@@ -326,26 +355,26 @@ impl Tuner {
         const BETA2: f64 = 0.999;
         const EPSILON: f64 = 1e-8;
 
-        for i in 0..self.gradient.linear[0].len() {
+        for i in 0..self.gradient.linear.len() {
             for phase in PHASES {
                 // we left off k eariler, so we add it back here
-                let grad_component: f64 = -2.0 * Self::K * self.gradient.linear[phase][i] / (self.entries.len() as f64);
+                let grad_component: S = -2.0 * Self::K * self.gradient.linear[i] / (self.entries.len() as f64);
 
-                self.momentum.linear[phase][i] = BETA1 * self.momentum.linear[phase][i] + (1.0 - BETA1) * grad_component;
-                self.velocity.linear[phase][i] = BETA2 * self.velocity.linear[phase][i] + (1.0 - BETA2) * (grad_component * grad_component);
+                self.momentum.linear[i] = BETA1 * self.momentum.linear[i] + (1.0 - BETA1) * grad_component;
+                self.velocity.linear[i] = BETA2 * self.velocity.linear[i] + (1.0 - BETA2) * (grad_component * grad_component);
 
-                self.weights.linear[phase][i] -= (self.momentum.linear[phase][i] / (EPSILON + self.velocity.linear[phase][i].sqrt())) * Self::LEARN_RATE;
+                self.weights.linear[i] -= (self.momentum.linear[i] / (EPSILON + self.velocity.linear[i].sqrt())) * Self::LEARN_RATE;
             }
         }
 
-        for i in 0..self.gradient.safety[0].len() {
+        for i in 0..self.gradient.safety.len() {
             for phase in PHASES {
-                let grad_component: f64 = -2.0 * Self::K * self.gradient.safety[phase][i] / (self.entries.len() as f64);
+                let grad_component: S = -2.0 * Self::K * self.gradient.safety[i] / (self.entries.len() as f64);
 
-                self.momentum.safety[phase][i] = BETA1 * self.momentum.safety[phase][i] + (1.0 - BETA1) * grad_component;
-                self.velocity.safety[phase][i] = BETA2 * self.velocity.safety[phase][i] + (1.0 - BETA2) * (grad_component * grad_component);
+                self.momentum.safety[i] = BETA1 * self.momentum.safety[i] + (1.0 - BETA1) * grad_component;
+                self.velocity.safety[i] = BETA2 * self.velocity.safety[i] + (1.0 - BETA2) * (grad_component * grad_component);
 
-                self.weights.safety[phase][i] -= (self.momentum.safety[phase][i] / (EPSILON + self.velocity.safety[phase][i].sqrt())) * Self::LEARN_RATE;
+                self.weights.safety[i] -= (self.momentum.safety[i] / (EPSILON + self.velocity.safety[i].sqrt())) * Self::LEARN_RATE;
             }
         }
     }
