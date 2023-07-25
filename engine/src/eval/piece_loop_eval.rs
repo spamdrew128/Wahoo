@@ -3,14 +3,16 @@ use crate::{
     board::attacks,
     board::board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
     eval::eval_constants::{
-        ATTACKS, BIAS, BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT,
-        BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK, DEFENSES, ENEMY_VIRT_MOBILITY,
-        KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN,
-        KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN,
-        PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY,
-        ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
+        ATTACKS, BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT,
+        BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK, DEFENSES, ENEMY_KING_RANK,
+        ENEMY_VIRT_MOBILITY, KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP,
+        KNIGHT_THREAT_ON_QUEEN, KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP,
+        PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY,
+        QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
     },
-    eval::trace::{Attacks, ForwardMobility, Mobility, Threats, Trace},
+    eval::trace::{
+        color_adjust, Attacks, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace,
+    },
     eval::{
         evaluation::ScoreTuple,
         trace::{Defenses, EnemyVirtMobility},
@@ -318,8 +320,14 @@ pub fn one_sided_eval<const TRACE: bool>(
     let enemy_virt_mobility = enemy_virtual_mobility(board, color);
     attack_power[color.as_index()] += ENEMY_VIRT_MOBILITY[enemy_virt_mobility];
 
+    let opp_king_sq = board.color_king_sq(color.flip());
+    attack_power[color.as_index()] += ENEMY_KING_RANK.access(color, opp_king_sq);
+
     if TRACE {
         trace_safety_update!(t, EnemyVirtMobility, (enemy_virt_mobility), color, 1);
+
+        let rank = color_adjust(opp_king_sq, color).rank();
+        trace_safety_update!(t, EnemyKingRank, (rank), color, 1);
     }
 
     let knights = board.piece_bb(Piece::KNIGHT, color);
@@ -342,7 +350,7 @@ pub fn mobility_threats_safety<const TRACE: bool>(
     them: Color,
     t: &mut Trace,
 ) -> ScoreTuple {
-    let mut attack_power = [BIAS, BIAS];
+    let mut attack_power = [ScoreTuple::new(0, 0), ScoreTuple::new(0, 0)];
 
     let mobility_and_threats = one_sided_eval::<TRACE>(board, &mut attack_power, us, t)
         - one_sided_eval::<TRACE>(board, &mut attack_power, them, t);

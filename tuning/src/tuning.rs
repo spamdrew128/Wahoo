@@ -6,8 +6,8 @@ use engine::{
         phase, trace_of_position, EvalScore, Phase, EG, MG, NUM_PHASES, PHASES, PHASE_MAX,
     },
     eval::trace::{
-        BishopPair, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer, PasserBlocker,
-        PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN,
+        BishopPair, EnemyKingRank, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer,
+        PasserBlocker, PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN,
     },
     eval::{
         evaluation::SAFETY_LIMIT,
@@ -130,7 +130,7 @@ pub struct Tuner {
 
 impl Tuner {
     const K: f64 = 0.006634;
-    const CONVERGENCE_DELTA: f64 = 2e-7;
+    const CONVERGENCE_DELTA: f64 = 7e-7;
     const CONVERGENCE_CHECK_FREQ: u32 = 50;
     const MAX_EPOCHS: u32 = 20000;
     const LEARN_RATE: f64 = 0.12;
@@ -343,19 +343,29 @@ impl Tuner {
         writeln!(output, "\n]){closing_str}").unwrap();
     }
 
-    fn write_prt<F>(&self, output: &mut BufWriter<File>, closing_str: &str, index_fn: F)
-    where
+    fn write_prt<F>(
+        &self,
+        output: &mut BufWriter<File>,
+        closing_str: &str,
+        is_linear: bool,
+        index_fn: F,
+    ) where
         F: Fn(u8) -> usize,
     {
         write!(output, "Prt::new([").unwrap();
         for i in 0..NUM_RANKS {
-            write!(
-                output,
-                "\n  s({}, {}),",
-                self.weights.linear[MG][index_fn(i)] as EvalScore,
-                self.weights.linear[EG][index_fn(i)] as EvalScore,
-            )
-            .unwrap();
+            let (mg, eg) = if is_linear {
+                (
+                    self.weights.linear[MG][index_fn(i)] as EvalScore,
+                    self.weights.linear[EG][index_fn(i)] as EvalScore,
+                )
+            } else {
+                (
+                    self.weights.safety[MG][index_fn(i)] as EvalScore,
+                    self.weights.safety[EG][index_fn(i)] as EvalScore,
+                )
+            };
+            write!(output, "\n  s({}, {}),", mg, eg).unwrap();
         }
         writeln!(output, "\n]){closing_str}").unwrap();
     }
@@ -382,17 +392,17 @@ impl Tuner {
 
     fn write_passer_blocker_prt(&self, output: &mut BufWriter<File>) {
         write!(output, "pub const PASSER_BLOCKERS_PRT: Prt = ").unwrap();
-        self.write_prt(output, ";\n", PasserBlocker::index);
+        self.write_prt(output, ";\n", true, PasserBlocker::index);
     }
 
     fn write_isolated_prt(&self, output: &mut BufWriter<File>) {
         write!(output, "pub const ISOLATED_PAWNS_PRT: Prt = ").unwrap();
-        self.write_prt(output, ";\n", IsolatedPawns::index);
+        self.write_prt(output, ";\n", true, IsolatedPawns::index);
     }
 
     fn write_phalanx_prt(&self, output: &mut BufWriter<File>) {
         write!(output, "pub const PHALANX_PAWNS_PRT: Prt = ").unwrap();
-        self.write_prt(output, ";\n", PhalanxPawns::index);
+        self.write_prt(output, ";\n", true, PhalanxPawns::index);
     }
 
     fn write_bishop_pair(&self, output: &mut BufWriter<File>) {
@@ -543,7 +553,8 @@ impl Tuner {
         }
         writeln!(output, "\n];",).unwrap();
 
-        writeln!(output, "\npub const BIAS: ScoreTuple = s(0, 0);",).unwrap();
+        write!(output, "\npub const ENEMY_KING_RANK: Prt = ").unwrap();
+        self.write_prt(output, ";\n", false, EnemyKingRank::index);
     }
 
     fn create_output_file(&self) {
