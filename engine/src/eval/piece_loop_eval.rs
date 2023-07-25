@@ -217,8 +217,8 @@ impl LoopEvaluator {
 
         let kz_attacks = self.enemy_king_zone.intersection(moves).popcount() as i32;
         let kz_defenses = self.friendly_king_zone.intersection(moves).popcount() as i32;
-        attack_power[color.as_index()] += ATTACKS[piece.as_index()].mult(kz_attacks);
-        attack_power[opp_color.as_index()] += DEFENSES[piece.as_index()].mult(kz_defenses);
+        attack_power[color.as_index()] += ATTACKS[piece.as_index()][self.enemy_virt_mob].mult(kz_attacks);
+        attack_power[opp_color.as_index()] += DEFENSES[piece.as_index()][self.own_virt_mob].mult(kz_defenses);
 
         match PIECE {
             ConstPiece::KNIGHT => {
@@ -269,8 +269,9 @@ impl LoopEvaluator {
         }
 
         if TRACE {
-            trace_safety_update!(t, Attacks, (piece), self.color, kz_attacks);
-            trace_safety_update!(t, Defenses, (piece), self.color.flip(), kz_defenses);
+            let (own_vm, enemy_vm) = (self.own_virt_mob, self.enemy_virt_mob);
+            trace_safety_update!(t, Attacks, (piece, enemy_vm), self.color, kz_attacks);
+            trace_safety_update!(t, Defenses, (piece, own_vm), self.color.flip(), kz_defenses);
 
             // we fix 0 mobility at 0 for eval constants readability
             if mobility > 0 {
@@ -291,12 +292,13 @@ impl LoopEvaluator {
         let pawn_attacks = attacks::pawn_setwise(pawns, color);
         let kz_attacks = self.enemy_king_zone.intersection(pawn_attacks).popcount() as i32;
         let kz_defenses = self.friendly_king_zone.intersection(pawn_attacks).popcount() as i32;
-        attack_power[color.as_index()] += ATTACKS[piece.as_index()].mult(kz_attacks);
-        attack_power[color.flip().as_index()] += DEFENSES[piece.as_index()].mult(kz_defenses);
+        attack_power[color.as_index()] += ATTACKS[piece.as_index()][self.enemy_virt_mob].mult(kz_attacks);
+        attack_power[color.flip().as_index()] += DEFENSES[piece.as_index()][self.own_virt_mob].mult(kz_defenses);
 
         if TRACE {
-            trace_safety_update!(t, Attacks, (piece), self.color, kz_attacks);
-            trace_safety_update!(t, Defenses, (piece), self.color.flip(), kz_defenses);
+            let (own_vm, enemy_vm) = (self.own_virt_mob, self.enemy_virt_mob);
+            trace_safety_update!(t, Attacks, (piece, enemy_vm), self.color, kz_attacks);
+            trace_safety_update!(t, Defenses, (piece, own_vm), self.color.flip(), kz_defenses);
 
             trace_threat_update!(t, PAWN_THREAT_ON_KNIGHT, self.color, pawn_attacks, self.enemy_knights);
             trace_threat_update!(t, PAWN_THREAT_ON_BISHOP, self.color, pawn_attacks, self.enemy_bishops);
@@ -390,7 +392,7 @@ mod tests {
         eval::{
             evaluation::trace_of_position,
             piece_loop_eval::{forward_mobility, virtual_mobility},
-            trace::{Attacks, Defenses, EnemyVirtMobility, SAFETY_TRACE_LEN},
+            trace::{Attacks, Defenses, SAFETY_TRACE_LEN},
         },
     };
 
@@ -420,23 +422,23 @@ mod tests {
         let actual = trace_of_position(&board);
         let (mut w, mut b) = ([0; SAFETY_TRACE_LEN], [0; SAFETY_TRACE_LEN]);
 
-        w[EnemyVirtMobility::index(5)] += 1;
-        b[EnemyVirtMobility::index(2)] += 1;
+        let w_virt_mob = 2;
+        let b_virt_mob = 5;
 
-        w[Attacks::index(Piece::BISHOP)] += 3;
-        w[Attacks::index(Piece::PAWN)] += 1;
+        w[Attacks::index(Piece::BISHOP, b_virt_mob)] += 3;
+        w[Attacks::index(Piece::PAWN, b_virt_mob)] += 1;
 
-        b[Attacks::index(Piece::BISHOP)] += 1;
-        b[Attacks::index(Piece::PAWN)] += 2;
-        b[Attacks::index(Piece::QUEEN)] += 2;
+        b[Attacks::index(Piece::BISHOP, w_virt_mob)] += 1;
+        b[Attacks::index(Piece::PAWN, w_virt_mob)] += 2;
+        b[Attacks::index(Piece::QUEEN, w_virt_mob)] += 2;
 
-        b[Defenses::index(Piece::BISHOP)] += 3;
-        b[Defenses::index(Piece::PAWN)] += 3;
-        b[Defenses::index(Piece::KNIGHT)] += 2;
-        b[Defenses::index(Piece::ROOK)] += 4;
+        b[Defenses::index(Piece::BISHOP, b_virt_mob)] += 3;
+        b[Defenses::index(Piece::PAWN, b_virt_mob)] += 3;
+        b[Defenses::index(Piece::KNIGHT, b_virt_mob)] += 2;
+        b[Defenses::index(Piece::ROOK, b_virt_mob)] += 4;
 
-        w[Defenses::index(Piece::ROOK)] += 1;
-        w[Defenses::index(Piece::PAWN)] += 3;
+        w[Defenses::index(Piece::ROOK, w_virt_mob)] += 1;
+        w[Defenses::index(Piece::PAWN, w_virt_mob)] += 3;
 
         assert_eq!([w, b], actual.safety);
     }

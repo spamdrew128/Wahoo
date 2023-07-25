@@ -17,7 +17,7 @@ pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
     + ForwardMobility::LEN;
 
 pub const SAFETY_TRACE_LEN: usize =
-    EnemyVirtMobility::LEN + Attacks::LEN + Defenses::LEN + EnemyKingRank::LEN;
+    Attacks::LEN + Defenses::LEN + EnemyKingRank::LEN;
 
 pub struct Trace {
     pub linear: [i8; LINEAR_TRACE_LEN],
@@ -227,8 +227,8 @@ impl Defenses {
     pub const START: usize = Attacks::START + Attacks::LEN;
     const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 1) as usize);
 
-    pub const fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
-        Self::START + MoveCounts::QUEEN * piece.as_index() + enemy_virt_mobility
+    pub const fn index(piece: Piece, virt_mobility: usize) -> usize {
+        Self::START + MoveCounts::QUEEN * piece.as_index() + virt_mobility
     }
 }
 
