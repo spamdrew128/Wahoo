@@ -99,7 +99,7 @@ impl AddAssign for S {
 
 impl Sub for S {
     type Output = Self;
-    fn sub(self, rhs: Self) -> Self {
+    fn sub(self, rhs: Self) -> Self::Output {
         Self(self.0 - rhs.0, self.1 - rhs.1)
     }
 }
@@ -112,7 +112,7 @@ impl SubAssign for S {
 
 impl Neg for S {
     type Output = Self;
-    fn neg(self) -> Self {
+    fn neg(self) -> Self::Output {
         Self(-self.0, -self.1)
     }
 }

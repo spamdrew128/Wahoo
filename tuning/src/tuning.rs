@@ -20,6 +20,7 @@ use std::{
     thread,
 };
 
+#[derive(Clone)]
 struct TunerStruct {
     linear: [S; LINEAR_TRACE_LEN],
     safety: [S; SAFETY_TRACE_LEN],
@@ -31,6 +32,17 @@ impl TunerStruct {
             linear: [S::new(0.0, 0.0); LINEAR_TRACE_LEN],
             safety: [S::new(0.0, 0.0); SAFETY_TRACE_LEN],
         }
+    }
+
+    fn add(&self, rhs: &Self) -> Self {
+        let mut result = self.clone();
+        for (r, &a) in result.linear.iter_mut().zip(rhs.linear.iter()) {
+            *r += a;
+        }
+        for (r, &a) in result.safety.iter_mut().zip(rhs.safety.iter()) {
+            *r += a;
+        }
+        result
     }
 }
 
@@ -202,10 +214,6 @@ impl Tuner {
         println!("Loaded file: begin tuning...\n");
     }
 
-    pub fn reset_gradient(&mut self) {
-        self.gradient = TunerStruct::new();
-    }
-
     fn sigmoid(e: f64) -> f64 {
         1.0 / (1.0 + (f64::exp(-Self::K * e)))
     }
@@ -261,9 +269,28 @@ impl Tuner {
     }
 
     fn update_gradient(&mut self) {
-        for entry in &self.entries {
-            Self::update_entry_gradient_component(entry, &mut self.gradient, &self.weights);
-        }
+        let size = self.entries.len() / self.threads;
+        self.gradient = thread::scope(|s| {
+            self.entries
+                .chunks(size)
+                .map(|chunk| {
+                    s.spawn(|| {
+                        let mut chunk_grad = TunerStruct::new();
+                        chunk.iter().for_each(|entry| {
+                            Self::update_entry_gradient_component(
+                                entry,
+                                &mut chunk_grad,
+                                &self.weights,
+                            );
+                        });
+                        chunk_grad
+                    })
+                })
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|p| p.join().unwrap())
+                .fold(TunerStruct::new(), |a, b| a.add(&b))
+        });
     }
 
     #[rustfmt::skip]
@@ -295,7 +322,6 @@ impl Tuner {
     pub fn train(&mut self) {
         let mut prev_mse = self.mse();
         for epoch in 0..Self::MAX_EPOCHS {
-            self.reset_gradient();
             self.update_gradient();
             self.update_weights();
 
