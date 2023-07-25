@@ -4,13 +4,16 @@ use engine::{
         Board, Color, Piece, Square, NUM_COLORS, NUM_RANKS, NUM_SQUARES,
     },
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
-    eval::{trace::{
-        BishopPair, EnemyKingRank, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer,
-        PasserBlocker, PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN,
-    }, piece_loop_eval::MoveCounts},
     eval::{
         evaluation::SAFETY_LIMIT,
         trace::{Attacks, Defenses, SAFETY_TRACE_LEN},
+    },
+    eval::{
+        piece_loop_eval::MoveCounts,
+        trace::{
+            BishopPair, EnemyKingRank, ForwardMobility, IsolatedPawns, MaterialPst, Mobility,
+            Passer, PasserBlocker, PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN,
+        },
     },
 };
 use std::{
@@ -525,18 +528,19 @@ impl Tuner {
         )
         .unwrap();
         for &piece in Piece::LIST.iter().take(5) {
-            writeln!(output, "// {} {} values", piece.as_string().unwrap(), name.to_lowercase()).unwrap();
+            writeln!(
+                output,
+                "// {} {} values",
+                piece.as_string().unwrap(),
+                name.to_lowercase()
+            )
+            .unwrap();
             write!(output, "[\n  ").unwrap();
 
             for i in 0..MoveCounts::QUEEN {
                 let index = index_fn(piece, i);
                 let w = self.weights.safety[index];
-                write!(
-                    output,
-                    "{w}, ",
-                    
-                )
-                .unwrap();
+                write!(output, "{w}, ",).unwrap();
             }
             writeln!(output, "\n],").unwrap();
         }
@@ -547,7 +551,7 @@ impl Tuner {
         self.virt_mobility_index_writer(output, "ATTACKS", Attacks::index);
         self.virt_mobility_index_writer(output, "DEFENSES", Defenses::index);
 
-        write!(output, "\npub const ENEMY_KING_RANK: Prt = ").unwrap();
+        write!(output, "pub const ENEMY_KING_RANK: Prt = ").unwrap();
         self.write_prt(
             output,
             ";\n",

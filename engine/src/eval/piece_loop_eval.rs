@@ -392,7 +392,7 @@ mod tests {
         eval::{
             evaluation::trace_of_position,
             piece_loop_eval::{forward_mobility, virtual_mobility},
-            trace::{Attacks, Defenses, SAFETY_TRACE_LEN, EnemyKingRank},
+            trace::{Attacks, Defenses, EnemyKingRank, SAFETY_TRACE_LEN},
         },
     };
 
@@ -447,7 +447,12 @@ mod tests {
             let actual = actual.safety[color.as_index()];
             let expected = [w, b][color.as_index()];
             for (i, (ac, ex)) in actual.iter().zip(expected.iter()).enumerate() {
-                assert_eq!(ac, ex, "Expected {ex}, found {ac} at index {i} and color {}", color.as_index());
+                assert_eq!(
+                    ac,
+                    ex,
+                    "Expected {ex}, found {ac} at index {i} and color {}",
+                    color.as_index()
+                );
             }
         }
     }
