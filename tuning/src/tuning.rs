@@ -530,7 +530,7 @@ impl Tuner {
         for &piece in Piece::LIST.iter().take(5) {
             writeln!(
                 output,
-                "// {} {} values",
+                "// {} {}",
                 piece.as_string().unwrap(),
                 name.to_lowercase()
             )
