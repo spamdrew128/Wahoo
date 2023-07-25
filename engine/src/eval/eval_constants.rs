@@ -165,10 +165,6 @@ pub const ROOK_THREAT_ON_QUEEN: ScoreTuple = s(111, -7);
 pub const TEMPO_BONUS: ScoreTuple = s(40, 29);
 
 // KING SAFETY FEATURES
-pub const ENEMY_VIRT_MOBILITY: [ScoreTuple; 28] = [
-  s(-45, -29), s(-50, 2), s(-14, 73), s(2, 1), s(15, -53), s(18, 27), s(21, 62), s(33, 76), s(39, -30), s(45, 46), s(50, 16), s(53, 25), s(60, 17), s(58, 37), s(63, 36), s(64, 39), s(64, 42), s(65, 48), s(60, 55), s(57, 61), s(58, 62), s(59, 63), s(58, 68), s(44, 73), s(50, 78), s(35, 78), s(46, 79), s(-28, 87), 
-];
-
 pub const ATTACKS: [ScoreTuple; (NUM_PIECES - 1) as usize] = [
   s(16, -22), s(14, -14), s(8, -4), s(14, -9), s(3, -28), 
 ];
