@@ -125,6 +125,24 @@ pub struct Tuner {
     velocity: TunerStruct,
 }
 
+macro_rules! update_weights {
+    ($self:ident, $type:ident) => {{
+        const BETA1: f64 = 0.9;
+        const BETA2: f64 = 0.999;
+        const EPSILON: f64 = 1e-8;
+
+        for i in 0..$self.gradient.$type.len() {
+            // we left off k eariler, so we add it back here
+            let grad_component: S = -2.0 * Tuner::K * $self.gradient.$type[i] / ($self.entries.len() as f64);
+
+            $self.momentum.$type[i] = BETA1 * $self.momentum.$type[i] + (1.0 - BETA1) * grad_component;
+            $self.velocity.$type[i] = BETA2 * $self.velocity.$type[i] + (1.0 - BETA2) * (grad_component * grad_component);
+
+            $self.weights.$type[i] -= ($self.momentum.$type[i] / (EPSILON + $self.velocity.$type[i].sqrt())) * Self::LEARN_RATE;
+        }
+    }};
+}
+
 impl Tuner {
     const K: f64 = 0.006634;
     const CONVERGENCE_DELTA: f64 = 7e-7;
@@ -236,28 +254,8 @@ impl Tuner {
 
     #[rustfmt::skip]
     fn update_weights(&mut self) {
-        const BETA1: f64 = 0.9;
-        const BETA2: f64 = 0.999;
-        const EPSILON: f64 = 1e-8;
-
-        for i in 0..self.gradient.linear.len() {
-            // we left off k eariler, so we add it back here
-            let grad_component: S = -2.0 * Self::K * self.gradient.linear[i] / (self.entries.len() as f64);
-
-            self.momentum.linear[i] = BETA1 * self.momentum.linear[i] + (1.0 - BETA1) * grad_component;
-            self.velocity.linear[i] = BETA2 * self.velocity.linear[i] + (1.0 - BETA2) * (grad_component * grad_component);
-
-            self.weights.linear[i] -= (self.momentum.linear[i] / (EPSILON + self.velocity.linear[i].sqrt())) * Self::LEARN_RATE;
-        }
-
-        for i in 0..self.gradient.safety.len() {
-            let grad_component: S = -2.0 * Self::K * self.gradient.safety[i] / (self.entries.len() as f64);
-
-            self.momentum.safety[i] = BETA1 * self.momentum.safety[i] + (1.0 - BETA1) * grad_component;
-            self.velocity.safety[i] = BETA2 * self.velocity.safety[i] + (1.0 - BETA2) * (grad_component * grad_component);
-
-            self.weights.safety[i] -= (self.momentum.safety[i] / (EPSILON + self.velocity.safety[i].sqrt())) * Self::LEARN_RATE;
-        }
+        update_weights!(self, linear);
+        update_weights!(self, safety);
     }
 
     fn mse(&self) -> f64 {
