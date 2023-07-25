@@ -212,33 +212,23 @@ impl ForwardMobility {
 }
 
 // SAFETY STUFF
-pub struct EnemyVirtMobility;
-impl EnemyVirtMobility {
-    pub const START: usize = 0;
-    pub const LEN: usize = MoveCounts::QUEEN;
-
-    pub const fn index(enemy_virt_mobility: usize) -> usize {
-        Self::START + enemy_virt_mobility
-    }
-}
-
 pub struct Attacks;
 impl Attacks {
-    pub const START: usize = EnemyVirtMobility::START + EnemyVirtMobility::LEN;
-    pub const LEN: usize = (NUM_PIECES - 1) as usize;
+    pub const START: usize = 0;
+    const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 1) as usize);
 
-    pub const fn index(piece: Piece) -> usize {
-        Self::START + piece.as_index()
+    pub const fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
+        Self::START + MoveCounts::QUEEN * piece.as_index() + enemy_virt_mobility
     }
 }
 
 pub struct Defenses;
 impl Defenses {
     pub const START: usize = Attacks::START + Attacks::LEN;
-    pub const LEN: usize = (NUM_PIECES - 1) as usize;
+    const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 1) as usize);
 
-    pub const fn index(piece: Piece) -> usize {
-        Self::START + piece.as_index()
+    pub const fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
+        Self::START + MoveCounts::QUEEN * piece.as_index() + enemy_virt_mobility
     }
 }
 
