@@ -108,6 +108,12 @@ impl Entry {
         (score.mg() * self.mg_phase() + score.eg() * self.eg_phase()) / f64::from(PHASE_MAX)
     }
 
+    fn error(&self, weights: &TunerStruct) -> f64 {
+        let eval = self.evaluation(weights);
+        let error = self.game_result - Tuner::sigmoid(eval);
+        error * error
+    }
+
     fn mg_phase(&self) -> f64 {
         f64::from(self.phase)
     }
@@ -261,9 +267,7 @@ impl Tuner {
     fn mse(&self) -> f64 {
         let mut total_error = 0.0;
         for entry in &self.entries {
-            let eval = entry.evaluation(&self.weights);
-            let error = entry.game_result - Self::sigmoid(eval);
-            total_error += error * error;
+            total_error += entry.error(&self.weights);
         }
 
         total_error / (self.entries.len() as f64)
