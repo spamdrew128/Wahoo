@@ -20,6 +20,27 @@ use std::{
     io::Write,
 };
 
+#[derive(Copy, Clone)]
+struct S(f64, f64);
+
+impl S {
+    fn mg(self) -> f64 {
+        self.0
+    }
+
+    fn eg(self) -> f64 {
+        self.1
+    }
+
+    fn square(self) -> Self {
+        Self(self.0.powi(2), self.1.powi(2))
+    }
+
+    fn sqrt(self) -> Self {
+        Self(self.0.sqrt(), self.1.sqrt())
+    }
+}
+
 struct TunerStruct {
     linear: [[f64; LINEAR_TRACE_LEN]; NUM_PHASES],
     safety: [[f64; SAFETY_TRACE_LEN]; NUM_PHASES],
