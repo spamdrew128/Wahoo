@@ -62,10 +62,17 @@ impl Div<f64> for S {
     }
 }
 
-impl Mul<f64> for S {
+impl Mul<S> for f64 {
     type Output = S;
-    fn mul(self, rhs: f64) -> Self::Output {
-        Self(self.0 * rhs, self.1 * rhs)
+    fn mul(self, rhs: S) -> Self::Output {
+        S(self * rhs.0, self * rhs.1)
+    }
+}
+
+impl Mul<S> for i8 {
+    type Output = S;
+    fn mul(self, rhs: S) -> Self::Output {
+        S(f64::from(self) * rhs.0, f64::from(self) * rhs.1)
     }
 }
 
@@ -98,15 +105,15 @@ impl Sub for S {
 }
 
 struct TunerStruct {
-    linear: [[f64; LINEAR_TRACE_LEN]; NUM_PHASES],
-    safety: [[f64; SAFETY_TRACE_LEN]; NUM_PHASES],
+    linear: [S; LINEAR_TRACE_LEN],
+    safety: [S; SAFETY_TRACE_LEN],
 }
 
 impl TunerStruct {
     const fn new() -> Self {
         Self {
-            linear: [[0.0; LINEAR_TRACE_LEN]; NUM_PHASES],
-            safety: [[0.0; SAFETY_TRACE_LEN]; NUM_PHASES],
+            linear: [S(0.0, 0.0); LINEAR_TRACE_LEN],
+            safety: [S(0.0, 0.0); SAFETY_TRACE_LEN],
         }
     }
 }
@@ -156,12 +163,12 @@ impl Entry {
         entry
     }
 
-    fn inner_safety_score(&self, phase: usize, weights: &TunerStruct) -> (f64, f64) {
-        let mut attack_power = [0.0, 0.0];
+    fn inner_safety_score(&self, phase: usize, weights: &TunerStruct) -> (S, S) {
+        let mut attack_power = [S(0.0, 0.0), S(0.0, 0.0)];
         for color in Color::LIST {
             for feature in &self.safety_feature_vec[color.as_index()] {
                 attack_power[color.as_index()] +=
-                    f64::from(feature.value) * weights.safety[phase][feature.index];
+                    feature.value * weights.safety[feature.index];
             }
         }
 
