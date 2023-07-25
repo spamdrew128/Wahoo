@@ -17,6 +17,7 @@ use std::{
     fs::{read_to_string, File},
     io::BufWriter,
     io::Write,
+    thread,
 };
 
 struct TunerStruct {
@@ -140,12 +141,17 @@ macro_rules! update_weights {
 
         for i in 0..$self.gradient.$type.len() {
             // we left off k eariler, so we add it back here
-            let grad_component: S = -2.0 * Tuner::K * $self.gradient.$type[i] / ($self.entries.len() as f64);
+            let grad_component: S =
+                -2.0 * Tuner::K * $self.gradient.$type[i] / ($self.entries.len() as f64);
 
-            $self.momentum.$type[i] = BETA1 * $self.momentum.$type[i] + (1.0 - BETA1) * grad_component;
-            $self.velocity.$type[i] = BETA2 * $self.velocity.$type[i] + (1.0 - BETA2) * (grad_component * grad_component);
+            $self.momentum.$type[i] =
+                BETA1 * $self.momentum.$type[i] + (1.0 - BETA1) * grad_component;
+            $self.velocity.$type[i] =
+                BETA2 * $self.velocity.$type[i] + (1.0 - BETA2) * (grad_component * grad_component);
 
-            $self.weights.$type[i] -= ($self.momentum.$type[i] / (EPSILON + $self.velocity.$type[i].sqrt())) * Self::LEARN_RATE;
+            $self.weights.$type[i] -= ($self.momentum.$type[i]
+                / (EPSILON + $self.velocity.$type[i].sqrt()))
+                * Self::LEARN_RATE;
         }
     }};
 }
@@ -267,12 +273,23 @@ impl Tuner {
     }
 
     fn mse(&self) -> f64 {
-        let mut total_error = 0.0;
-        for entry in &self.entries {
-            total_error += entry.error(&self.weights);
-        }
-
-        total_error / (self.entries.len() as f64)
+        let size = self.entries.len() / self.threads;
+        thread::scope(|s| {
+            self.entries
+                .chunks(size)
+                .map(|chunk| {
+                    s.spawn(|| {
+                        chunk
+                            .iter()
+                            .map(|entry| entry.error(&self.weights))
+                            .sum::<f64>()
+                    })
+                })
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|p| p.join().unwrap_or_default())
+                .sum::<f64>()
+        }) / (self.entries.len() as f64)
     }
 
     pub fn train(&mut self) {
@@ -332,13 +349,8 @@ impl Tuner {
         writeln!(output, "\n]){closing_str}").unwrap();
     }
 
-    fn write_prt<F>(
-        &self,
-        output: &mut BufWriter<File>,
-        closing_str: &str,
-        vals: &[S],
-        index_fn: F,
-    ) where
+    fn write_prt<F>(&self, output: &mut BufWriter<File>, closing_str: &str, vals: &[S], index_fn: F)
+    where
         F: Fn(u8) -> usize,
     {
         write!(output, "Prt::new([").unwrap();
@@ -371,17 +383,32 @@ impl Tuner {
 
     fn write_passer_blocker_prt(&self, output: &mut BufWriter<File>) {
         write!(output, "pub const PASSER_BLOCKERS_PRT: Prt = ").unwrap();
-        self.write_prt(output, ";\n", self.weights.linear.as_slice(), PasserBlocker::index);
+        self.write_prt(
+            output,
+            ";\n",
+            self.weights.linear.as_slice(),
+            PasserBlocker::index,
+        );
     }
 
     fn write_isolated_prt(&self, output: &mut BufWriter<File>) {
         write!(output, "pub const ISOLATED_PAWNS_PRT: Prt = ").unwrap();
-        self.write_prt(output, ";\n", self.weights.linear.as_slice(), IsolatedPawns::index);
+        self.write_prt(
+            output,
+            ";\n",
+            self.weights.linear.as_slice(),
+            IsolatedPawns::index,
+        );
     }
 
     fn write_phalanx_prt(&self, output: &mut BufWriter<File>) {
         write!(output, "pub const PHALANX_PAWNS_PRT: Prt = ").unwrap();
-        self.write_prt(output, ";\n", self.weights.linear.as_slice(), PhalanxPawns::index);
+        self.write_prt(
+            output,
+            ";\n",
+            self.weights.linear.as_slice(),
+            PhalanxPawns::index,
+        );
     }
 
     fn write_bishop_pair(&self, output: &mut BufWriter<File>) {
@@ -500,7 +527,12 @@ impl Tuner {
         writeln!(output, "\n];",).unwrap();
 
         write!(output, "\npub const ENEMY_KING_RANK: Prt = ").unwrap();
-        self.write_prt(output, ";\n", self.weights.safety.as_slice(), EnemyKingRank::index);
+        self.write_prt(
+            output,
+            ";\n",
+            self.weights.safety.as_slice(),
+            EnemyKingRank::index,
+        );
     }
 
     fn create_output_file(&self) {
