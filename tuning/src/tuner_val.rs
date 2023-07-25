@@ -45,7 +45,7 @@ impl Display for S {
 impl Div for S {
     type Output = S;
     fn div(self, rhs: Self) -> Self::Output {
-        Self(self.0 / rhs.0, self.1 / rhs.0)
+        Self(self.0 / rhs.0, self.1 / rhs.1)
     }
 }
 
