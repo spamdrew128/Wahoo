@@ -38,7 +38,7 @@ impl S {
 
 impl Display for S {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "s({}, {})", self.0, self.1)
+        write!(f, "s({}, {})", self.0 as i32, self.1 as i32)
     }
 }
 
