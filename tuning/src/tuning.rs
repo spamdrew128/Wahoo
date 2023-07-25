@@ -17,7 +17,7 @@ use engine::{
 use std::{
     fs::{read_to_string, File},
     io::BufWriter,
-    io::Write,
+    io::Write, ops::{Div, Mul},
 };
 
 #[derive(Copy, Clone)]
@@ -38,6 +38,35 @@ impl S {
 
     fn sqrt(self) -> Self {
         Self(self.0.sqrt(), self.1.sqrt())
+    }
+
+    fn min(self, m: f64) -> Self {
+        Self(self.0.min(m), self.1.min(m))
+    }
+
+    fn max(self, m: f64) -> Self {
+        Self(self.0.max(m), self.1.max(m))
+    }
+}
+
+impl Div<f64> for S {
+    type Output = S;
+    fn div(self, rhs: f64) -> Self::Output {
+        Self(self.0 / rhs, self.1 / rhs)
+    }
+}
+
+impl Mul<f64> for S {
+    type Output = S;
+    fn mul(self, rhs: f64) -> Self::Output {
+        Self(self.0 * rhs, self.1 * rhs)
+    }
+}
+
+impl Mul<S> for S {
+    type Output = S;
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self(self.0 * rhs.0, self.1 * rhs.1)
     }
 }
 
