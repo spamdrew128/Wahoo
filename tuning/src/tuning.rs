@@ -559,18 +559,12 @@ impl Tuner {
             EnemyKingRank::index,
         );
 
-        writeln!(
-            output,
-            "pub const TROPHISM_BONUS: [[ScoreTuple; 8]; (NUM_PIECES - 2) as usize] = ["
-        )
-        .unwrap();
-
-        write!(output, "pub const TROPHISM_BONUS: [ScoreTuple; 8] = [\n  ",).unwrap();
+        write!(output, "pub const TROPHISM_BONUS: [ScoreTuple; {}] = [\n  ", Tropism::LEN).unwrap();
         for i in 0..Tropism::LEN {
             let w = self.weights.safety[Tropism::index(i)];
             write!(output, "{w}, ",).unwrap();
         }
-        writeln!(output, "];").unwrap();
+        writeln!(output, "\n];").unwrap();
     }
 
     fn create_output_file(&self) {
