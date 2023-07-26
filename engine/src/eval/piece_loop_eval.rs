@@ -8,12 +8,12 @@ use crate::{
         KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN,
         KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN,
         PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY,
-        ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN, TROPHISM_BONUS
+        ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN, TROPHISM_BONUS, DEFENSIVE_TROPHISM_BONUS
     },
     eval::trace::{
-        color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace,
+        color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace, Tropism, DefensiveTropism,
     },
-    eval::{evaluation::ScoreTuple, trace::Tropism},
+    eval::evaluation::ScoreTuple,
     trace_safety_update, trace_threat_update, trace_update,
 };
 
@@ -152,6 +152,7 @@ impl ConstPiece {
 struct LoopEvaluator {
     color: Color,
     availible: Bitboard,
+    own_king_sq: Square,
     enemy_king_sq: Square,
     enemy_king_zone: Bitboard,
     friendly_king_zone: Bitboard,
@@ -165,11 +166,13 @@ struct LoopEvaluator {
     d12_occupied: Bitboard,
 
     tropism: usize,
+    defensive_tropism: usize,
 }
 
 impl LoopEvaluator {
     fn new(board: &Board, own_virt_mob: usize, enemy_virt_mob: usize, color: Color) -> Self {
         let availible = availible(board, color);
+        let own_king_sq = board.color_king_sq(color);
         let enemy_king_sq = board.color_king_sq(color.flip());
         let friendly_king_zone = king_zone(board, color);
         let enemy_king_zone = king_zone(board, color.flip());
@@ -189,6 +192,7 @@ impl LoopEvaluator {
         Self {
             color,
             availible,
+            own_king_sq,
             enemy_king_sq,
             enemy_king_zone,
             friendly_king_zone,
@@ -201,6 +205,7 @@ impl LoopEvaluator {
             hv_occupied,
             d12_occupied,
             tropism: 0,
+            defensive_tropism: 0,
         }
     }
     const fn moves<const PIECE: u8>(&self, sq: Square) -> Bitboard {
@@ -234,6 +239,7 @@ impl LoopEvaluator {
         attack_power[opp_color.as_index()] += DEFENSES[piece.as_index()][self.own_virt_mob].mult(kz_defenses);
 
         self.tropism += tropism(self.enemy_king_sq, sq);
+        self.defensive_tropism += tropism(self.own_king_sq, sq);
 
         match PIECE {
             ConstPiece::KNIGHT => {
@@ -368,11 +374,15 @@ pub fn one_sided_eval<const TRACE: bool>(
     let trop = looper.tropism;
     attack_power[color.as_index()] += TROPHISM_BONUS[trop];
 
+    let defensive_trop = looper.defensive_tropism;
+    attack_power[color.flip().as_index()] += DEFENSIVE_TROPHISM_BONUS[defensive_trop];
+
     if TRACE {
         let rank = color_adjust(opp_king_sq, color).rank();
         trace_safety_update!(t, EnemyKingRank, (rank), color, 1);
 
         trace_safety_update!(t, Tropism, (trop), color, 1);
+        trace_safety_update!(t, DefensiveTropism, (defensive_trop), color.flip(), 1);
     }
 
     score

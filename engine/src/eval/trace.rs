@@ -252,3 +252,14 @@ impl Tropism {
         Self::START + trop
     }
 }
+
+pub struct DefensiveTropism;
+impl DefensiveTropism {
+    pub const MAX: usize = 20 * 8;
+    pub const START: usize = Tropism::START + Tropism::LEN;
+    pub const LEN: usize = Self::MAX;
+
+    pub const fn index(trop: usize) -> usize {
+        Self::START + trop
+    }
+}
