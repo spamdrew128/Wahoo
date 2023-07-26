@@ -6,7 +6,7 @@ use engine::{
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
     eval::{
         evaluation::SAFETY_LIMIT,
-        trace::{Attacks, Defenses, SAFETY_TRACE_LEN},
+        trace::{Attacks, Defenses, Trophism, SAFETY_TRACE_LEN},
     },
     eval::{
         piece_loop_eval::MoveCounts,
@@ -558,6 +558,26 @@ impl Tuner {
             self.weights.safety.as_slice(),
             EnemyKingRank::index,
         );
+
+        writeln!(
+            output,
+            "pub const TROPHISM_BONUS: [[ScoreTuple; 8]; (NUM_PIECES - 2) as usize] = ["
+        )
+        .unwrap();
+        for &piece in Piece::LIST.iter().take(4) {
+            write!(
+                output,
+                "// {} trophism values\n[\n  ",
+                piece.as_string().unwrap(),
+            )
+            .unwrap();
+            for i in 0..8 {
+                let w = self.weights.safety[Trophism::index(piece, i)];
+                write!(output, "{w}, ",).unwrap();
+            }
+            writeln!(output, "\n],").unwrap();
+        }
+        writeln!(output, "];").unwrap();
     }
 
     fn create_output_file(&self) {

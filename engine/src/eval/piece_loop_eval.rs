@@ -10,10 +10,10 @@ use crate::{
         PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY,
         ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
     },
-    eval::{evaluation::ScoreTuple, trace::Trophism},
     eval::trace::{
         color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace,
     },
+    eval::{evaluation::ScoreTuple, trace::Trophism},
     trace_safety_update, trace_threat_update, trace_update,
 };
 
@@ -409,7 +409,7 @@ mod tests {
         eval::{
             evaluation::trace_of_position,
             piece_loop_eval::{forward_mobility, virtual_mobility},
-            trace::{Attacks, Defenses, EnemyKingRank, SAFETY_TRACE_LEN, Trophism},
+            trace::{Attacks, Defenses, EnemyKingRank, Trophism, SAFETY_TRACE_LEN},
         },
     };
 
@@ -462,7 +462,10 @@ mod tests {
         w[EnemyKingRank::index(0)] += 1;
         b[EnemyKingRank::index(1)] += 1;
 
-        let (w_enemy, b_enemy) = (board.color_king_sq(Color::Black), board.color_king_sq(Color::White));
+        let (w_enemy, b_enemy) = (
+            board.color_king_sq(Color::Black),
+            board.color_king_sq(Color::White),
+        );
         w[Trophism::index(Piece::KNIGHT, trophism(w_enemy, Square::G2))] += 1;
         w[Trophism::index(Piece::KNIGHT, trophism(w_enemy, Square::C3))] += 1;
         w[Trophism::index(Piece::ROOK, trophism(w_enemy, Square::E2))] += 1;
