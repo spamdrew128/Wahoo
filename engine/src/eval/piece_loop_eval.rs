@@ -79,6 +79,8 @@ const KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = king
 
 const FORWARD_MASKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = forward_masks_init();
 
+const TROPHISM: [[usize; NUM_SQUARES as usize]; NUM_SQUARES as usize] = include!(concat!(env!("OUT_DIR"), "/trophism_init.rs"));
+
 pub const fn king_zone(board: &Board, color: Color) -> Bitboard {
     let king_sq = board.color_king_sq(color);
     KING_ZONES[color.as_index()][king_sq.as_index()]

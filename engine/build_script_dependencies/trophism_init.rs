@@ -10,7 +10,7 @@ fn trophism_table() -> [[usize; NUM_SQUARES as usize]; NUM_SQUARES as usize] {
             let l1 = (sq_1.rank() as i16 - sq_2.rank() as i16).pow(2);
             let l2 = (sq_1.file() as i16 - sq_2.file() as i16).pow(2);
             let dist = ((l1 + l2) as f64).sqrt() as usize;
-            result[i as usize][j as usize] = dist; 
+            result[i as usize][j as usize] = dist.min(8); 
         }
     }
 
@@ -30,9 +30,9 @@ pub fn trophism_table_init_string() -> String {
             }
             result.push_str(format!("{}, ", t[i as usize][j as usize]).as_str());
         }
-        result.push_str("],\n");
+        result.push_str("\n],\n");
     }
-    result.push_str("];\n");
+    result.push_str("]\n");
 
     result
 }
