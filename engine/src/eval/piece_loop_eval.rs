@@ -5,17 +5,14 @@ use crate::{
     eval::eval_constants::{
         ATTACKS, BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT,
         BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK, DEFENSES, ENEMY_KING_RANK,
-        ENEMY_VIRT_MOBILITY, KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP,
-        KNIGHT_THREAT_ON_QUEEN, KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP,
-        PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY,
-        QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
+        KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN,
+        KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN,
+        PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY,
+        ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
     },
+    eval::evaluation::ScoreTuple,
     eval::trace::{
-        color_adjust, Attacks, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace,
-    },
-    eval::{
-        evaluation::ScoreTuple,
-        trace::{Defenses, EnemyVirtMobility},
+        color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace,
     },
     trace_safety_update, trace_threat_update, trace_update,
 };
@@ -102,12 +99,14 @@ pub const fn availible(board: &Board, color: Color) -> Bitboard {
     enemy_or_empty.without(enemy_pawn_attacks)
 }
 
-pub fn enemy_virtual_mobility(board: &Board, color: Color) -> usize {
-    let king_sq = board.color_king_sq(color.flip());
+pub fn virtual_mobility(board: &Board, color: Color) -> usize {
+    let opp_color = color.flip();
+    let king_sq = board.color_king_sq(color);
     let empty = board.empty();
-    let mobile_attacking_pieces = board.all[color.as_index()] ^ board.piece_bb(Piece::PAWN, color);
+    let mobile_attacking_pieces =
+        board.all[opp_color.as_index()] ^ board.piece_bb(Piece::PAWN, opp_color);
     let virtual_occupied = board.occupied() ^ mobile_attacking_pieces;
-    let attackers_or_empty = board.all[color.as_index()].union(empty);
+    let attackers_or_empty = board.all[opp_color.as_index()].union(empty);
 
     (attacks::queen(king_sq, virtual_occupied) & attackers_or_empty).popcount() as usize
 }
@@ -148,6 +147,8 @@ struct LoopEvaluator {
     availible: Bitboard,
     enemy_king_zone: Bitboard,
     friendly_king_zone: Bitboard,
+    own_virt_mob: usize,
+    enemy_virt_mob: usize,
     enemy_knights: Bitboard,
     enemy_bishops: Bitboard,
     enemy_rooks: Bitboard,
@@ -157,7 +158,7 @@ struct LoopEvaluator {
 }
 
 impl LoopEvaluator {
-    fn new(board: &Board, color: Color) -> Self {
+    fn new(board: &Board, own_virt_mob: usize, enemy_virt_mob: usize, color: Color) -> Self {
         let availible = availible(board, color);
         let friendly_king_zone = king_zone(board, color);
         let enemy_king_zone = king_zone(board, color.flip());
@@ -179,6 +180,8 @@ impl LoopEvaluator {
             availible,
             enemy_king_zone,
             friendly_king_zone,
+            own_virt_mob,
+            enemy_virt_mob,
             enemy_knights,
             enemy_bishops,
             enemy_rooks,
@@ -214,8 +217,8 @@ impl LoopEvaluator {
 
         let kz_attacks = self.enemy_king_zone.intersection(moves).popcount() as i32;
         let kz_defenses = self.friendly_king_zone.intersection(moves).popcount() as i32;
-        attack_power[color.as_index()] += ATTACKS[piece.as_index()].mult(kz_attacks);
-        attack_power[opp_color.as_index()] += DEFENSES[piece.as_index()].mult(kz_defenses);
+        attack_power[color.as_index()] += ATTACKS[piece.as_index()][self.enemy_virt_mob].mult(kz_attacks);
+        attack_power[opp_color.as_index()] += DEFENSES[piece.as_index()][self.own_virt_mob].mult(kz_defenses);
 
         match PIECE {
             ConstPiece::KNIGHT => {
@@ -266,8 +269,9 @@ impl LoopEvaluator {
         }
 
         if TRACE {
-            trace_safety_update!(t, Attacks, (piece), self.color, kz_attacks);
-            trace_safety_update!(t, Defenses, (piece), self.color.flip(), kz_defenses);
+            let (own_vm, enemy_vm) = (self.own_virt_mob, self.enemy_virt_mob);
+            trace_safety_update!(t, Attacks, (piece, enemy_vm), self.color, kz_attacks);
+            trace_safety_update!(t, Defenses, (piece, own_vm), self.color.flip(), kz_defenses);
 
             // we fix 0 mobility at 0 for eval constants readability
             if mobility > 0 {
@@ -288,12 +292,13 @@ impl LoopEvaluator {
         let pawn_attacks = attacks::pawn_setwise(pawns, color);
         let kz_attacks = self.enemy_king_zone.intersection(pawn_attacks).popcount() as i32;
         let kz_defenses = self.friendly_king_zone.intersection(pawn_attacks).popcount() as i32;
-        attack_power[color.as_index()] += ATTACKS[piece.as_index()].mult(kz_attacks);
-        attack_power[color.flip().as_index()] += DEFENSES[piece.as_index()].mult(kz_defenses);
+        attack_power[color.as_index()] += ATTACKS[piece.as_index()][self.enemy_virt_mob].mult(kz_attacks);
+        attack_power[color.flip().as_index()] += DEFENSES[piece.as_index()][self.own_virt_mob].mult(kz_defenses);
 
         if TRACE {
-            trace_safety_update!(t, Attacks, (piece), self.color, kz_attacks);
-            trace_safety_update!(t, Defenses, (piece), self.color.flip(), kz_defenses);
+            let (own_vm, enemy_vm) = (self.own_virt_mob, self.enemy_virt_mob);
+            trace_safety_update!(t, Attacks, (piece, enemy_vm), self.color, kz_attacks);
+            trace_safety_update!(t, Defenses, (piece, own_vm), self.color.flip(), kz_defenses);
 
             trace_threat_update!(t, PAWN_THREAT_ON_KNIGHT, self.color, pawn_attacks, self.enemy_knights);
             trace_threat_update!(t, PAWN_THREAT_ON_BISHOP, self.color, pawn_attacks, self.enemy_bishops);
@@ -324,18 +329,15 @@ impl LoopEvaluator {
 pub fn one_sided_eval<const TRACE: bool>(
     board: &Board,
     attack_power: &mut [ScoreTuple; 2],
+    own_virt_mob: usize,
+    enemy_virt_mob: usize,
     color: Color,
     t: &mut Trace,
 ) -> ScoreTuple {
-    let enemy_virt_mobility = enemy_virtual_mobility(board, color);
-    attack_power[color.as_index()] += ENEMY_VIRT_MOBILITY[enemy_virt_mobility];
-
     let opp_king_sq = board.color_king_sq(color.flip());
     attack_power[color.as_index()] += ENEMY_KING_RANK.access(color, opp_king_sq);
 
     if TRACE {
-        trace_safety_update!(t, EnemyVirtMobility, (enemy_virt_mobility), color, 1);
-
         let rank = color_adjust(opp_king_sq, color).rank();
         trace_safety_update!(t, EnemyKingRank, (rank), color, 1);
     }
@@ -346,7 +348,7 @@ pub fn one_sided_eval<const TRACE: bool>(
     let queens = board.piece_bb(Piece::QUEEN, color);
     let pawns = board.piece_bb(Piece::PAWN, color);
 
-    let looper = LoopEvaluator::new(board, color);
+    let looper = LoopEvaluator::new(board, own_virt_mob, enemy_virt_mob, color);
     looper.piece_loop::<{ ConstPiece::KNIGHT }, TRACE>(knights, attack_power, t)
         + looper.piece_loop::<{ ConstPiece::BISHOP }, TRACE>(bishops, attack_power, t)
         + looper.piece_loop::<{ ConstPiece::ROOK }, TRACE>(rooks, attack_power, t)
@@ -362,8 +364,19 @@ pub fn mobility_threats_safety<const TRACE: bool>(
 ) -> ScoreTuple {
     let mut attack_power = [ScoreTuple::new(0, 0), ScoreTuple::new(0, 0)];
 
-    let mobility_and_threats = one_sided_eval::<TRACE>(board, &mut attack_power, us, t)
-        - one_sided_eval::<TRACE>(board, &mut attack_power, them, t);
+    let us_virt_mob = virtual_mobility(board, us);
+    let them_virt_mob = virtual_mobility(board, them);
+
+    let mobility_and_threats =
+        one_sided_eval::<TRACE>(board, &mut attack_power, us_virt_mob, them_virt_mob, us, t)
+            - one_sided_eval::<TRACE>(
+                board,
+                &mut attack_power,
+                them_virt_mob,
+                us_virt_mob,
+                them,
+                t,
+            );
 
     let safety = attack_power[us.as_index()].king_safety_formula()
         - attack_power[them.as_index()].king_safety_formula();
@@ -378,21 +391,19 @@ mod tests {
         board::board_representation::{Board, Color, Piece, Square},
         eval::{
             evaluation::trace_of_position,
-            piece_loop_eval::forward_mobility,
-            trace::{Attacks, Defenses, EnemyVirtMobility, SAFETY_TRACE_LEN},
+            piece_loop_eval::{forward_mobility, virtual_mobility},
+            trace::{Attacks, Defenses, EnemyKingRank, SAFETY_TRACE_LEN},
         },
     };
-
-    use super::enemy_virtual_mobility;
 
     #[test]
     fn virtual_mobility_test() {
         let board = Board::from_fen("B2r2k1/3p1p2/p4PpB/1p3b2/8/2Nq2PP/PP2R1NK/3R4 b - - 2 23");
-        let w_enemy_virt_mobility = enemy_virtual_mobility(&board, Color::White);
-        let b_enemy_virt_mobility = enemy_virtual_mobility(&board, Color::Black);
+        let w_virt_mobility = virtual_mobility(&board, Color::White);
+        let b_virt_mobility = virtual_mobility(&board, Color::Black);
 
-        assert_eq!(w_enemy_virt_mobility, 5);
-        assert_eq!(b_enemy_virt_mobility, 2);
+        assert_eq!(w_virt_mobility, 2);
+        assert_eq!(b_virt_mobility, 5);
     }
 
     #[test]
@@ -411,24 +422,38 @@ mod tests {
         let actual = trace_of_position(&board);
         let (mut w, mut b) = ([0; SAFETY_TRACE_LEN], [0; SAFETY_TRACE_LEN]);
 
-        w[EnemyVirtMobility::index(5)] += 1;
-        b[EnemyVirtMobility::index(2)] += 1;
+        let w_virt_mob = 2;
+        let b_virt_mob = 5;
 
-        w[Attacks::index(Piece::BISHOP)] += 3;
-        w[Attacks::index(Piece::PAWN)] += 1;
+        w[Attacks::index(Piece::BISHOP, b_virt_mob)] += 3;
+        w[Attacks::index(Piece::PAWN, b_virt_mob)] += 1;
 
-        b[Attacks::index(Piece::BISHOP)] += 1;
-        b[Attacks::index(Piece::PAWN)] += 2;
-        b[Attacks::index(Piece::QUEEN)] += 2;
+        b[Attacks::index(Piece::BISHOP, w_virt_mob)] += 1;
+        b[Attacks::index(Piece::PAWN, w_virt_mob)] += 2;
+        b[Attacks::index(Piece::QUEEN, w_virt_mob)] += 2;
 
-        b[Defenses::index(Piece::BISHOP)] += 3;
-        b[Defenses::index(Piece::PAWN)] += 3;
-        b[Defenses::index(Piece::KNIGHT)] += 2;
-        b[Defenses::index(Piece::ROOK)] += 4;
+        b[Defenses::index(Piece::BISHOP, w_virt_mob)] += 3;
+        b[Defenses::index(Piece::PAWN, w_virt_mob)] += 3;
+        b[Defenses::index(Piece::KNIGHT, w_virt_mob)] += 2;
+        b[Defenses::index(Piece::ROOK, w_virt_mob)] += 4;
 
-        w[Defenses::index(Piece::ROOK)] += 1;
-        w[Defenses::index(Piece::PAWN)] += 3;
+        w[Defenses::index(Piece::ROOK, b_virt_mob)] += 1;
+        w[Defenses::index(Piece::PAWN, b_virt_mob)] += 3;
 
-        assert_eq!([w, b], actual.safety);
+        w[EnemyKingRank::index(0)] += 1;
+        b[EnemyKingRank::index(1)] += 1;
+
+        for color in Color::LIST {
+            let actual = actual.safety[color.as_index()];
+            let expected = [w, b][color.as_index()];
+            for (i, (ac, ex)) in actual.iter().zip(expected.iter()).enumerate() {
+                assert_eq!(
+                    ac,
+                    ex,
+                    "Expected {ex}, found {ac} at index {i} and color {}",
+                    color.as_index()
+                );
+            }
+        }
     }
 }
