@@ -248,7 +248,7 @@ impl Tropism {
     pub const START: usize = EnemyKingRank::START + EnemyKingRank::LEN;
     pub const LEN: usize = 74;
 
-    pub fn index(trop: usize) -> usize {
+    pub const fn index(trop: usize) -> usize {
         Self::START + trop
     }
 }
