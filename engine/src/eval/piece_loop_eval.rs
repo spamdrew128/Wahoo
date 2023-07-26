@@ -374,9 +374,7 @@ pub fn one_sided_eval<const TRACE: bool>(
         let rank = color_adjust(opp_king_sq, color).rank();
         trace_safety_update!(t, EnemyKingRank, (rank), color, 1);
 
-        if trop <= Tropism::TROPH_LIMIT {
-            trace_safety_update!(t, Tropism, (trop), color, 1);
-        }
+        trace_safety_update!(t, Tropism, (trop), color, 1);
     }
 
     score

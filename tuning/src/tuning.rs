@@ -566,11 +566,7 @@ impl Tuner {
         )
         .unwrap();
         for i in 0..Tropism::LEN {
-            let w = if i <= Tropism::TROPH_LIMIT {
-                self.weights.safety[Tropism::index(i)]
-            } else {
-                S::new(0.0, 0.0)
-            };
+            let w = self.weights.safety[Tropism::index(i)];
             write!(output, "{w}, ",).unwrap();
         }
         writeln!(output, "\n];").unwrap();
