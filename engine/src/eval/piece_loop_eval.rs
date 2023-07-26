@@ -4,11 +4,11 @@ use crate::{
     board::board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
     eval::eval_constants::{
         ATTACKS, BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT,
-        BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK, DEFENSES, DEFENSIVE_TROPHISM_BONUS,
+        BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK, DEFENSES, DEFENSIVE_TROPISM_BONUS,
         ENEMY_KING_RANK, KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP,
         KNIGHT_THREAT_ON_QUEEN, KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP,
         PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY,
-        QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN, TROPHISM_BONUS,
+        QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN, TROPISM_BONUS,
     },
     eval::evaluation::ScoreTuple,
     eval::trace::{
@@ -373,10 +373,10 @@ pub fn one_sided_eval<const TRACE: bool>(
     attack_power[color.as_index()] += ENEMY_KING_RANK.access(color, opp_king_sq);
 
     let trop = looper.tropism;
-    attack_power[color.as_index()] += TROPHISM_BONUS[trop];
+    attack_power[color.as_index()] += TROPISM_BONUS[trop];
 
     let defensive_trop = looper.defensive_tropism;
-    attack_power[color.flip().as_index()] += DEFENSIVE_TROPHISM_BONUS[defensive_trop];
+    attack_power[color.flip().as_index()] += DEFENSIVE_TROPISM_BONUS[defensive_trop];
 
     if TRACE {
         let rank = color_adjust(opp_king_sq, color).rank();
