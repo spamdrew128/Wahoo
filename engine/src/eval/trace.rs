@@ -16,7 +16,7 @@ pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
     + TempoBonus::LEN
     + ForwardMobility::LEN;
 
-pub const SAFETY_TRACE_LEN: usize = Attacks::LEN + Defenses::LEN + EnemyKingRank::LEN;
+pub const SAFETY_TRACE_LEN: usize = Attacks::LEN + Defenses::LEN + EnemyKingPst::LEN;
 
 pub struct Trace {
     pub linear: [i8; LINEAR_TRACE_LEN],
@@ -231,12 +231,12 @@ impl Defenses {
     }
 }
 
-pub struct EnemyKingRank;
-impl EnemyKingRank {
+pub struct EnemyKingPst;
+impl EnemyKingPst {
     pub const START: usize = Defenses::START + Defenses::LEN;
-    pub const LEN: usize = NUM_RANKS as usize;
+    pub const LEN: usize = NUM_SQUARES as usize;
 
-    pub const fn index(rank: u8) -> usize {
-        Self::START + rank as usize
+    pub const fn index(sq: Square) -> usize {
+        Self::START + sq.as_index()
     }
 }

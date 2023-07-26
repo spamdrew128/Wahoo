@@ -4,7 +4,7 @@ use crate::{
     board::board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
     eval::eval_constants::{
         ATTACKS, BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT,
-        BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK, DEFENSES, ENEMY_KING_RANK,
+        BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK, DEFENSES, ENEMY_KING_PST,
         KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN,
         KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN,
         PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY,
@@ -12,7 +12,7 @@ use crate::{
     },
     eval::evaluation::ScoreTuple,
     eval::trace::{
-        color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace,
+        color_adjust, Attacks, Defenses, EnemyKingPst, ForwardMobility, Mobility, Threats, Trace,
     },
     trace_safety_update, trace_threat_update, trace_update,
 };
@@ -335,11 +335,11 @@ pub fn one_sided_eval<const TRACE: bool>(
     t: &mut Trace,
 ) -> ScoreTuple {
     let opp_king_sq = board.color_king_sq(color.flip());
-    attack_power[color.as_index()] += ENEMY_KING_RANK.access(color, opp_king_sq);
+    attack_power[color.as_index()] += ENEMY_KING_PST.access(color, opp_king_sq);
 
     if TRACE {
-        let rank = color_adjust(opp_king_sq, color).rank();
-        trace_safety_update!(t, EnemyKingRank, (rank), color, 1);
+        let sq = color_adjust(opp_king_sq, color);
+        trace_safety_update!(t, EnemyKingPst, (sq), color, 1);
     }
 
     let knights = board.piece_bb(Piece::KNIGHT, color);
@@ -392,7 +392,7 @@ mod tests {
         eval::{
             evaluation::trace_of_position,
             piece_loop_eval::{forward_mobility, virtual_mobility},
-            trace::{Attacks, Defenses, EnemyKingRank, SAFETY_TRACE_LEN},
+            trace::{Attacks, Defenses, EnemyKingPst, SAFETY_TRACE_LEN},
         },
     };
 
@@ -440,8 +440,10 @@ mod tests {
         w[Defenses::index(Piece::ROOK, b_virt_mob)] += 1;
         w[Defenses::index(Piece::PAWN, b_virt_mob)] += 3;
 
-        w[EnemyKingRank::index(0)] += 1;
-        b[EnemyKingRank::index(1)] += 1;
+        let w_k_sq = board.color_king_sq(Color::White);
+        let b_k_sq = board.color_king_sq(Color::Black);
+        b[EnemyKingPst::index(w_k_sq)] += 1;
+        w[EnemyKingPst::index(b_k_sq.flip())] += 1;
 
         for color in Color::LIST {
             let actual = actual.safety[color.as_index()];
