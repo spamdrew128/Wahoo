@@ -17,7 +17,7 @@ pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
     + ForwardMobility::LEN;
 
 pub const SAFETY_TRACE_LEN: usize =
-    Attacks::LEN + Defenses::LEN + EnemyKingRank::LEN + Trophism::LEN;
+    Attacks::LEN + Defenses::LEN + EnemyKingRank::LEN + Tropism::LEN;
 
 pub struct Trace {
     pub linear: [i8; LINEAR_TRACE_LEN],
@@ -242,13 +242,13 @@ impl EnemyKingRank {
     }
 }
 
-pub struct Trophism;
-impl Trophism {
-    const TROPH_LIMIT: usize = 8;
+pub struct Tropism;
+impl Tropism {
+    pub const TROPH_LIMIT: usize = 40;
     pub const START: usize = EnemyKingRank::START + EnemyKingRank::LEN;
-    pub const LEN: usize = Self::TROPH_LIMIT * (NUM_PIECES - 2) as usize;
+    pub const LEN: usize = 74;
 
-    pub fn index(piece: Piece, troph: usize) -> usize {
-        Self::START + usize::from(NUM_PIECES - 2) * piece.as_index() + troph
+    pub fn index(trop: usize) -> usize {
+        Self::START + trop
     }
 }

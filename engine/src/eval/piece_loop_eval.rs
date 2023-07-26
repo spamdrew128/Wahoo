@@ -13,7 +13,7 @@ use crate::{
     eval::trace::{
         color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace,
     },
-    eval::{evaluation::ScoreTuple, trace::Trophism},
+    eval::{evaluation::ScoreTuple, trace::Tropism},
     trace_safety_update, trace_threat_update, trace_update,
 };
 
@@ -81,7 +81,7 @@ const KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = king
 
 const FORWARD_MASKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = forward_masks_init();
 
-const TROPHISM: [[usize; NUM_SQUARES as usize]; NUM_SQUARES as usize] =
+const TROPISM: [[usize; NUM_SQUARES as usize]; NUM_SQUARES as usize] =
     include!(concat!(env!("OUT_DIR"), "/trophism_init.rs"));
 
 const fn king_zone(board: &Board, color: Color) -> Bitboard {
@@ -95,8 +95,8 @@ const fn forward_mobility(moves: Bitboard, sq: Square, color: Color) -> usize {
         .popcount() as usize
 }
 
-const fn trophism(king_sq: Square, piece_sq: Square) -> usize {
-    TROPHISM[king_sq.as_index()][piece_sq.as_index()]
+const fn tropism(king_sq: Square, piece_sq: Square) -> usize {
+    TROPISM[king_sq.as_index()][piece_sq.as_index()]
 }
 
 const fn availible(board: &Board, color: Color) -> Bitboard {
@@ -165,6 +165,8 @@ struct LoopEvaluator {
     enemy_queens: Bitboard,
     hv_occupied: Bitboard,
     d12_occupied: Bitboard,
+
+    tropism: usize,
 }
 
 impl LoopEvaluator {
@@ -200,6 +202,7 @@ impl LoopEvaluator {
             enemy_queens,
             hv_occupied,
             d12_occupied,
+            tropism: 0,
         }
     }
     const fn moves<const PIECE: u8>(&self, sq: Square) -> Bitboard {
@@ -216,7 +219,7 @@ impl LoopEvaluator {
 
     #[allow(clippy::cast_possible_wrap)]
     #[rustfmt::skip]
-    fn single_score<const PIECE: u8, const TRACE: bool>(&self, sq: Square, attack_power: &mut [ScoreTuple; 2], t: &mut Trace) -> ScoreTuple {
+    fn single_score<const PIECE: u8, const TRACE: bool>(&mut self, sq: Square, attack_power: &mut [ScoreTuple; 2], t: &mut Trace) -> ScoreTuple {
         let mut score = ScoreTuple::new(0, 0);
         let color = self.color;
         let opp_color = self.color.flip();
@@ -232,8 +235,7 @@ impl LoopEvaluator {
         attack_power[color.as_index()] += ATTACKS[piece.as_index()][self.enemy_virt_mob].mult(kz_attacks);
         attack_power[opp_color.as_index()] += DEFENSES[piece.as_index()][self.own_virt_mob].mult(kz_defenses);
 
-        let trophism = trophism(self.enemy_king_sq, sq);
-        attack_power[color.as_index()] += TROPHISM_BONUS[piece.as_index()][trophism];
+        self.tropism += tropism(self.enemy_king_sq, sq);
 
         match PIECE {
             ConstPiece::KNIGHT => {
@@ -288,8 +290,6 @@ impl LoopEvaluator {
             trace_safety_update!(t, Attacks, (piece, enemy_vm), self.color, kz_attacks);
             trace_safety_update!(t, Defenses, (piece, own_vm), self.color.flip(), kz_defenses);
 
-            trace_safety_update!(t, Trophism, (piece, trophism), self.color, 1);
-
             // we fix 0 mobility at 0 for eval constants readability
             if mobility > 0 {
                 trace_update!(t, Mobility, (piece, mobility), self.color, 1);
@@ -330,7 +330,7 @@ impl LoopEvaluator {
     }
 
     fn piece_loop<const PIECE: u8, const TRACE: bool>(
-        &self,
+        &mut self,
         mut piece_bb: Bitboard,
         attack_power: &mut [ScoreTuple; 2],
         t: &mut Trace,
@@ -351,26 +351,35 @@ pub fn one_sided_eval<const TRACE: bool>(
     color: Color,
     t: &mut Trace,
 ) -> ScoreTuple {
-    let opp_king_sq = board.color_king_sq(color.flip());
-    attack_power[color.as_index()] += ENEMY_KING_RANK.access(color, opp_king_sq);
-
-    if TRACE {
-        let rank = color_adjust(opp_king_sq, color).rank();
-        trace_safety_update!(t, EnemyKingRank, (rank), color, 1);
-    }
-
     let knights = board.piece_bb(Piece::KNIGHT, color);
     let bishops = board.piece_bb(Piece::BISHOP, color);
     let rooks = board.piece_bb(Piece::ROOK, color);
     let queens = board.piece_bb(Piece::QUEEN, color);
     let pawns = board.piece_bb(Piece::PAWN, color);
 
-    let looper = LoopEvaluator::new(board, own_virt_mob, enemy_virt_mob, color);
-    looper.piece_loop::<{ ConstPiece::KNIGHT }, TRACE>(knights, attack_power, t)
+    let mut looper = LoopEvaluator::new(board, own_virt_mob, enemy_virt_mob, color);
+    let score = looper.piece_loop::<{ ConstPiece::KNIGHT }, TRACE>(knights, attack_power, t)
         + looper.piece_loop::<{ ConstPiece::BISHOP }, TRACE>(bishops, attack_power, t)
         + looper.piece_loop::<{ ConstPiece::ROOK }, TRACE>(rooks, attack_power, t)
         + looper.piece_loop::<{ ConstPiece::QUEEN }, TRACE>(queens, attack_power, t)
-        + looper.pawn_score::<TRACE>(pawns, color, attack_power, t)
+        + looper.pawn_score::<TRACE>(pawns, color, attack_power, t);
+
+    let opp_king_sq = board.color_king_sq(color.flip());
+    attack_power[color.as_index()] += ENEMY_KING_RANK.access(color, opp_king_sq);
+
+    let trop = looper.tropism;
+    attack_power[color.as_index()] += TROPHISM_BONUS[trop];
+
+    if TRACE {
+        let rank = color_adjust(opp_king_sq, color).rank();
+        trace_safety_update!(t, EnemyKingRank, (rank), color, 1);
+
+        if trop <= Tropism::TROPH_LIMIT {
+            trace_safety_update!(t, Tropism, (trop), color, 1);
+        }
+    }
+
+    score
 }
 
 pub fn mobility_threats_safety<const TRACE: bool>(
@@ -409,11 +418,9 @@ mod tests {
         eval::{
             evaluation::trace_of_position,
             piece_loop_eval::{forward_mobility, virtual_mobility},
-            trace::{Attacks, Defenses, EnemyKingRank, Trophism, SAFETY_TRACE_LEN},
+            trace::{Attacks, Defenses, EnemyKingRank, SAFETY_TRACE_LEN},
         },
     };
-
-    use super::trophism;
 
     #[test]
     fn virtual_mobility_test() {
@@ -461,21 +468,6 @@ mod tests {
 
         w[EnemyKingRank::index(0)] += 1;
         b[EnemyKingRank::index(1)] += 1;
-
-        let (w_enemy, b_enemy) = (
-            board.color_king_sq(Color::Black),
-            board.color_king_sq(Color::White),
-        );
-        w[Trophism::index(Piece::KNIGHT, trophism(w_enemy, Square::G2))] += 1;
-        w[Trophism::index(Piece::KNIGHT, trophism(w_enemy, Square::C3))] += 1;
-        w[Trophism::index(Piece::ROOK, trophism(w_enemy, Square::E2))] += 1;
-        w[Trophism::index(Piece::ROOK, trophism(w_enemy, Square::D1))] += 1;
-        w[Trophism::index(Piece::BISHOP, trophism(w_enemy, Square::H6))] += 1;
-        w[Trophism::index(Piece::BISHOP, trophism(w_enemy, Square::A8))] += 1;
-
-        b[Trophism::index(Piece::ROOK, trophism(b_enemy, Square::D8))] += 1;
-        b[Trophism::index(Piece::BISHOP, trophism(b_enemy, Square::F5))] += 1;
-        b[Trophism::index(Piece::QUEEN, trophism(b_enemy, Square::D3))] += 1;
 
         for color in Color::LIST {
             let actual = actual.safety[color.as_index()];

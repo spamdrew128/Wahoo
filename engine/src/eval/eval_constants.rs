@@ -222,21 +222,6 @@ pub const ENEMY_KING_RANK: Prt = Prt::new([
   s(260, -58),
 ]);
 
-pub const TROPHISM_BONUS: [[ScoreTuple; 8]; (NUM_PIECES - 2) as usize] = [
-// Knight trophism values
-[
+pub const TROPHISM_BONUS: [ScoreTuple; 8] = [
   s(27, -5), s(18, 8), s(14, 16), s(9, 20), s(-11, 25), s(-16, 27), s(-19, 29), s(-16, 29), 
-],
-// Bishop trophism values
-[
-  s(-11, 25), s(-16, 27), s(-19, 29), s(-16, 29), s(-13, 27), s(-18, 30), s(-17, 30), s(-19, 33), 
-],
-// Rook trophism values
-[
-  s(-13, 27), s(-18, 30), s(-17, 30), s(-19, 33), s(-25, 37), s(-25, 35), s(-29, 36), s(-38, 43), 
-],
-// Queen trophism values
-[
-  s(-25, 37), s(-25, 35), s(-29, 36), s(-38, 43), s(-38, 36), s(-48, 34), s(-54, 36), s(-57, 36), 
-],
 ];
