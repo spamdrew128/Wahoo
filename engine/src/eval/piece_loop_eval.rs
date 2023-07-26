@@ -10,12 +10,14 @@ use crate::{
         PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY,
         ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
     },
-    eval::evaluation::ScoreTuple,
     eval::trace::{
         color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace,
     },
+    eval::{evaluation::ScoreTuple, trace::Tropism},
     trace_safety_update, trace_threat_update, trace_update,
 };
+
+use super::eval_constants::TROPHISM_BONUS;
 
 const fn king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
     let mut king_zones = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
@@ -79,18 +81,25 @@ const KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = king
 
 const FORWARD_MASKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = forward_masks_init();
 
-pub const fn king_zone(board: &Board, color: Color) -> Bitboard {
+const TROPISM: [[usize; NUM_SQUARES as usize]; NUM_SQUARES as usize] =
+    include!(concat!(env!("OUT_DIR"), "/trophism_init.rs"));
+
+const fn king_zone(board: &Board, color: Color) -> Bitboard {
     let king_sq = board.color_king_sq(color);
     KING_ZONES[color.as_index()][king_sq.as_index()]
 }
 
-pub const fn forward_mobility(moves: Bitboard, sq: Square, color: Color) -> usize {
+const fn forward_mobility(moves: Bitboard, sq: Square, color: Color) -> usize {
     moves
         .intersection(FORWARD_MASKS[color.as_index()][sq.as_index()])
         .popcount() as usize
 }
 
-pub const fn availible(board: &Board, color: Color) -> Bitboard {
+const fn tropism(king_sq: Square, piece_sq: Square) -> usize {
+    TROPISM[king_sq.as_index()][piece_sq.as_index()]
+}
+
+const fn availible(board: &Board, color: Color) -> Bitboard {
     let opp_color = color.flip();
     let enemy_pawns = board.piece_bb(Piece::PAWN, opp_color);
     let enemy_pawn_attacks = attacks::pawn_setwise(enemy_pawns, opp_color);
@@ -99,7 +108,7 @@ pub const fn availible(board: &Board, color: Color) -> Bitboard {
     enemy_or_empty.without(enemy_pawn_attacks)
 }
 
-pub fn virtual_mobility(board: &Board, color: Color) -> usize {
+fn virtual_mobility(board: &Board, color: Color) -> usize {
     let opp_color = color.flip();
     let king_sq = board.color_king_sq(color);
     let empty = board.empty();
@@ -145,6 +154,7 @@ impl ConstPiece {
 struct LoopEvaluator {
     color: Color,
     availible: Bitboard,
+    enemy_king_sq: Square,
     enemy_king_zone: Bitboard,
     friendly_king_zone: Bitboard,
     own_virt_mob: usize,
@@ -155,11 +165,14 @@ struct LoopEvaluator {
     enemy_queens: Bitboard,
     hv_occupied: Bitboard,
     d12_occupied: Bitboard,
+
+    tropism: usize,
 }
 
 impl LoopEvaluator {
     fn new(board: &Board, own_virt_mob: usize, enemy_virt_mob: usize, color: Color) -> Self {
         let availible = availible(board, color);
+        let enemy_king_sq = board.color_king_sq(color.flip());
         let friendly_king_zone = king_zone(board, color);
         let enemy_king_zone = king_zone(board, color.flip());
 
@@ -178,6 +191,7 @@ impl LoopEvaluator {
         Self {
             color,
             availible,
+            enemy_king_sq,
             enemy_king_zone,
             friendly_king_zone,
             own_virt_mob,
@@ -188,6 +202,7 @@ impl LoopEvaluator {
             enemy_queens,
             hv_occupied,
             d12_occupied,
+            tropism: 0,
         }
     }
     const fn moves<const PIECE: u8>(&self, sq: Square) -> Bitboard {
@@ -204,7 +219,7 @@ impl LoopEvaluator {
 
     #[allow(clippy::cast_possible_wrap)]
     #[rustfmt::skip]
-    fn single_score<const PIECE: u8, const TRACE: bool>(&self, sq: Square, attack_power: &mut [ScoreTuple; 2], t: &mut Trace) -> ScoreTuple {
+    fn single_score<const PIECE: u8, const TRACE: bool>(&mut self, sq: Square, attack_power: &mut [ScoreTuple; 2], t: &mut Trace) -> ScoreTuple {
         let mut score = ScoreTuple::new(0, 0);
         let color = self.color;
         let opp_color = self.color.flip();
@@ -219,6 +234,8 @@ impl LoopEvaluator {
         let kz_defenses = self.friendly_king_zone.intersection(moves).popcount() as i32;
         attack_power[color.as_index()] += ATTACKS[piece.as_index()][self.enemy_virt_mob].mult(kz_attacks);
         attack_power[opp_color.as_index()] += DEFENSES[piece.as_index()][self.own_virt_mob].mult(kz_defenses);
+
+        self.tropism += tropism(self.enemy_king_sq, sq);
 
         match PIECE {
             ConstPiece::KNIGHT => {
@@ -313,7 +330,7 @@ impl LoopEvaluator {
     }
 
     fn piece_loop<const PIECE: u8, const TRACE: bool>(
-        &self,
+        &mut self,
         mut piece_bb: Bitboard,
         attack_power: &mut [ScoreTuple; 2],
         t: &mut Trace,
@@ -334,26 +351,33 @@ pub fn one_sided_eval<const TRACE: bool>(
     color: Color,
     t: &mut Trace,
 ) -> ScoreTuple {
-    let opp_king_sq = board.color_king_sq(color.flip());
-    attack_power[color.as_index()] += ENEMY_KING_RANK.access(color, opp_king_sq);
-
-    if TRACE {
-        let rank = color_adjust(opp_king_sq, color).rank();
-        trace_safety_update!(t, EnemyKingRank, (rank), color, 1);
-    }
-
     let knights = board.piece_bb(Piece::KNIGHT, color);
     let bishops = board.piece_bb(Piece::BISHOP, color);
     let rooks = board.piece_bb(Piece::ROOK, color);
     let queens = board.piece_bb(Piece::QUEEN, color);
     let pawns = board.piece_bb(Piece::PAWN, color);
 
-    let looper = LoopEvaluator::new(board, own_virt_mob, enemy_virt_mob, color);
-    looper.piece_loop::<{ ConstPiece::KNIGHT }, TRACE>(knights, attack_power, t)
+    let mut looper = LoopEvaluator::new(board, own_virt_mob, enemy_virt_mob, color);
+    let score = looper.piece_loop::<{ ConstPiece::KNIGHT }, TRACE>(knights, attack_power, t)
         + looper.piece_loop::<{ ConstPiece::BISHOP }, TRACE>(bishops, attack_power, t)
         + looper.piece_loop::<{ ConstPiece::ROOK }, TRACE>(rooks, attack_power, t)
         + looper.piece_loop::<{ ConstPiece::QUEEN }, TRACE>(queens, attack_power, t)
-        + looper.pawn_score::<TRACE>(pawns, color, attack_power, t)
+        + looper.pawn_score::<TRACE>(pawns, color, attack_power, t);
+
+    let opp_king_sq = board.color_king_sq(color.flip());
+    attack_power[color.as_index()] += ENEMY_KING_RANK.access(color, opp_king_sq);
+
+    let trop = looper.tropism;
+    attack_power[color.as_index()] += TROPHISM_BONUS[trop];
+
+    if TRACE {
+        let rank = color_adjust(opp_king_sq, color).rank();
+        trace_safety_update!(t, EnemyKingRank, (rank), color, 1);
+
+        trace_safety_update!(t, Tropism, (trop), color, 1);
+    }
+
+    score
 }
 
 pub fn mobility_threats_safety<const TRACE: bool>(
