@@ -244,8 +244,9 @@ impl EnemyKingRank {
 
 pub struct Tropism;
 impl Tropism {
+    pub const MAX: usize = 20 * 8;
     pub const START: usize = EnemyKingRank::START + EnemyKingRank::LEN;
-    pub const LEN: usize = 64;
+    pub const LEN: usize = Self::MAX;
 
     pub const fn index(trop: usize) -> usize {
         Self::START + trop

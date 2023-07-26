@@ -9,8 +9,8 @@ fn trophism_table() -> [[usize; NUM_SQUARES as usize]; NUM_SQUARES as usize] {
             let sq_2 = Square::new(j);
             let l1 = (sq_1.rank() as i16 - sq_2.rank() as i16).pow(2);
             let l2 = (sq_1.file() as i16 - sq_2.file() as i16).pow(2);
-            let dist = ((l1 + l2) as f64).sqrt() as i16;
-            result[i as usize][j as usize] = dist.clamp(0, 8) as usize;
+            let dist = ((l1 + l2 + 2) / 3).min(20);
+            result[i as usize][j as usize] = dist as usize;
         }
     }
 
