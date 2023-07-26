@@ -246,9 +246,9 @@ pub struct Trophism;
 impl Trophism {
     const TROPH_LIMIT: usize = 8;
     pub const START: usize = EnemyKingRank::START + EnemyKingRank::LEN;
-    pub const LEN: usize = Self::TROPH_LIMIT * (NUM_PIECES - 1) as usize;
+    pub const LEN: usize = Self::TROPH_LIMIT * (NUM_PIECES - 2) as usize;
 
     pub fn index(piece: Piece, troph: usize) -> usize {
-        Self::START + usize::from(NUM_PIECES - 1) * piece.as_index() + troph
+        Self::START + usize::from(NUM_PIECES - 2) * piece.as_index() + troph
     }
 }

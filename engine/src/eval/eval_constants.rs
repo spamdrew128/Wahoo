@@ -211,7 +211,6 @@ pub const DEFENSES: [[ScoreTuple; 28]; (NUM_PIECES - 1) as usize] = [
 ],
 ];
 
-
 pub const ENEMY_KING_RANK: Prt = Prt::new([
   s(95, 76),
   s(80, 78),
@@ -223,3 +222,21 @@ pub const ENEMY_KING_RANK: Prt = Prt::new([
   s(126, 137),
 ]);
 
+pub const TROPHISM_BONUS: [[ScoreTuple; 8]; (NUM_PIECES - 2) as usize] = [
+// Knight trophism values
+[
+  s(16, 4), s(3, 6), s(-8, 4), s(-7, 2), s(-8, 1), s(-7, 1), s(-8, 4), s(-8, 1),
+],
+// Bishop trophism values
+[
+  s(16, 4), s(3, 6), s(-8, 4), s(-7, 2), s(-8, 1), s(-7, 1), s(-8, 4), s(-8, 1),
+],
+// Rook trophism values
+[
+  s(16, 4), s(3, 6), s(-8, 4), s(-7, 2), s(-8, 1), s(-7, 1), s(-8, 4), s(-8, 1),
+],
+// Queen trophism values
+[
+  s(16, 4), s(3, 6), s(-8, 4), s(-7, 2), s(-8, 1), s(-7, 1), s(-8, 4), s(-8, 1),
+],
+];
