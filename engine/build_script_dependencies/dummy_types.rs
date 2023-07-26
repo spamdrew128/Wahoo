@@ -15,6 +15,14 @@ impl Square {
     pub const fn as_bitboard(self) -> Bitboard {
         Bitboard::new(1 << self.0)
     }
+
+    pub const fn rank(self) -> u8 {
+        self.0 / 8
+    }
+
+    pub const fn file(self) -> u8 {
+        self.0 % 8
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
