@@ -553,10 +553,10 @@ impl Tuner {
         self.virt_mobility_index_writer(output, "ATTACKS", Attacks::index);
         self.virt_mobility_index_writer(output, "DEFENSES", Defenses::index);
 
-        write!(output, "pub const ENEMY_KING_RANK: Prt = ").unwrap();
+        write!(output, "pub const ENEMY_KING_PST: Pst = ").unwrap();
         self.write_pst(
             output,
-            ";\n",
+            ";",
             self.weights.safety.as_slice(),
             EnemyKingPst::index,
         );
