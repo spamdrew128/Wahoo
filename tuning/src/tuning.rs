@@ -6,7 +6,7 @@ use engine::{
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
     eval::{
         evaluation::SAFETY_LIMIT,
-        trace::{Attacks, Defenses, Tropism, SAFETY_TRACE_LEN},
+        trace::{Attacks, Defenses, DefensiveTropism, Tropism, SAFETY_TRACE_LEN},
     },
     eval::{
         piece_loop_eval::MoveCounts,
@@ -547,6 +547,23 @@ impl Tuner {
         writeln!(output, "];\n").unwrap();
     }
 
+    fn trophism_writer<F>(&self, output: &mut BufWriter<File>, name: &str, index_fn: F)
+    where
+        F: Fn(usize) -> usize,
+    {
+        write!(
+            output,
+            "pub const {name}_BONUS: [ScoreTuple; {}] = [\n  ",
+            Tropism::LEN
+        )
+        .unwrap();
+        for i in 0..Tropism::LEN {
+            let w = self.weights.safety[index_fn(i)];
+            write!(output, "{w}, ",).unwrap();
+        }
+        writeln!(output, "\n];").unwrap();
+    }
+
     fn write_safety(&self, output: &mut BufWriter<File>) {
         self.virt_mobility_index_writer(output, "ATTACKS", Attacks::index);
         self.virt_mobility_index_writer(output, "DEFENSES", Defenses::index);
@@ -559,17 +576,8 @@ impl Tuner {
             EnemyKingRank::index,
         );
 
-        write!(
-            output,
-            "pub const TROPHISM_BONUS: [ScoreTuple; {}] = [\n  ",
-            Tropism::LEN
-        )
-        .unwrap();
-        for i in 0..Tropism::LEN {
-            let w = self.weights.safety[Tropism::index(i)];
-            write!(output, "{w}, ",).unwrap();
-        }
-        writeln!(output, "\n];").unwrap();
+        self.trophism_writer(output, "TROPISM", Tropism::index);
+        self.trophism_writer(output, "DEFENSIVE_TROPISM", DefensiveTropism::index);
     }
 
     fn create_output_file(&self) {

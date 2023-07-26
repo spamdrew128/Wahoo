@@ -4,16 +4,17 @@ use crate::{
     board::board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
     eval::eval_constants::{
         ATTACKS, BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT,
-        BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK, DEFENSES, ENEMY_KING_RANK,
-        KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN,
-        KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN,
-        PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY,
-        ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN, TROPHISM_BONUS, DEFENSIVE_TROPHISM_BONUS
-    },
-    eval::trace::{
-        color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace, Tropism, DefensiveTropism,
+        BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK, DEFENSES, DEFENSIVE_TROPHISM_BONUS,
+        ENEMY_KING_RANK, KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP,
+        KNIGHT_THREAT_ON_QUEEN, KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP,
+        PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY,
+        QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN, TROPHISM_BONUS,
     },
     eval::evaluation::ScoreTuple,
+    eval::trace::{
+        color_adjust, Attacks, Defenses, DefensiveTropism, EnemyKingRank, ForwardMobility,
+        Mobility, Threats, Trace, Tropism,
+    },
     trace_safety_update, trace_threat_update, trace_update,
 };
 

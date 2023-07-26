@@ -17,7 +17,7 @@ pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
     + ForwardMobility::LEN;
 
 pub const SAFETY_TRACE_LEN: usize =
-    Attacks::LEN + Defenses::LEN + EnemyKingRank::LEN + Tropism::LEN;
+    Attacks::LEN + Defenses::LEN + EnemyKingRank::LEN + Tropism::LEN + DefensiveTropism::LEN;
 
 pub struct Trace {
     pub linear: [i8; LINEAR_TRACE_LEN],
