@@ -1,4 +1,4 @@
-use super::dummy_types::{NUM_SQUARES, Square};
+use super::dummy_types::{Square, NUM_SQUARES};
 
 fn trophism_table() -> [[usize; NUM_SQUARES as usize]; NUM_SQUARES as usize] {
     let mut result = [[0; NUM_SQUARES as usize]; NUM_SQUARES as usize];
@@ -9,8 +9,8 @@ fn trophism_table() -> [[usize; NUM_SQUARES as usize]; NUM_SQUARES as usize] {
             let sq_2 = Square::new(j);
             let l1 = (sq_1.rank() as i16 - sq_2.rank() as i16).pow(2);
             let l2 = (sq_1.file() as i16 - sq_2.file() as i16).pow(2);
-            let dist = ((l1 + l2) as f64).sqrt() as usize;
-            result[i as usize][j as usize] = dist.min(8); 
+            let dist = ((l1 + l2) as f64).sqrt() as i16;
+            result[i as usize][j as usize] = (dist - 1).clamp(0, 7) as usize;
         }
     }
 

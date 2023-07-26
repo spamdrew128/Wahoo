@@ -79,20 +79,25 @@ const KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = king
 
 const FORWARD_MASKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = forward_masks_init();
 
-const TROPHISM: [[usize; NUM_SQUARES as usize]; NUM_SQUARES as usize] = include!(concat!(env!("OUT_DIR"), "/trophism_init.rs"));
+const TROPHISM: [[usize; NUM_SQUARES as usize]; NUM_SQUARES as usize] =
+    include!(concat!(env!("OUT_DIR"), "/trophism_init.rs"));
 
-pub const fn king_zone(board: &Board, color: Color) -> Bitboard {
+const fn king_zone(board: &Board, color: Color) -> Bitboard {
     let king_sq = board.color_king_sq(color);
     KING_ZONES[color.as_index()][king_sq.as_index()]
 }
 
-pub const fn forward_mobility(moves: Bitboard, sq: Square, color: Color) -> usize {
+const fn forward_mobility(moves: Bitboard, sq: Square, color: Color) -> usize {
     moves
         .intersection(FORWARD_MASKS[color.as_index()][sq.as_index()])
         .popcount() as usize
 }
 
-pub const fn availible(board: &Board, color: Color) -> Bitboard {
+const fn trophism(king_sq: Square, piece_sq: Square) -> usize {
+    TROPHISM[king_sq.as_index()][piece_sq.as_index()]
+}
+
+const fn availible(board: &Board, color: Color) -> Bitboard {
     let opp_color = color.flip();
     let enemy_pawns = board.piece_bb(Piece::PAWN, opp_color);
     let enemy_pawn_attacks = attacks::pawn_setwise(enemy_pawns, opp_color);
@@ -101,7 +106,7 @@ pub const fn availible(board: &Board, color: Color) -> Bitboard {
     enemy_or_empty.without(enemy_pawn_attacks)
 }
 
-pub fn virtual_mobility(board: &Board, color: Color) -> usize {
+fn virtual_mobility(board: &Board, color: Color) -> usize {
     let opp_color = color.flip();
     let king_sq = board.color_king_sq(color);
     let empty = board.empty();
