@@ -53,7 +53,10 @@ impl Move {
 
     pub fn new(to: Square, from: Square, flag: Flag, piece: Piece) -> Self {
         Self {
-            data: to.as_u32() | (from.as_u32() << Self::FROM_OFFSET) | flag.as_u32() | (piece.as_u32() << Self::PIECE_OFFSET),
+            data: to.as_u32()
+                | (from.as_u32() << Self::FROM_OFFSET)
+                | flag.as_u32()
+                | (piece.as_u32() << Self::PIECE_OFFSET),
         }
     }
 
@@ -251,6 +254,26 @@ impl Move {
                 };
                 to_bb.overlaps(move_bb)
             }
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct PackedMove {
+    // move without piece
+    data: u16,
+}
+
+impl PackedMove {
+    pub fn from_mv(mv: Move) -> Self {
+        Self {
+            data: mv.data as u16,
+        }
+    }
+
+    pub fn unpack(self, piece: Piece) -> Move {
+        Move {
+            data: (piece.as_u32() << Move::PIECE_OFFSET) | u32::from(self.data),
         }
     }
 }
