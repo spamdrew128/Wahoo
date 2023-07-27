@@ -1,24 +1,36 @@
 use crate::{
-    board::board_representation::{Color, Piece, Square, NUM_PIECES, NUM_RANKS, NUM_SQUARES},
+    board::board_representation::{
+        Color, Piece, Square, NUM_COLORS, NUM_PIECES, NUM_RANKS, NUM_SQUARES,
+    },
     eval::piece_loop_eval::MoveCounts,
 };
 
-pub const TRACE_LEN: usize = MaterialPst::LEN
+pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
     + Passer::LEN
     + PasserBlocker::LEN
     + BishopPair::LEN
     + Mobility::LEN
-    + Safety::LEN
     + IsolatedPawns::LEN
     + PhalanxPawns::LEN
     + Threats::LEN
     + TempoBonus::LEN
     + ForwardMobility::LEN;
 
-pub type Trace = [i8; TRACE_LEN];
+pub const SAFETY_TRACE_LEN: usize =
+    Attacks::LEN + Defenses::LEN + EnemyKingRank::LEN + Tropism::LEN + PawnStorm::LEN;
 
-pub const fn empty_trace() -> Trace {
-    [0; TRACE_LEN]
+pub struct Trace {
+    pub linear: [i8; LINEAR_TRACE_LEN],
+    pub safety: [[i8; SAFETY_TRACE_LEN]; NUM_COLORS as usize],
+}
+
+impl Trace {
+    pub const fn empty() -> Self {
+        Self {
+            linear: [0; LINEAR_TRACE_LEN],
+            safety: [[0; SAFETY_TRACE_LEN]; NUM_COLORS as usize],
+        }
+    }
 }
 
 pub const fn color_adjust(sq: Square, color: Color) -> Square {
@@ -36,7 +48,7 @@ macro_rules! trace_update {
             Color::Black => -1,
         };
         let index = $name::index($($arg,)*);
-        $trace[index] += mult * ($val as i8);
+        $trace.linear[index] += mult * ($val as i8);
     };
 }
 
@@ -48,7 +60,15 @@ macro_rules! trace_threat_update {
             Color::Black => -1,
         };
         let val = ($attacks & $enemy).popcount();
-        $trace[Threats::$index_name] += mult * (val as i8);
+        $trace.linear[Threats::$index_name] += mult * (val as i8);
+    };
+}
+
+#[macro_export]
+macro_rules! trace_safety_update {
+    ($trace:ident, $name:ident, ($($arg:ident),*), $color:expr, $val:expr) => {
+        let index = $name::index($($arg,)*);
+        $trace.safety[$color.as_index()][index] += $val as i8;
     };
 }
 
@@ -115,19 +135,9 @@ impl Mobility {
     }
 }
 
-pub struct Safety;
-impl Safety {
-    const START: usize = Mobility::START + Mobility::LEN;
-    const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 1) as usize);
-
-    pub const fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
-        Self::START + MoveCounts::QUEEN * piece.as_index() + enemy_virt_mobility
-    }
-}
-
 pub struct IsolatedPawns;
 impl IsolatedPawns {
-    pub const START: usize = Safety::START + Safety::LEN;
+    pub const START: usize = Mobility::START + Mobility::LEN;
     pub const LEN: usize = (NUM_RANKS as usize);
 
     pub const fn index(rank: u8) -> usize {
@@ -198,5 +208,58 @@ impl ForwardMobility {
 
     pub const fn index(piece: Piece, f_mobility: usize) -> usize {
         Self::START + f_mobility + Self::PIECE_OFFSETS[piece.as_index()]
+    }
+}
+
+// SAFETY STUFF
+pub struct Attacks;
+impl Attacks {
+    pub const START: usize = 0;
+    const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 1) as usize);
+
+    pub const fn index(piece: Piece, enemy_virt_mobility: usize) -> usize {
+        Self::START + MoveCounts::QUEEN * piece.as_index() + enemy_virt_mobility
+    }
+}
+
+pub struct Defenses;
+impl Defenses {
+    pub const START: usize = Attacks::START + Attacks::LEN;
+    const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 1) as usize);
+
+    pub const fn index(piece: Piece, virt_mobility: usize) -> usize {
+        Self::START + MoveCounts::QUEEN * piece.as_index() + virt_mobility
+    }
+}
+
+pub struct EnemyKingRank;
+impl EnemyKingRank {
+    pub const START: usize = Defenses::START + Defenses::LEN;
+    pub const LEN: usize = NUM_RANKS as usize;
+
+    pub const fn index(rank: u8) -> usize {
+        Self::START + rank as usize
+    }
+}
+
+pub struct Tropism;
+impl Tropism {
+    pub const MAX: usize = 20 * 8;
+    pub const START: usize = EnemyKingRank::START + EnemyKingRank::LEN;
+    pub const LEN: usize = Self::MAX;
+
+    pub const fn index(trop: usize) -> usize {
+        Self::START + trop
+    }
+}
+
+pub struct PawnStorm;
+impl PawnStorm {
+    pub const MAX: usize = 20 * 8;
+    pub const START: usize = Tropism::START + Tropism::LEN;
+    pub const LEN: usize = Self::MAX;
+
+    pub const fn index(trop: usize) -> usize {
+        Self::START + trop
     }
 }

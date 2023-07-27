@@ -9,8 +9,8 @@ use crate::{
     },
     eval::piece_loop_eval::mobility_threats_safety,
     eval::trace::{
-        color_adjust, empty_trace, BishopPair, IsolatedPawns, MaterialPst, Passer, PasserBlocker,
-        PhalanxPawns, TempoBonus, Trace,
+        color_adjust, BishopPair, IsolatedPawns, MaterialPst, Passer, PasserBlocker, PhalanxPawns,
+        TempoBonus, Trace,
     },
     search::search::MAX_PLY,
     trace_update,
@@ -33,6 +33,7 @@ pub const TB_LOSS_SCORE: EvalScore = -TB_WIN_SCORE;
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ScoreTuple(EvalScore, EvalScore);
 
+pub const SAFETY_LIMIT: i32 = 720;
 impl ScoreTuple {
     pub const fn new(mg: EvalScore, eg: EvalScore) -> Self {
         Self(mg, eg)
@@ -48,6 +49,15 @@ impl ScoreTuple {
 
     pub const fn mult(self, multiplier: i32) -> Self {
         Self(self.0 * multiplier, self.1 * multiplier)
+    }
+
+    pub fn king_safety_formula(self) -> Self {
+        let mg = self.mg().max(0);
+        let eg = self.eg().max(0);
+        Self(
+            ((mg * mg) / 100).min(SAFETY_LIMIT),
+            ((eg * eg) / 100).min(SAFETY_LIMIT),
+        )
     }
 }
 
@@ -193,8 +203,7 @@ fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
     score_tuple += passed_pawns::<TRACE>(board, us, t) - passed_pawns::<TRACE>(board, them, t);
     score_tuple += isolated_pawns::<TRACE>(board, us, t) - isolated_pawns::<TRACE>(board, them, t);
     score_tuple += phalanx_pawns::<TRACE>(board, us, t) - phalanx_pawns::<TRACE>(board, them, t);
-    score_tuple += mobility_threats_safety::<TRACE>(board, us, t)
-        - mobility_threats_safety::<TRACE>(board, them, t);
+    score_tuple += mobility_threats_safety::<TRACE>(board, us, them, t);
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
@@ -203,11 +212,11 @@ fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
 }
 
 pub fn evaluate(board: &Board) -> EvalScore {
-    eval_or_trace::<false>(board, &mut empty_trace())
+    eval_or_trace::<false>(board, &mut Trace::empty())
 }
 
 pub fn trace_of_position(board: &Board) -> Trace {
-    let mut trace = empty_trace();
+    let mut trace = Trace::empty();
     eval_or_trace::<true>(board, &mut trace);
     trace
 }
