@@ -153,7 +153,7 @@ impl MoveGenerator {
 
         let mut king = board.piece_bb(Piece::KING, color);
         into_moves!(|from|, king, |to|, attacks::king(from).intersection(filter), {
-            self.add_move(Move::new(to, from, flag, Piece::QUEEN), repeats);
+            self.add_move(Move::new(to, from, flag, Piece::KING), repeats);
         });
     }
 
