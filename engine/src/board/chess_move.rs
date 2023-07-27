@@ -5,32 +5,32 @@ use super::{
 
 pub const MAX_MOVECOUNT: usize = u8::MAX as usize;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Flag(u16);
 
 impl Flag {
-    pub const NONE: Self = Self(0 << Move::FLAGS_OFFSET);
-    pub const KS_CASTLE: Self = Self(1 << Move::FLAGS_OFFSET);
-    pub const QS_CASTLE: Self = Self(2 << Move::FLAGS_OFFSET);
-    pub const DOUBLE_PUSH: Self = Self(3 << Move::FLAGS_OFFSET);
-    pub const KNIGHT_PROMO: Self = Self(4 << Move::FLAGS_OFFSET);
-    pub const BISHOP_PROMO: Self = Self(5 << Move::FLAGS_OFFSET);
-    pub const ROOK_PROMO: Self = Self(6 << Move::FLAGS_OFFSET);
-    pub const QUEEN_PROMO: Self = Self(7 << Move::FLAGS_OFFSET);
-    pub const KNIGHT_CAPTURE_PROMO: Self = Self(8 << Move::FLAGS_OFFSET);
-    pub const BISHOP_CAPTURE_PROMO: Self = Self(9 << Move::FLAGS_OFFSET);
-    pub const ROOK_CAPTURE_PROMO: Self = Self(10 << Move::FLAGS_OFFSET);
-    pub const QUEEN_CAPTURE_PROMO: Self = Self(11 << Move::FLAGS_OFFSET);
-    pub const EP: Self = Self(12 << Move::FLAGS_OFFSET);
-    pub const CAPTURE: Self = Self(13 << Move::FLAGS_OFFSET);
+    pub const NONE: Self = Self(0 << PackedMove::FLAGS_OFFSET);
+    pub const KS_CASTLE: Self = Self(1 << PackedMove::FLAGS_OFFSET);
+    pub const QS_CASTLE: Self = Self(2 << PackedMove::FLAGS_OFFSET);
+    pub const DOUBLE_PUSH: Self = Self(3 << PackedMove::FLAGS_OFFSET);
+    pub const KNIGHT_PROMO: Self = Self(4 << PackedMove::FLAGS_OFFSET);
+    pub const BISHOP_PROMO: Self = Self(5 << PackedMove::FLAGS_OFFSET);
+    pub const ROOK_PROMO: Self = Self(6 << PackedMove::FLAGS_OFFSET);
+    pub const QUEEN_PROMO: Self = Self(7 << PackedMove::FLAGS_OFFSET);
+    pub const KNIGHT_CAPTURE_PROMO: Self = Self(8 << PackedMove::FLAGS_OFFSET);
+    pub const BISHOP_CAPTURE_PROMO: Self = Self(9 << PackedMove::FLAGS_OFFSET);
+    pub const ROOK_CAPTURE_PROMO: Self = Self(10 << PackedMove::FLAGS_OFFSET);
+    pub const QUEEN_CAPTURE_PROMO: Self = Self(11 << PackedMove::FLAGS_OFFSET);
+    pub const EP: Self = Self(12 << PackedMove::FLAGS_OFFSET);
+    pub const CAPTURE: Self = Self(13 << PackedMove::FLAGS_OFFSET);
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct Move {
+pub struct PackedMove {
     data: u16,
 }
 
-impl Move {
+impl PackedMove {
     const TO_BITFIELD: u16 = 0b0000000000111111;
     const FROM_BITFIELD: u16 = 0b0000111111000000;
     const FLAGS_BITFIELD: u16 = 0b1111000000000000;
@@ -38,46 +38,57 @@ impl Move {
     const FROM_OFFSET: u8 = 6;
     const FLAGS_OFFSET: u8 = 12;
 
-    pub const fn nullmove() -> Self {
-        Self { data: 0 }
-    }
-
-    pub const fn is_null(self) -> bool {
-        self.data == 0
-    }
-
-    pub const fn new(to: Square, from: Square, flag: Flag) -> Self {
+    pub const fn unpack(self) -> Self {
         Self {
             data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET) | flag.0,
         }
     }
+} 
+
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
+pub struct Move {
+    to: Square,
+    from: Square,
+    flag: Flag,
+    piece: Piece,
+}
+
+impl Move {
+    pub const fn new(to: Square, from: Square, flag: Flag) -> Self {
+        Self {
+            from,
+            to,
+            flag,
+            piece: Piece::KNIGHT,
+        }
+    }
+
+    pub const fn nullmove() -> Self {
+        Self::default()
+    }
+
+    pub fn is_null(self) -> bool {
+        self == Self::default()
+    }
 
     pub const fn new_ks_castle(king_sq: Square) -> Self {
-        Self {
-            data: king_sq.right(2).as_u16()
-                | (king_sq.as_u16() << Self::FROM_OFFSET)
-                | Flag::KS_CASTLE.0,
-        }
+        Self::new(king_sq.right(2), king_sq, Flag::KS_CASTLE)
     }
 
     pub const fn new_qs_castle(king_sq: Square) -> Self {
-        Self {
-            data: king_sq.left(2).as_u16()
-                | (king_sq.as_u16() << Self::FROM_OFFSET)
-                | Flag::QS_CASTLE.0,
-        }
+        Self::new(king_sq.left(2), king_sq, Flag::QS_CASTLE)
     }
 
     pub const fn to(self) -> Square {
-        Square::new((self.data & Self::TO_BITFIELD) as u8)
+        self.to
     }
 
     pub const fn from(self) -> Square {
-        Square::new(((self.data & Self::FROM_BITFIELD) >> Self::FROM_OFFSET) as u8)
+        self.from
     }
 
     pub const fn flag(self) -> Flag {
-        Flag(self.data & Self::FLAGS_BITFIELD)
+        self.flag
     }
 
     pub fn is_promo(self) -> bool {

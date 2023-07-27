@@ -36,7 +36,7 @@ impl Color {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct Piece(u8);
 
 impl Piece {
