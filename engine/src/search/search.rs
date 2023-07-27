@@ -505,7 +505,7 @@ impl<'a> Searcher<'a> {
                 if score >= beta {
                     if is_quiet {
                         self.killers.update(mv, ply);
-                        self.history.update(board, quiets.as_slice(), depth);
+                        self.history.update(board.color_to_move, quiets.as_slice(), depth);
                     }
                     break;
                 }

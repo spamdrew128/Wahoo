@@ -1,5 +1,5 @@
 use super::attacks;
-use super::board_representation::{Bitboard, Board, Piece, Square, NUM_PIECES};
+use super::board_representation::{Bitboard, Board, Piece, Square, NUM_PIECES, Color};
 use super::chess_move::MAX_MOVECOUNT;
 use super::chess_move::{Flag, Move};
 use crate::bitloop;
@@ -235,15 +235,15 @@ impl MoveGenerator {
 
     fn score_captures(&mut self, board: &Board) {
         for elem in self.movelist.iter_mut().take(self.len) {
-            let attacker = board.piece_on_sq(elem.mv.from());
+            let attacker = elem.mv.piece();
             let victim = board.piece_on_sq(elem.mv.to());
             elem.score = mvv_lva(attacker, victim);
         }
     }
 
-    fn score_quiets(&mut self, board: &Board, history: &History) {
+    fn score_quiets(&mut self, color: Color, history: &History) {
         for elem in self.movelist.iter_mut().take(self.len) {
-            elem.score = history.score(board, elem.mv) as i16;
+            elem.score = history.score(color, elem.mv) as i16;
         }
     }
 
@@ -283,7 +283,7 @@ impl MoveGenerator {
                         } else {
                             self.generate_quiets(board, &[killer]);
                         };
-                        self.score_quiets(board, history);
+                        self.score_quiets(board.color_to_move, history);
                     }
                 }
                 _ => return None,
