@@ -115,6 +115,10 @@ impl Piece {
     pub const fn as_u16(self) -> u16 {
         self.0 as u16
     }
+
+    pub const fn as_u32(self) -> u32 {
+        self.0 as u32
+    }
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
@@ -143,6 +147,10 @@ impl Square {
 
     pub const fn as_u16(self) -> u16 {
         self.0 as u16
+    }
+
+    pub const fn as_u32(self) -> u32 {
+        self.0 as u32
     }
 
     pub const fn as_index(self) -> usize {
