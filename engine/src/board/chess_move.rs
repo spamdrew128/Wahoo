@@ -38,12 +38,26 @@ impl PackedMove {
     const FROM_OFFSET: u8 = 6;
     const FLAGS_OFFSET: u8 = 12;
 
-    pub const fn unpack(self) -> Self {
-        Self {
-            data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET) | flag.0,
-        }
+    pub const fn unpack(self) -> Move {
+        Move::new(self.to(), self.from(), self.flag())
     }
-} 
+
+    const fn to(self) -> Square {
+        Square::new((self.data & Self::TO_BITFIELD) as u8)
+    }
+
+    const fn from(self) -> Square {
+        Square::new(((self.data & Self::FROM_BITFIELD) >> Self::FROM_OFFSET) as u8)
+    }
+
+    const fn flag(self) -> Flag {
+        Flag(self.data & Self::FLAGS_BITFIELD)
+    }
+}
+
+impl From<Move> for PackedMove {
+    
+}
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub struct Move {
