@@ -9,7 +9,7 @@ pub struct Killers {
 }
 
 impl Killers {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             moves: [Move::nullmove(); MAX_PLY as usize],
         }

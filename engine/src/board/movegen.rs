@@ -67,7 +67,7 @@ struct MoveElement {
 }
 
 impl MoveElement {
-    const fn new() -> Self {
+    fn new() -> Self {
         Self {
             mv: Move::nullmove(),
             score: 0,
@@ -83,7 +83,7 @@ pub struct MoveGenerator {
 }
 
 impl MoveGenerator {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             stage: MoveStage::START,
             movelist: [MoveElement::new(); MAX_MOVECOUNT],

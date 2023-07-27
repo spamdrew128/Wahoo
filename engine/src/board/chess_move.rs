@@ -56,10 +56,14 @@ impl PackedMove {
 }
 
 impl From<Move> for PackedMove {
-    
+    fn from(mv: Move) -> Self {
+        Self {
+            data: mv.to.as_u16() | (mv.from.as_u16() << Self::FROM_OFFSET) | mv.flag.0,
+        }
+    }
 }
 
-#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct Move {
     to: Square,
     from: Square,
@@ -77,7 +81,7 @@ impl Move {
         }
     }
 
-    pub const fn nullmove() -> Self {
+    pub fn nullmove() -> Self {
         Self::default()
     }
 

@@ -10,7 +10,7 @@ pub struct PvTable {
 }
 
 impl PvTable {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             triangular_move_matrix: [[Move::nullmove(); MAX_PLY as usize]; MAX_PLY as usize],
             pv_length: [0; (MAX_PLY + 1) as usize],
