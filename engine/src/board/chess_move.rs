@@ -208,7 +208,7 @@ impl Move {
             return false;
         }
 
-        let piece = self.piece();
+        let piece = board.piece_on_sq(from);
         let color = board.color_to_move;
         let empty = board.empty();
         match flag {
