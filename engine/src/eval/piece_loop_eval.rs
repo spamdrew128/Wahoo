@@ -1,17 +1,17 @@
 use crate::{
     bitloop,
     board::attacks,
-    board::board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
+    board::board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES, NUM_FILES},
     eval::eval_constants::{
         ATTACKS, BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT,
         BISHOP_THREAT_ON_QUEEN, BISHOP_THREAT_ON_ROOK, DEFENSES, ENEMY_KING_RANK,
         KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP, KNIGHT_THREAT_ON_QUEEN,
         KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP, PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN,
         PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY,
-        ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN, TROPHISM_BONUS
+        ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN, TROPHISM_BONUS, PAWN_STORM_PST
     },
     eval::trace::{
-        color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace,
+        color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace, PawnStorm,
     },
     eval::{evaluation::ScoreTuple, trace::Tropism},
     trace_safety_update, trace_threat_update, trace_update,
@@ -54,6 +54,19 @@ const fn king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as u
     king_zones
 }
 
+const fn king_file_zones_init() -> [Bitboard; NUM_FILES as usize] {
+    let zones = king_zones_init()[Color::White.as_index()];
+    let mut result = [Bitboard::EMPTY; NUM_FILES as usize];
+
+    let mut i = 0;
+    while i < NUM_FILES as usize {
+        result[i] = zones[i].file_fill();
+        i += 1;
+    }
+
+    result
+}
+
 const fn forward_masks_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
     let mut result = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
 
@@ -76,6 +89,8 @@ const fn forward_masks_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS a
 }
 
 const KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = king_zones_init();
+
+const KING_FILE_ZONES: [Bitboard; NUM_FILES as usize] = king_file_zones_init();
 
 const FORWARD_MASKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = forward_masks_init();
 
@@ -339,9 +354,24 @@ impl LoopEvaluator {
         });
         score
     }
+
+    fn pawn_storm<const TRACE: bool>(&self, pawns: Bitboard, attack_power: &mut [ScoreTuple; 2],         t: &mut Trace) {
+        let zone = KING_FILE_ZONES[self.enemy_king_sq.file() as usize];
+        let mut storming_pawns = pawns.intersection(zone);
+    
+        let color = self.color;
+        bitloop!(|sq| storming_pawns, {
+            attack_power[color.as_index()] += PAWN_STORM_PST.access(color, sq);
+
+            if TRACE {
+                let sq = color_adjust(sq, color);
+                trace_safety_update!(t, PawnStorm, (sq), color, 1);
+            }
+        });
+    }
 }
 
-pub fn one_sided_eval<const TRACE: bool>(
+fn one_sided_eval<const TRACE: bool>(
     board: &Board,
     attack_power: &mut [ScoreTuple; 2],
     own_virt_mob: usize,
@@ -361,6 +391,8 @@ pub fn one_sided_eval<const TRACE: bool>(
         + looper.piece_loop::<{ ConstPiece::ROOK }, TRACE>(rooks, attack_power, t)
         + looper.piece_loop::<{ ConstPiece::QUEEN }, TRACE>(queens, attack_power, t)
         + looper.pawn_score::<TRACE>(pawns, color, attack_power, t);
+
+    looper.pawn_storm::<TRACE>(pawns, attack_power, t);
 
     let opp_king_sq = board.color_king_sq(color.flip());
     attack_power[color.as_index()] += ENEMY_KING_RANK.access(color, opp_king_sq);

@@ -252,3 +252,13 @@ impl Tropism {
         Self::START + trop
     }
 }
+
+pub struct PawnStorm;
+impl PawnStorm {
+    pub const START: usize = Tropism::START + Tropism::LEN;
+    pub const LEN: usize = (NUM_SQUARES as usize);
+
+    pub const fn index(sq: Square) -> usize {
+        Self::START + sq.as_index()
+    }
+}
