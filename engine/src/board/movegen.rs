@@ -201,9 +201,15 @@ impl MoveGenerator {
         bitloop!(|to| promotions, {
             let from = to.retreat(1, color);
             self.add_move(Move::new(to, from, Flag::QUEEN_PROMO, Piece::PAWN), repeats);
-            self.add_move(Move::new(to, from, Flag::KNIGHT_PROMO, Piece::PAWN), repeats);
+            self.add_move(
+                Move::new(to, from, Flag::KNIGHT_PROMO, Piece::PAWN),
+                repeats,
+            );
             self.add_move(Move::new(to, from, Flag::ROOK_PROMO, Piece::PAWN), repeats);
-            self.add_move(Move::new(to, from, Flag::BISHOP_PROMO, Piece::PAWN), repeats);
+            self.add_move(
+                Move::new(to, from, Flag::BISHOP_PROMO, Piece::PAWN),
+                repeats,
+            );
         });
 
         bitloop!(|to| single_pushs, {

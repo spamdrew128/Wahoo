@@ -266,7 +266,9 @@ pub struct PackedMove {
 
 impl PackedMove {
     pub fn unpack(self, board: &Board) -> Move {
-        let mut mv = Move{data: self.data as u32};
+        let mut mv = Move {
+            data: u32::from(self.data),
+        };
         let piece = board.piece_on_sq(mv.from());
         mv.data |= piece.as_u32() << Move::PIECE_OFFSET;
         mv
@@ -275,8 +277,8 @@ impl PackedMove {
 
 impl From<Move> for PackedMove {
     fn from(mv: Move) -> Self {
-        PackedMove{
-            data: mv.data as u16
+        Self {
+            data: mv.data as u16,
         }
     }
 }

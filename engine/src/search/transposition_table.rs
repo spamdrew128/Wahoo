@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::{
     board::chess_move::Move,
-    board::{zobrist::ZobristHash, chess_move::PackedMove},
+    board::{chess_move::PackedMove, zobrist::ZobristHash},
     eval::evaluation::{EvalScore, MATE_THRESHOLD, TB_LOSS_SCORE, TB_WIN_SCORE},
     search::search::{Depth, Ply},
 };
@@ -58,11 +58,11 @@ impl AgeAndFlag {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub struct TTEntry {
-    age_and_flag: AgeAndFlag, // 1 byte
-    depth: Depth,             // 1 byte
-    pub best_move: PackedMove,      // 2 byte
-    score: i16,               // 2 byte
-    key: u16,                 // 2 byte
+    age_and_flag: AgeAndFlag,  // 1 byte
+    depth: Depth,              // 1 byte
+    pub best_move: PackedMove, // 2 byte
+    score: i16,                // 2 byte
+    key: u16,                  // 2 byte
 }
 
 impl TTEntry {
