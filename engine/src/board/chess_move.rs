@@ -192,6 +192,12 @@ impl Move {
         let them = board.them();
         let occupied = board.occupied();
         let flag = self.flag();
+        let piece = board.piece_on_sq(from);
+
+        // make sure we are moving the correct piece
+        if self.piece() != piece {
+            return false;
+        }
 
         // make sure to move a piece that is our color, and non-empty
         if !from_bb.overlaps(us) {
@@ -208,7 +214,6 @@ impl Move {
             return false;
         }
 
-        let piece = board.piece_on_sq(from);
         let color = board.color_to_move;
         let empty = board.empty();
         match flag {
@@ -326,11 +331,12 @@ mod tests {
                     assert_eq!(
                         expected,
                         actual,
-                        "\nFen_1: {}\nFen_2: {}\nMove: {}\nFlag {}",
+                        "\nFen_1: {}\nFen_2: {}\nMove: {}\nFlag {}\nPiece {}",
                         board_1.to_fen(),
                         board_2.to_fen(),
                         mv.as_string(),
                         mv.flag().0,
+                        mv.piece().as_string().unwrap()
                     );
                 }
             }
