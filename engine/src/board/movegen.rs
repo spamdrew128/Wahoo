@@ -1,5 +1,5 @@
 use super::attacks;
-use super::board_representation::{Bitboard, Board, Piece, Square, NUM_PIECES, Color};
+use super::board_representation::{Bitboard, Board, Color, Piece, Square, NUM_PIECES};
 use super::chess_move::MAX_MOVECOUNT;
 use super::chess_move::{Flag, Move};
 use crate::bitloop;

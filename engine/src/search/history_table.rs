@@ -1,6 +1,6 @@
 use crate::{
     board::board_representation::{NUM_COLORS, NUM_PIECES, NUM_SQUARES},
-    board::{chess_move::Move, board_representation::Color},
+    board::{board_representation::Color, chess_move::Move},
     eval::evaluation::EvalScore,
     search::search::Depth,
 };
