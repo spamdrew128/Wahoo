@@ -573,13 +573,17 @@ impl Tuner {
         }
         writeln!(output, "\n];").unwrap();
 
-        write!(output, "\npub const PAWN_STORM_PST: Pst = ").unwrap();
-        self.write_pst(
+        write!(
             output,
-            ";",
-            self.weights.safety.as_slice(),
-            PawnStorm::index,
-        );
+            "\npub const PAWN_STORM_BONUS: [ScoreTuple; {}] = [\n  ",
+            PawnStorm::LEN
+        )
+        .unwrap();
+        for i in 0..PawnStorm::LEN {
+            let w = self.weights.safety[PawnStorm::index(i)];
+            write!(output, "{w}, ",).unwrap();
+        }
+        writeln!(output, "\n];").unwrap();
     }
 
     fn create_output_file(&self) {
