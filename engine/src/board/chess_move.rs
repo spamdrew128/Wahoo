@@ -24,8 +24,8 @@ impl Flag {
     pub const EP: Self = Self(12 << Move::FLAGS_OFFSET);
     pub const CAPTURE: Self = Self(13 << Move::FLAGS_OFFSET);
 
-    fn as_u32(self) -> u32 {
-        u32::from(self.0)
+    const fn as_u32(self) -> u32 {
+        self.0 as u32
     }
 }
 
@@ -51,7 +51,7 @@ impl Move {
         self.data == 0
     }
 
-    pub fn new(to: Square, from: Square, flag: Flag, piece: Piece) -> Self {
+    pub const fn new(to: Square, from: Square, flag: Flag, piece: Piece) -> Self {
         Self {
             data: to.as_u32()
                 | (from.as_u32() << Self::FROM_OFFSET)
