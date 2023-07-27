@@ -6,7 +6,7 @@ use engine::{
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
     eval::{
         evaluation::SAFETY_LIMIT,
-        trace::{Attacks, Defenses, Tropism, SAFETY_TRACE_LEN},
+        trace::{Attacks, Defenses, PawnStorm, Tropism, SAFETY_TRACE_LEN},
     },
     eval::{
         piece_loop_eval::MoveCounts,
@@ -362,7 +362,7 @@ impl Tuner {
         .unwrap();
     }
 
-    fn write_pst<F>(&self, output: &mut BufWriter<File>, closing_str: &str, index_fn: F)
+    fn write_pst<F>(&self, output: &mut BufWriter<File>, closing_str: &str, vals: &[S], index_fn: F)
     where
         F: Fn(Square) -> usize,
     {
@@ -372,7 +372,7 @@ impl Tuner {
             if i % 8 == 0 {
                 write!(output, "\n  ").unwrap();
             }
-            let w = self.weights.linear[index_fn(sq)];
+            let w = vals[index_fn(sq)];
             write!(output, "{w}, ",).unwrap();
         }
         writeln!(output, "\n]){closing_str}").unwrap();
@@ -399,7 +399,9 @@ impl Tuner {
 
         for piece in Piece::LIST {
             writeln!(output, "// {} PST", piece.as_string().unwrap()).unwrap();
-            self.write_pst(output, ",", |sq| MaterialPst::index(piece, sq));
+            self.write_pst(output, ",", self.weights.linear.as_slice(), |sq| {
+                MaterialPst::index(piece, sq)
+            });
         }
 
         writeln!(output, "];\n").unwrap();
@@ -407,7 +409,7 @@ impl Tuner {
 
     fn write_passer_pst(&self, output: &mut BufWriter<File>) {
         write!(output, "pub const PASSER_PST: Pst = ").unwrap();
-        self.write_pst(output, ";\n", Passer::index);
+        self.write_pst(output, ";\n", self.weights.linear.as_slice(), Passer::index);
     }
 
     fn write_passer_blocker_prt(&self, output: &mut BufWriter<File>) {
@@ -570,6 +572,14 @@ impl Tuner {
             write!(output, "{w}, ",).unwrap();
         }
         writeln!(output, "\n];").unwrap();
+
+        write!(output, "\npub const PAWN_STORM_PST: Pst = ").unwrap();
+        self.write_pst(
+            output,
+            ";",
+            self.weights.safety.as_slice(),
+            PawnStorm::index,
+        );
     }
 
     fn create_output_file(&self) {
