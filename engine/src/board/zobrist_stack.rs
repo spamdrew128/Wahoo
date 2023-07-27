@@ -52,9 +52,7 @@ impl ZobristStack {
 #[cfg(test)]
 mod tests {
     use crate::board::{
-        board_representation::{Board, Piece},
-        chess_move::Move,
-        zobrist::ZobristHash,
+        board_representation::Board, chess_move::Move, zobrist::ZobristHash,
         zobrist_stack::ZobristStack,
     };
 
@@ -68,10 +66,10 @@ mod tests {
         let mut board = Board::from_fen(START_FEN);
         let mut zobrist_stack = ZobristStack::new(&board);
 
-        let w_knight_out = Move::new(Square::F3, Square::G1, Flag::NONE, Piece::KNIGHT);
-        let b_knight_out = Move::new(Square::F6, Square::G8, Flag::NONE, Piece::KNIGHT);
-        let w_knight_back = Move::new(Square::G1, Square::F3, Flag::NONE, Piece::KNIGHT);
-        let b_knight_back = Move::new(Square::G8, Square::F6, Flag::NONE, Piece::KNIGHT);
+        let w_knight_out = Move::new(Square::F3, Square::G1, Flag::NONE);
+        let b_knight_out = Move::new(Square::F6, Square::G8, Flag::NONE);
+        let w_knight_back = Move::new(Square::G1, Square::F3, Flag::NONE);
+        let b_knight_back = Move::new(Square::G8, Square::F6, Flag::NONE);
 
         board.try_play_move(
             w_knight_out,

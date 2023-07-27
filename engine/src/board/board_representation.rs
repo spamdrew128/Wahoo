@@ -115,10 +115,6 @@ impl Piece {
     pub const fn as_u16(self) -> u16 {
         self.0 as u16
     }
-
-    pub const fn as_u32(self) -> u32 {
-        self.0 as u32
-    }
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
@@ -147,10 +143,6 @@ impl Square {
 
     pub const fn as_u16(self) -> u16 {
         self.0 as u16
-    }
-
-    pub const fn as_u32(self) -> u32 {
-        self.0 as u32
     }
 
     pub const fn as_index(self) -> usize {
@@ -878,7 +870,7 @@ impl Board {
         let from_sq = mv.from();
         let to_bb = to_sq.as_bitboard();
         let from_bb = from_sq.as_bitboard();
-        let piece = mv.piece();
+        let piece = self.piece_on_sq(from_sq);
         debug_assert!(piece != Piece::NONE);
 
         if piece == Piece::PAWN {

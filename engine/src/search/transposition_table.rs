@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::{
     board::chess_move::Move,
-    board::{chess_move::PackedMove, zobrist::ZobristHash},
+    board::zobrist::ZobristHash,
     eval::evaluation::{EvalScore, MATE_THRESHOLD, TB_LOSS_SCORE, TB_WIN_SCORE},
     search::search::{Depth, Ply},
 };
@@ -58,11 +58,11 @@ impl AgeAndFlag {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub struct TTEntry {
-    age_and_flag: AgeAndFlag,  // 1 byte
-    depth: Depth,              // 1 byte
-    pub best_move: PackedMove, // 2 byte
-    score: i16,                // 2 byte
-    key: u16,                  // 2 byte
+    age_and_flag: AgeAndFlag, // 1 byte
+    depth: Depth,             // 1 byte
+    pub best_move: Move,      // 2 byte
+    score: i16,               // 2 byte
+    key: u16,                 // 2 byte
 }
 
 impl TTEntry {
@@ -72,7 +72,7 @@ impl TTEntry {
         age: u8,
         flag: TTFlag,
         depth: Depth,
-        best_move: PackedMove,
+        best_move: Move,
         score: i16,
         key: u16,
     ) -> Self {
@@ -192,7 +192,7 @@ impl TranspositionTable {
     ) {
         let score = TTEntry::score_to_tt(best_score, ply);
         let key = TTEntry::key_from_hash(hash);
-        let mut new_entry = TTEntry::new(self.age, flag, depth, best_move.into(), score, key);
+        let mut new_entry = TTEntry::new(self.age, flag, depth, best_move, score, key);
 
         let index = self.table_index(hash);
         let old_entry: TTEntry = self.table[index].load(Ordering::Relaxed).into();
@@ -280,7 +280,7 @@ mod tests {
             1,
             flag,
             4,
-            mv.into(),
+            mv,
             best_score.try_into().unwrap(),
             TTEntry::key_from_hash(hash),
         );

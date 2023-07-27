@@ -377,7 +377,7 @@ impl<'a> Searcher<'a> {
                 static_eval = tt_score;
             }
 
-            entry.best_move.unpack(board)
+            entry.best_move
         } else {
             // INTERNAL ITERATIVE REDUCTION (IIR)
             const MIN_IIR_DEPTH: Depth = 3;
@@ -505,7 +505,7 @@ impl<'a> Searcher<'a> {
                 if score >= beta {
                     if is_quiet {
                         self.killers.update(mv, ply);
-                        self.history.update(board.color_to_move, quiets.as_slice(), depth);
+                        self.history.update(board, quiets.as_slice(), depth);
                     }
                     break;
                 }

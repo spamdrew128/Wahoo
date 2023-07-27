@@ -23,25 +23,20 @@ impl Flag {
     pub const QUEEN_CAPTURE_PROMO: Self = Self(11 << Move::FLAGS_OFFSET);
     pub const EP: Self = Self(12 << Move::FLAGS_OFFSET);
     pub const CAPTURE: Self = Self(13 << Move::FLAGS_OFFSET);
-
-    const fn as_u32(self) -> u32 {
-        self.0 as u32
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Move {
-    data: u32,
+    data: u16,
 }
 
 impl Move {
-    const TO_BITFIELD: u32 = 0b0000000000111111;
-    const FROM_BITFIELD: u32 = 0b0000111111000000;
-    const FLAGS_BITFIELD: u32 = 0b1111000000000000;
+    const TO_BITFIELD: u16 = 0b0000000000111111;
+    const FROM_BITFIELD: u16 = 0b0000111111000000;
+    const FLAGS_BITFIELD: u16 = 0b1111000000000000;
 
     const FROM_OFFSET: u8 = 6;
     const FLAGS_OFFSET: u8 = 12;
-    const PIECE_OFFSET: u8 = 16;
 
     pub const fn nullmove() -> Self {
         Self { data: 0 }
@@ -51,21 +46,26 @@ impl Move {
         self.data == 0
     }
 
-    pub const fn new(to: Square, from: Square, flag: Flag, piece: Piece) -> Self {
+    pub const fn new(to: Square, from: Square, flag: Flag) -> Self {
         Self {
-            data: to.as_u32()
-                | (from.as_u32() << Self::FROM_OFFSET)
-                | flag.as_u32()
-                | (piece.as_u32() << Self::PIECE_OFFSET),
+            data: to.as_u16() | (from.as_u16() << Self::FROM_OFFSET) | flag.0,
         }
     }
 
     pub const fn new_ks_castle(king_sq: Square) -> Self {
-        Self::new(king_sq.right(2), king_sq, Flag::KS_CASTLE, Piece::KING)
+        Self {
+            data: king_sq.right(2).as_u16()
+                | (king_sq.as_u16() << Self::FROM_OFFSET)
+                | Flag::KS_CASTLE.0,
+        }
     }
 
     pub const fn new_qs_castle(king_sq: Square) -> Self {
-        Self::new(king_sq.left(2), king_sq, Flag::QS_CASTLE, Piece::KING)
+        Self {
+            data: king_sq.left(2).as_u16()
+                | (king_sq.as_u16() << Self::FROM_OFFSET)
+                | Flag::QS_CASTLE.0,
+        }
     }
 
     pub const fn to(self) -> Square {
@@ -77,11 +77,7 @@ impl Move {
     }
 
     pub const fn flag(self) -> Flag {
-        Flag((self.data & Self::FLAGS_BITFIELD) as u16)
-    }
-
-    pub const fn piece(self) -> Piece {
-        Piece::new((self.data >> Self::PIECE_OFFSET) as u8)
+        Flag(self.data & Self::FLAGS_BITFIELD)
     }
 
     pub fn is_promo(self) -> bool {
@@ -156,25 +152,25 @@ impl Move {
             } else {
                 cap_promo_flags[promo_type.as_index()]
             };
-            return Self::new(to, from, flag, piece);
+            return Self::new(to, from, flag);
         }
 
         if piece == Piece::PAWN {
             if let Some(ep_sq) = board.ep_sq {
                 if ep_sq == to {
-                    return Self::new(to, from, Flag::EP, piece);
+                    return Self::new(to, from, Flag::EP);
                 }
             }
 
             if from == to.retreat(2, board.color_to_move) {
-                return Self::new(to, from, Flag::DOUBLE_PUSH, piece);
+                return Self::new(to, from, Flag::DOUBLE_PUSH);
             }
         }
 
         if captured_piece == Piece::NONE {
-            Self::new(to, from, Flag::NONE, piece)
+            Self::new(to, from, Flag::NONE)
         } else {
-            Self::new(to, from, Flag::CAPTURE, piece)
+            Self::new(to, from, Flag::CAPTURE)
         }
     }
 
@@ -192,12 +188,6 @@ impl Move {
         let them = board.them();
         let occupied = board.occupied();
         let flag = self.flag();
-        let piece = board.piece_on_sq(from);
-
-        // make sure we are moving the correct piece
-        if self.piece() != piece {
-            return false;
-        }
 
         // make sure to move a piece that is our color, and non-empty
         if !from_bb.overlaps(us) {
@@ -214,6 +204,7 @@ impl Move {
             return false;
         }
 
+        let piece = board.piece_on_sq(from);
         let color = board.color_to_move;
         let empty = board.empty();
         match flag {
@@ -263,35 +254,8 @@ impl Move {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct PackedMove {
-    // move without piece
-    data: u16,
-}
-
-impl PackedMove {
-    pub fn unpack(self, board: &Board) -> Move {
-        let mut mv = Move {
-            data: u32::from(self.data),
-        };
-        let piece = board.piece_on_sq(mv.from());
-        mv.data |= piece.as_u32() << Move::PIECE_OFFSET;
-        mv
-    }
-}
-
-impl From<Move> for PackedMove {
-    fn from(mv: Move) -> Self {
-        Self {
-            data: mv.data as u16,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::board::board_representation::Piece;
-
     use super::super::{
         board_representation::Board,
         movegen::MoveGenerator,
@@ -302,11 +266,10 @@ mod tests {
 
     #[test]
     fn test_move() {
-        let m = Move::new(Square::B1, Square::H8, Flag::NONE, Piece::BISHOP);
+        let m = Move::new(Square::B1, Square::H8, Flag::NONE);
         assert_eq!(m.to(), Square::B1);
         assert_eq!(m.from(), Square::H8);
         assert!(m.flag() == Flag::NONE);
-        assert!(m.piece() == Piece::BISHOP);
     }
 
     #[test]
@@ -331,12 +294,11 @@ mod tests {
                     assert_eq!(
                         expected,
                         actual,
-                        "\nFen_1: {}\nFen_2: {}\nMove: {}\nFlag {}\nPiece {}",
+                        "\nFen_1: {}\nFen_2: {}\nMove: {}\nFlag {}",
                         board_1.to_fen(),
                         board_2.to_fen(),
                         mv.as_string(),
                         mv.flag().0,
-                        mv.piece().as_string().unwrap()
                     );
                 }
             }

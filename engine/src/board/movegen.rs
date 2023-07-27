@@ -1,5 +1,5 @@
 use super::attacks;
-use super::board_representation::{Bitboard, Board, Color, Piece, Square, NUM_PIECES};
+use super::board_representation::{Bitboard, Board, Piece, Square, NUM_PIECES};
 use super::chess_move::MAX_MOVECOUNT;
 use super::chess_move::{Flag, Move};
 use crate::bitloop;
@@ -133,27 +133,27 @@ impl MoveGenerator {
 
         let mut knights = board.piece_bb(Piece::KNIGHT, color);
         into_moves!(|from|, knights, |to|, attacks::knight(from).intersection(filter), {
-            self.add_move(Move::new(to, from, flag, Piece::KNIGHT), repeats);
+            self.add_move(Move::new(to, from, flag), repeats);
         });
 
         let mut bishops = board.piece_bb(Piece::BISHOP, color);
         into_moves!(|from|, bishops, |to|, attacks::bishop(from, occupied).intersection(filter), {
-            self.add_move(Move::new(to, from, flag, Piece::BISHOP), repeats);
+            self.add_move(Move::new(to, from, flag), repeats);
         });
 
         let mut rooks = board.piece_bb(Piece::ROOK, color);
         into_moves!(|from|, rooks, |to|, attacks::rook(from, occupied).intersection(filter),{
-            self.add_move(Move::new(to, from, flag, Piece::ROOK), repeats);
+            self.add_move(Move::new(to, from, flag), repeats);
         });
 
         let mut queens = board.piece_bb(Piece::QUEEN, color);
         into_moves!(|from|, queens, |to|, attacks::queen(from, occupied).intersection(filter), {
-            self.add_move(Move::new(to, from, flag, Piece::QUEEN), repeats);
+            self.add_move(Move::new(to, from, flag), repeats);
         });
 
         let mut king = board.piece_bb(Piece::KING, color);
         into_moves!(|from|, king, |to|, attacks::king(from).intersection(filter), {
-            self.add_move(Move::new(to, from, flag, Piece::KING), repeats);
+            self.add_move(Move::new(to, from, flag), repeats);
         });
     }
 
@@ -166,20 +166,20 @@ impl MoveGenerator {
         let mut normal_pawns = pawns.without(promoting_pawns);
 
         into_moves!(|from|, promoting_pawns, |to|, attacks::pawn(from, color).intersection(them), {
-            self.add_move(Move::new(to, from, Flag::QUEEN_CAPTURE_PROMO, Piece::PAWN), repeats);
-            self.add_move(Move::new(to, from, Flag::KNIGHT_CAPTURE_PROMO, Piece::PAWN), repeats);
-            self.add_move(Move::new(to, from, Flag::ROOK_CAPTURE_PROMO, Piece::PAWN), repeats);
-            self.add_move(Move::new(to, from, Flag::BISHOP_CAPTURE_PROMO, Piece::PAWN), repeats);
+            self.add_move(Move::new(to, from, Flag::QUEEN_CAPTURE_PROMO), repeats);
+            self.add_move(Move::new(to, from, Flag::KNIGHT_CAPTURE_PROMO), repeats);
+            self.add_move(Move::new(to, from, Flag::ROOK_CAPTURE_PROMO), repeats);
+            self.add_move(Move::new(to, from, Flag::BISHOP_CAPTURE_PROMO), repeats);
         });
 
         into_moves!(|from|, normal_pawns, |to|, attacks::pawn(from, color).intersection(them), {
-            self.add_move(Move::new(to, from, Flag::CAPTURE, Piece::PAWN), repeats);
+            self.add_move(Move::new(to, from, Flag::CAPTURE), repeats);
         });
 
         if let Some(to) = board.ep_sq {
             let mut attackers = attacks::pawn(to, color.flip()).intersection(pawns);
             bitloop!(|from| attackers, {
-                self.add_move(Move::new(to, from, Flag::EP, Piece::PAWN), repeats);
+                self.add_move(Move::new(to, from, Flag::EP), repeats);
             });
         }
 
@@ -200,26 +200,20 @@ impl MoveGenerator {
 
         bitloop!(|to| promotions, {
             let from = to.retreat(1, color);
-            self.add_move(Move::new(to, from, Flag::QUEEN_PROMO, Piece::PAWN), repeats);
-            self.add_move(
-                Move::new(to, from, Flag::KNIGHT_PROMO, Piece::PAWN),
-                repeats,
-            );
-            self.add_move(Move::new(to, from, Flag::ROOK_PROMO, Piece::PAWN), repeats);
-            self.add_move(
-                Move::new(to, from, Flag::BISHOP_PROMO, Piece::PAWN),
-                repeats,
-            );
+            self.add_move(Move::new(to, from, Flag::QUEEN_PROMO), repeats);
+            self.add_move(Move::new(to, from, Flag::KNIGHT_PROMO), repeats);
+            self.add_move(Move::new(to, from, Flag::ROOK_PROMO), repeats);
+            self.add_move(Move::new(to, from, Flag::BISHOP_PROMO), repeats);
         });
 
         bitloop!(|to| single_pushs, {
             let from = to.retreat(1, color);
-            self.add_move(Move::new(to, from, Flag::NONE, Piece::PAWN), repeats);
+            self.add_move(Move::new(to, from, Flag::NONE), repeats);
         });
 
         bitloop!(|to| double_pushs, {
             let from = to.retreat(2, color);
-            self.add_move(Move::new(to, from, Flag::DOUBLE_PUSH, Piece::PAWN), repeats);
+            self.add_move(Move::new(to, from, Flag::DOUBLE_PUSH), repeats);
         });
 
         if board.castle_rights.can_ks_castle(board) {
@@ -235,15 +229,15 @@ impl MoveGenerator {
 
     fn score_captures(&mut self, board: &Board) {
         for elem in self.movelist.iter_mut().take(self.len) {
-            let attacker = elem.mv.piece();
+            let attacker = board.piece_on_sq(elem.mv.from());
             let victim = board.piece_on_sq(elem.mv.to());
             elem.score = mvv_lva(attacker, victim);
         }
     }
 
-    fn score_quiets(&mut self, color: Color, history: &History) {
+    fn score_quiets(&mut self, board: &Board, history: &History) {
         for elem in self.movelist.iter_mut().take(self.len) {
-            elem.score = history.score(color, elem.mv) as i16;
+            elem.score = history.score(board, elem.mv) as i16;
         }
     }
 
@@ -283,7 +277,7 @@ impl MoveGenerator {
                         } else {
                             self.generate_quiets(board, &[killer]);
                         };
-                        self.score_quiets(board.color_to_move, history);
+                        self.score_quiets(board, history);
                     }
                 }
                 _ => return None,
