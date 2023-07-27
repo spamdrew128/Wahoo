@@ -2,7 +2,7 @@ use crate::{
     bitloop,
     board::attacks,
     board::board_representation::{
-        Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_FILES, NUM_SQUARES,
+        Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES,
     },
     eval::eval_constants::{
         ATTACKS, BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT,
@@ -57,19 +57,6 @@ const fn king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as u
     king_zones
 }
 
-const fn king_file_zones_init() -> [Bitboard; NUM_FILES as usize] {
-    let zones = king_zones_init()[Color::White.as_index()];
-    let mut result = [Bitboard::EMPTY; NUM_FILES as usize];
-
-    let mut i = 0;
-    while i < NUM_FILES as usize {
-        result[i] = zones[i].file_fill();
-        i += 1;
-    }
-
-    result
-}
-
 const fn forward_masks_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
     let mut result = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
 
@@ -92,8 +79,6 @@ const fn forward_masks_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS a
 }
 
 const KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = king_zones_init();
-
-const KING_FILE_ZONES: [Bitboard; NUM_FILES as usize] = king_file_zones_init();
 
 const FORWARD_MASKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = forward_masks_init();
 
@@ -360,9 +345,7 @@ impl LoopEvaluator {
 }
 
 fn pawn_storm_tropism(enemy_king_sq: Square, pawns: Bitboard) -> usize {
-    let zone = KING_FILE_ZONES[enemy_king_sq.file() as usize];
-    let mut storming_pawns = pawns.intersection(zone);
-
+    let mut storming_pawns = pawns;
     let mut trop = 0;
     bitloop!(|sq| storming_pawns, {
         trop += tropism(enemy_king_sq, sq);
