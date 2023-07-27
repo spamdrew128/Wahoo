@@ -254,6 +254,30 @@ impl Move {
     }
 }
 
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+struct FullMove {
+    mv: Move,
+    piece: Piece,
+}
+
+impl FullMove {
+    pub const fn new(mv: Move, piece: Piece) -> Self {
+        Self {
+            mv,
+            piece,
+        }
+    }
+
+    pub const fn mv(self) -> Move {
+        self.mv
+    }
+
+    pub const fn piece(self) -> Piece {
+        self.piece
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::{
