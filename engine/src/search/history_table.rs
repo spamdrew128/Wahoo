@@ -1,6 +1,6 @@
 use crate::{
-    board::board_representation::{Board, NUM_COLORS, NUM_PIECES, NUM_SQUARES},
-    board::chess_move::Move,
+    board::board_representation::{NUM_COLORS, NUM_PIECES, NUM_SQUARES},
+    board::{chess_move::Move, board_representation::Color},
     eval::evaluation::EvalScore,
     search::search::Depth,
 };
@@ -20,32 +20,30 @@ impl History {
         }
     }
 
-    pub const fn score(&self, board: &Board, mv: Move) -> EvalScore {
+    pub const fn score(&self, color: Color, mv: Move) -> EvalScore {
         let piece = mv.piece().as_index();
         let to = mv.to().as_index();
-        let color = board.color_to_move.as_index();
 
-        self.scores[color][piece][to]
+        self.scores[color.as_index()][piece][to]
     }
 
-    fn update_history_score(&mut self, board: &Board, mv: Move, bonus: i32) {
-        let scaled_bonus = bonus - self.score(board, mv) * bonus.abs() / Self::SCORE_MAX;
-        
+    fn update_history_score(&mut self, color: Color, mv: Move, bonus: i32) {
+        let scaled_bonus = bonus - self.score(color, mv) * bonus.abs() / Self::SCORE_MAX;
+
         let piece = mv.piece().as_index();
         let to = mv.to().as_index();
-        let color = board.color_to_move.as_index();
 
-        self.scores[color][piece][to] += scaled_bonus;
+        self.scores[color.as_index()][piece][to] += scaled_bonus;
     }
 
-    pub fn update(&mut self, board: &Board, quiets: &[Move], depth: Depth) {
+    pub fn update(&mut self, color: Color, quiets: &[Move], depth: Depth) {
         let d = i32::from(depth);
         let bonus = (16 * d * d).min(Self::BONUS_MAX);
 
         let cutoff_move = quiets[quiets.len() - 1];
-        self.update_history_score(board, cutoff_move, bonus); // only the cutoff move gets a positive bonus
+        self.update_history_score(color, cutoff_move, bonus); // only the cutoff move gets a positive bonus
         for &mv in quiets.iter().take(quiets.len() - 1) {
-            self.update_history_score(board, mv, -bonus);
+            self.update_history_score(color, mv, -bonus);
         }
     }
 
