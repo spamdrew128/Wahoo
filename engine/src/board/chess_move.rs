@@ -239,6 +239,11 @@ impl Move {
         }
 
         let piece = board.piece_on_sq(from);
+        // pieces must match
+        if piece != self.piece() {
+            return false;
+        }
+
         let color = board.color_to_move;
         let empty = board.empty();
         match flag {
