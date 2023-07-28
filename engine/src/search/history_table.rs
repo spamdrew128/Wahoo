@@ -20,8 +20,8 @@ impl History {
         }
     }
 
-    pub fn score(&self, board: &Board, mv: Move) -> EvalScore {
-        let piece = board.piece_on_sq(mv.from()).as_index();
+    pub const fn score(&self, board: &Board, mv: Move) -> EvalScore {
+        let piece = mv.piece().as_index();
         let to = mv.to().as_index();
         let color = board.color_to_move.as_index();
 
@@ -30,8 +30,8 @@ impl History {
 
     fn update_history_score(&mut self, board: &Board, mv: Move, bonus: i32) {
         let scaled_bonus = bonus - self.score(board, mv) * bonus.abs() / Self::SCORE_MAX;
-
-        let piece = board.piece_on_sq(mv.from()).as_index();
+        
+        let piece = mv.piece().as_index();
         let to = mv.to().as_index();
         let color = board.color_to_move.as_index();
 

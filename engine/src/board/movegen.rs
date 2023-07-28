@@ -235,7 +235,7 @@ impl MoveGenerator {
 
     fn score_captures(&mut self, board: &Board) {
         for elem in self.movelist.iter_mut().take(self.len) {
-            let attacker = board.piece_on_sq(elem.mv.from());
+            let attacker = elem.mv.piece();
             let victim = board.piece_on_sq(elem.mv.to());
             elem.score = mvv_lva(attacker, victim);
         }
