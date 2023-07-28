@@ -870,7 +870,7 @@ impl Board {
         let from_sq = mv.from();
         let to_bb = to_sq.as_bitboard();
         let from_bb = from_sq.as_bitboard();
-        let piece = self.piece_on_sq(from_sq);
+        let piece = mv.piece();
         debug_assert!(piece != Piece::NONE);
 
         if piece == Piece::PAWN {
