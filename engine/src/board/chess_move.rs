@@ -38,8 +38,9 @@ impl PackedMove {
     const FROM_OFFSET: u8 = 6;
     const FLAGS_OFFSET: u8 = 12;
 
-    pub const fn unpack(self) -> Move {
-        Move::new(self.to(), self.from(), self.flag())
+    pub fn unpack(self, board: &Board) -> Move {
+        let piece = board.piece_on_sq(self.from());
+        Move::new(self.to(), self.from(), self.flag(), piece)
     }
 
     const fn to(self) -> Square {
@@ -72,12 +73,12 @@ pub struct Move {
 }
 
 impl Move {
-    pub const fn new(to: Square, from: Square, flag: Flag) -> Self {
+    pub const fn new(to: Square, from: Square, flag: Flag, piece: Piece) -> Self {
         Self {
-            from,
             to,
+            from,
             flag,
-            piece: Piece::KNIGHT,
+            piece,
         }
     }
 
@@ -90,11 +91,11 @@ impl Move {
     }
 
     pub const fn new_ks_castle(king_sq: Square) -> Self {
-        Self::new(king_sq.right(2), king_sq, Flag::KS_CASTLE)
+        Self::new(king_sq.right(2), king_sq, Flag::KS_CASTLE, Piece::KING)
     }
 
     pub const fn new_qs_castle(king_sq: Square) -> Self {
-        Self::new(king_sq.left(2), king_sq, Flag::QS_CASTLE)
+        Self::new(king_sq.left(2), king_sq, Flag::QS_CASTLE, Piece::KING)
     }
 
     pub const fn to(self) -> Square {
@@ -107,6 +108,10 @@ impl Move {
 
     pub const fn flag(self) -> Flag {
         self.flag
+    }
+
+    pub const fn piece(self) -> Piece {
+        self.piece
     }
 
     pub fn is_promo(self) -> bool {
@@ -181,25 +186,25 @@ impl Move {
             } else {
                 cap_promo_flags[promo_type.as_index()]
             };
-            return Self::new(to, from, flag);
+            return Self::new(to, from, flag, piece);
         }
 
         if piece == Piece::PAWN {
             if let Some(ep_sq) = board.ep_sq {
                 if ep_sq == to {
-                    return Self::new(to, from, Flag::EP);
+                    return Self::new(to, from, Flag::EP, piece);
                 }
             }
 
             if from == to.retreat(2, board.color_to_move) {
-                return Self::new(to, from, Flag::DOUBLE_PUSH);
+                return Self::new(to, from, Flag::DOUBLE_PUSH, piece);
             }
         }
 
         if captured_piece == Piece::NONE {
-            Self::new(to, from, Flag::NONE)
+            Self::new(to, from, Flag::NONE, piece)
         } else {
-            Self::new(to, from, Flag::CAPTURE)
+            Self::new(to, from, Flag::CAPTURE, piece)
         }
     }
 
@@ -285,6 +290,8 @@ impl Move {
 
 #[cfg(test)]
 mod tests {
+    use crate::board::board_representation::Piece;
+
     use super::super::{
         board_representation::Board,
         movegen::MoveGenerator,
@@ -295,10 +302,11 @@ mod tests {
 
     #[test]
     fn test_move() {
-        let m = Move::new(Square::B1, Square::H8, Flag::NONE);
+        let m = Move::new(Square::B1, Square::H8, Flag::NONE, Piece::ROOK);
         assert_eq!(m.to(), Square::B1);
         assert_eq!(m.from(), Square::H8);
-        assert!(m.flag() == Flag::NONE);
+        assert_eq!(m.flag(), Flag::NONE);
+        assert_eq!(m.piece(), Piece::ROOK);
     }
 
     #[test]

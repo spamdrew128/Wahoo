@@ -377,7 +377,7 @@ impl<'a> Searcher<'a> {
                 static_eval = tt_score;
             }
 
-            entry.best_move.unpack()
+            entry.best_move.unpack(board)
         } else {
             // INTERNAL ITERATIVE REDUCTION (IIR)
             const MIN_IIR_DEPTH: Depth = 3;
