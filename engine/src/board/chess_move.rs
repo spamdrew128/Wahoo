@@ -64,7 +64,7 @@ impl From<Move> for PackedMove {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct Move {
     to: Square,
     from: Square,
@@ -290,6 +290,14 @@ impl Move {
                 to_bb.overlaps(move_bb)
             }
         }
+    }
+}
+
+impl PartialEq for Move {
+    fn eq(&self, other: &Self) -> bool {
+        self.to == other.to &&
+        self.from == other.from &&
+        self.flag == other.flag
     }
 }
 
