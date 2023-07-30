@@ -19,11 +19,11 @@ impl Move {
     fn see(self, board: &Board, attacker: Piece, victim: Piece, threshold: i32) -> bool {
         let sq = self.to();
         let mut color = board.color_to_move;
-        let mut val = -threshold;
+        let mut score = -threshold;
         let mut next = attacker;
         let mut occ = board.occupied() ^ sq.as_bitboard() ^ self.from().as_bitboard();
 
-        val += if self.flag() == Flag::EP {
+        score += if self.flag() == Flag::EP {
             occ ^= sq.row_swap().as_bitboard();
             SEE_VALS[Piece::PAWN.as_index()]
         } else if self.is_promo() {
@@ -36,7 +36,7 @@ impl Move {
 
         // if we captured a higher value piece than we attacked with,
         // we have positive SEE no matter what
-        if val >= 0 {
+        if score >= 0 {
             return true;
         }
 
@@ -81,6 +81,11 @@ impl Move {
             }
 
             all_attackers = occ & all_attackers;
+            score = -score - 1 - SEE_VALS[next.as_index()];
+
+            if score >= 0 {
+                break
+            }
         }
 
         false
