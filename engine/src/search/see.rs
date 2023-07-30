@@ -10,8 +10,10 @@ impl Move {
         let sq = self.to();
         let mut val = -threshold;
         let mut next = attacker;
+        let mut occ = board.occupied() ^ sq.as_bitboard() ^ self.from().as_bitboard();
 
         val += if self.flag() == Flag::EP {
+            occ ^= sq.row_flip().as_bitboard();
             SEE_VALS[Piece::PAWN.as_index()]
         } else if self.is_promo() {
             next = self.promo_piece();
