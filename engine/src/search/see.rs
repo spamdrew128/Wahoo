@@ -54,8 +54,8 @@ impl Move {
             | (attacks::pawn(sq, Color::White) & board.piece_bb(Piece::PAWN, Color::Black))
             | (attacks::pawn(sq, Color::Black) & board.piece_bb(Piece::PAWN, Color::White));
 
+        color = color.flip();
         loop {
-            color = color.flip();
             let color_bb = board.all[color.as_index()];
             let our_attackers = all_attackers & color_bb;
 
@@ -82,12 +82,17 @@ impl Move {
 
             all_attackers = occ & all_attackers;
             score = -score - 1 - SEE_VALS[next.as_index()];
+            color = color.flip();
 
             if score >= 0 {
-                break
+                let our_defenders = all_attackers.intersection(board.all[color.as_index()]);
+                if next == Piece::KING && our_defenders.is_not_empty() {
+                    color = color.flip();
+                }
+                break;
             }
         }
 
-        false
+        color != board.color_to_move
     }
 }
