@@ -24,9 +24,11 @@ impl Move {
 
         let base = if self.flag() == Flag::EP {
             occ ^= sq.row_swap().as_bitboard();
+
             0
         } else if self.is_promo() {
             next = self.promo_piece();
+            
             SEE_VALS[victim.as_index()] + SEE_VALS[self.promo_piece().as_index()]
                 - SEE_VALS[Piece::PAWN.as_index()]
         } else {
@@ -114,5 +116,15 @@ mod tests {
 
         assert!(mv.see(&board, Piece::KNIGHT, Piece::PAWN, 0));
         assert!(!mv.see(&board, Piece::KNIGHT, Piece::PAWN, 1));
+    }
+
+    #[test]
+    fn ep_xray() {
+        let board =
+            Board::from_fen("1nbqkb1r/1pp1p3/5p1p/p2n2pP/4p3/P1N2Pr1/1PPP2P1/R1BQKBNR w k g6 0 16");
+        let mv = Move::from_string("h5g6", &board);
+
+        assert!(mv.see(&board, Piece::PAWN, Piece::NONE, 0));
+        assert!(!mv.see(&board, Piece::PAWN, Piece::NONE, 1));
     }
 }
