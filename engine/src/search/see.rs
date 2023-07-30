@@ -9,6 +9,7 @@ pub const SEE_VALS: [i32; (NUM_PIECES + 1) as usize] = [450, 450, 650, 1250, 100
 impl Move {
     fn see(self, board: &Board, attacker: Piece, victim: Piece, threshold: i32) -> bool {
         let sq = self.to();
+        let mut color = board.color_to_move;
         let mut val = -threshold;
         let mut next = attacker;
         let mut occ = board.occupied() ^ sq.as_bitboard() ^ self.from().as_bitboard();
@@ -35,12 +36,18 @@ impl Move {
         let d_sliders =
             board.pieces[Piece::BISHOP.as_index()] | board.pieces[Piece::QUEEN.as_index()];
 
-        let mut attackers = (attacks::knight(sq) & board.pieces[Piece::KNIGHT.as_index()])
+        let mut all_attackers = (attacks::knight(sq) & board.pieces[Piece::KNIGHT.as_index()])
             | (attacks::king(sq) & board.pieces[Piece::KING.as_index()])
             | (attacks::rook(sq, occ) & hv_sliders)
             | (attacks::bishop(sq, occ) & d_sliders)
             | (attacks::pawn(sq, Color::White) & board.piece_bb(Piece::PAWN, Color::Black))
             | (attacks::pawn(sq, Color::Black) & board.piece_bb(Piece::PAWN, Color::White));
+
+        loop {
+            color = color.flip();
+            let us = board.all[color.as_index()];
+            let our_attackers = all_attackers & us;
+        }
 
         false
     }
