@@ -35,7 +35,7 @@ impl Trace {
 
 pub const fn color_adjust(sq: Square, color: Color) -> Square {
     match color {
-        Color::White => sq.flip(),
+        Color::White => sq.mirror(),
         Color::Black => sq,
     }
 }
