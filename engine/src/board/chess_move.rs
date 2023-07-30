@@ -172,7 +172,7 @@ impl Move {
                 }
             }
 
-            if from == to.retreat(2, board.color_to_move) {
+            if from == to.double_push_sq() {
                 return Self::new(to, from, Flag::DOUBLE_PUSH);
             }
         }

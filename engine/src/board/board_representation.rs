@@ -158,6 +158,10 @@ impl Square {
         Self::new(self.0 ^ 0b1000)
     }
 
+    pub const fn double_push_sq(self) -> Self {
+        Self::new(self.0 ^ 0b10000)
+    }
+
     pub const fn rank(self) -> u8 {
         self.0 / 8
     }

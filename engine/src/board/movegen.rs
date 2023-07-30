@@ -212,7 +212,7 @@ impl MoveGenerator {
         });
 
         bitloop!(|to| double_pushs, {
-            let from = to.retreat(2, color);
+            let from = to.double_push_sq();
             self.add_move(Move::new(to, from, Flag::DOUBLE_PUSH), repeats);
         });
 
