@@ -331,6 +331,10 @@ impl Bitboard {
         sq
     }
 
+    pub const fn lsb_bb(self) -> Self {
+        Self::new(self.data & self.data.wrapping_neg())
+    }
+
     pub const fn north_one(self) -> Self {
         self.l_shift(8)
     }

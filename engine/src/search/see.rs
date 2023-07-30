@@ -6,6 +6,15 @@ use crate::board::{
 
 pub const SEE_VALS: [i32; (NUM_PIECES + 1) as usize] = [450, 450, 650, 1250, 100, 0, 0];
 
+pub const ASCENDING_PIECE_ORDER: [Piece; NUM_PIECES as usize] = [
+    Piece::PAWN,
+    Piece::KNIGHT,
+    Piece::BISHOP,
+    Piece::ROOK,
+    Piece::QUEEN,
+    Piece::KING,
+];
+
 impl Move {
     fn see(self, board: &Board, attacker: Piece, victim: Piece, threshold: i32) -> bool {
         let sq = self.to();
@@ -47,6 +56,19 @@ impl Move {
             color = color.flip();
             let us = board.all[color.as_index()];
             let our_attackers = all_attackers & us;
+
+            if our_attackers.is_empty() {
+                break;
+            }
+
+            for piece in ASCENDING_PIECE_ORDER {
+                let piece_bb = our_attackers & board.pieces[piece.as_index()];
+                if piece_bb.is_not_empty() {
+                    occ ^= piece_bb.lsb_bb();
+                    next = piece;
+                    break;
+                }
+            }
         }
 
         false
