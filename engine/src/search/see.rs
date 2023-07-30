@@ -56,8 +56,8 @@ impl Move {
 
         loop {
             color = color.flip();
-            let us = board.all[color.as_index()];
-            let our_attackers = all_attackers & us;
+            let color_bb = board.all[color.as_index()];
+            let our_attackers = all_attackers & color_bb;
 
             if our_attackers.is_empty() {
                 break;
