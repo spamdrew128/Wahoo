@@ -40,10 +40,12 @@ impl Move {
             return true;
         }
 
-        let hv_sliders =
-            board.pieces[Piece::ROOK.as_index()] | board.pieces[Piece::QUEEN.as_index()];
-        let d_sliders =
-            board.pieces[Piece::BISHOP.as_index()] | board.pieces[Piece::QUEEN.as_index()];
+        let rooks = board.pieces[Piece::ROOK.as_index()];
+        let bishops = board.pieces[Piece::BISHOP.as_index()];
+        let queens = board.pieces[Piece::QUEEN.as_index()];
+
+        let hv_sliders = rooks | queens;
+        let d_sliders = bishops | queens;
 
         let mut all_attackers = (attacks::knight(sq) & board.pieces[Piece::KNIGHT.as_index()])
             | (attacks::king(sq) & board.pieces[Piece::KING.as_index()])
@@ -69,6 +71,16 @@ impl Move {
                     break;
                 }
             }
+
+            if next == Piece::PAWN || next == Piece::BISHOP || next == Piece::QUEEN {
+                all_attackers |= attacks::bishop(sq, occ) & bishops;
+            }
+
+            if next == Piece::ROOK || next == Piece::QUEEN {
+                all_attackers |= attacks::rook(sq, occ) & rooks;
+            }
+
+            all_attackers = occ & all_attackers;
         }
 
         false
