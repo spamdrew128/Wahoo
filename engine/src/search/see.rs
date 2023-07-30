@@ -16,6 +16,12 @@ pub const ASCENDING_PIECE_ORDER: [Piece; NUM_PIECES as usize] = [
 ];
 
 impl Board {
+    pub fn search_see(&self, mv: Move, threshold: i32) -> bool {
+        let attacker = self.piece_on_sq(mv.from());
+        let victim = self.piece_on_sq(mv.to());
+        self.see(mv, attacker, victim, threshold)
+    }
+
     pub fn see(&self, mv: Move, attacker: Piece, victim: Piece, threshold: i32) -> bool {
         let sq = mv.to();
         let mut color = self.color_to_move;
