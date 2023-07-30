@@ -86,6 +86,7 @@ impl Move {
 
             if score >= 0 {
                 let our_defenders = all_attackers.intersection(board.all[color.as_index()]);
+                // if the square is still defended, opponent king cant take and the capture chain ends
                 if next == Piece::KING && our_defenders.is_not_empty() {
                     color = color.flip();
                 }
@@ -94,5 +95,19 @@ impl Move {
         }
 
         color != board.color_to_move
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::board::{board_representation::{Board, Piece}, chess_move::Move};
+
+    #[test]
+    fn equal_position_see() {
+        let board = Board::from_fen("rnbqkb1r/ppp1pppp/5n2/3p4/4P3/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 3");
+        let mv = Move::from_string("c3d5", &board);
+
+        assert!(mv.see(&board, Piece::KNIGHT, Piece::PAWN, 0));
+        assert!(!mv.see(&board, Piece::KNIGHT, Piece::PAWN, 1));
     }
 }
