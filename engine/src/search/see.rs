@@ -89,7 +89,7 @@ impl Move {
 
             if score >= 0 {
                 let our_defenders = all_attackers.intersection(board.all[color.as_index()]);
-                // if the square is still defended, opponent king cant take and the capture chain ends
+                // if the square is still defended, the king can't take and the capture chain ends
                 if next == Piece::KING && our_defenders.is_not_empty() {
                     color = color.flip();
                 }
@@ -126,5 +126,14 @@ mod tests {
 
         assert!(mv.see(&board, Piece::PAWN, Piece::NONE, 0));
         assert!(!mv.see(&board, Piece::PAWN, Piece::NONE, 1));
+    }
+
+    #[test]
+    fn king_cant_end_chain() {
+        let board =
+            Board::from_fen("8/3b4/8/5nk1/8/5R2/K4R2/5R2 w - - 0 1");
+        let mv = Move::from_string("f3f5", &board);
+
+        assert!(mv.see(&board, Piece::ROOK, Piece::KNIGHT, 0));
     }
 }
