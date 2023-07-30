@@ -19,20 +19,21 @@ impl Move {
     fn see(self, board: &Board, attacker: Piece, victim: Piece, threshold: i32) -> bool {
         let sq = self.to();
         let mut color = board.color_to_move;
-        let mut score = -threshold;
         let mut next = attacker;
         let mut occ = board.occupied() ^ sq.as_bitboard() ^ self.from().as_bitboard();
 
-        score += if self.flag() == Flag::EP {
+        let base = if self.flag() == Flag::EP {
             occ ^= sq.row_swap().as_bitboard();
-            SEE_VALS[Piece::PAWN.as_index()]
+            0
         } else if self.is_promo() {
             next = self.promo_piece();
             SEE_VALS[victim.as_index()] + SEE_VALS[self.promo_piece().as_index()]
                 - SEE_VALS[Piece::PAWN.as_index()]
         } else {
-            SEE_VALS[victim.as_index()]
+            SEE_VALS[victim.as_index()] - SEE_VALS[attacker.as_index()]
         };
+
+        let mut score = base - threshold;
 
         // if we captured a higher value piece than we attacked with,
         // we have positive SEE no matter what
@@ -100,11 +101,15 @@ impl Move {
 
 #[cfg(test)]
 mod tests {
-    use crate::board::{board_representation::{Board, Piece}, chess_move::Move};
+    use crate::board::{
+        board_representation::{Board, Piece},
+        chess_move::Move,
+    };
 
     #[test]
     fn equal_position_see() {
-        let board = Board::from_fen("rnbqkb1r/ppp1pppp/5n2/3p4/4P3/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 3");
+        let board =
+            Board::from_fen("rnbqkb1r/ppp1pppp/5n2/3p4/4P3/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 3");
         let mv = Move::from_string("c3d5", &board);
 
         assert!(mv.see(&board, Piece::KNIGHT, Piece::PAWN, 0));
