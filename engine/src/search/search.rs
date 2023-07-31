@@ -445,7 +445,7 @@ impl<'a> Searcher<'a> {
                 // SEE PRUNING
                 const MIN_SEE_DEPTH: Depth = 6;
                 if depth <= MIN_SEE_DEPTH && !board.search_see(mv, -90 * i32::from(depth)) {
-                    continue; 
+                    continue;
                 }
             }
 
