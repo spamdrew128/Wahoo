@@ -227,11 +227,25 @@ impl MoveGenerator {
     }
 
     fn score_captures(&mut self, board: &Board) {
-        for elem in self.movelist.iter_mut().skip(self.index).take(self.limit - self.index) {
-            let attacker = board.piece_on_sq(elem.mv.from());
-            let victim = board.piece_on_sq(elem.mv.to());
-            elem.score = mvv_lva(attacker, victim);
+        let mut start = self.index;
+        let mut end = self.limit - 1;
+
+        while start <= end {
+            let mv = self.movelist[start].mv;
+
+            let attacker = board.piece_on_sq(mv.from());
+            let victim = board.piece_on_sq(mv.to());
+            self.movelist[start].score = mvv_lva(attacker, victim);
+
+            if board.see(mv, attacker, victim, 0) { // good capture
+                start += 1;
+            } else { // bad capture
+                self.movelist.swap(start, end);
+                end -= 1;
+            }
         }
+
+        self.limit = start;
     }
 
     fn score_quiets(&mut self, board: &Board, history: &History) {
