@@ -88,6 +88,7 @@ impl MoveGenerator {
         Self {
             stage: MoveStage::START,
             movelist: [MoveElement::new(); MAX_MOVECOUNT],
+            start: 0,
             len: 0,
             index: 0,
         }
@@ -268,7 +269,7 @@ impl MoveGenerator {
                 }
                 MoveStage::KILLER => {
                     if INCLUDE_QUIETS && killer.is_pseudolegal(board) {
-                        self.add_move(killer, &[]);
+                        return Some(killer);
                     }
                 }
                 MoveStage::QUIET => {
