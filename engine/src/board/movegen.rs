@@ -48,7 +48,7 @@ impl MoveStage {
         TT,
         CAPTURE,
         KILLER,
-        QUIET
+        QUIET_AND_BAD_CAP
     );
 
     const fn new(data: u8) -> Self {
@@ -78,8 +78,9 @@ impl MoveElement {
 pub struct MoveGenerator {
     stage: MoveStage,
     movelist: [MoveElement; MAX_MOVECOUNT],
-    len: usize,
+    limit: usize,
     index: usize,
+    bad_captures: usize,
 }
 
 impl MoveGenerator {
@@ -87,33 +88,33 @@ impl MoveGenerator {
         Self {
             stage: MoveStage::START,
             movelist: [MoveElement::new(); MAX_MOVECOUNT],
-            len: 0,
+            limit: 0,
             index: 0,
+            bad_captures: 0,
         }
     }
 
     const fn stage_complete(&self) -> bool {
-        self.index >= self.len
+        self.index >= self.limit
     }
 
     fn advance_stage(&mut self) {
         self.stage.increment();
-        self.len = 0;
-        self.index = 0;
+        self.index = self.limit;
     }
 
     fn add_move(&mut self, mv: Move, repeats: &[Move]) {
         if repeats.contains(&mv) {
             return;
         }
-        self.movelist[self.len].mv = mv;
-        self.len += 1;
+        self.movelist[self.limit].mv = mv;
+        self.limit += 1;
     }
 
     fn pick_move(&mut self) -> Move {
         let mut best_index = self.index;
         let mut best_score = self.movelist[self.index].score;
-        for i in (self.index + 1)..self.len {
+        for i in (self.index + 1)..self.limit {
             let score = self.movelist[i].score;
             if score > best_score {
                 best_score = score;
@@ -227,16 +228,41 @@ impl MoveGenerator {
         self.generic_movegen(board, empty, Flag::NONE, repeats);
     }
 
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_wrap)]
     fn score_captures(&mut self, board: &Board) {
-        for elem in self.movelist.iter_mut().take(self.len) {
-            let attacker = board.piece_on_sq(elem.mv.from());
-            let victim = board.piece_on_sq(elem.mv.to());
-            elem.score = mvv_lva(attacker, victim);
+        let mut start = self.index as i32;
+        let mut end = self.limit as i32 - 1;
+
+        while start <= end {
+            let i = start as usize;
+            let mv = self.movelist[i].mv;
+
+            let attacker = board.piece_on_sq(mv.from());
+            let victim = board.piece_on_sq(mv.to());
+            self.movelist[i].score = mvv_lva(attacker, victim);
+
+            if board.see(mv, attacker, victim, 0) {
+                // good capture
+                start += 1;
+            } else {
+                // bad capture
+                self.bad_captures += 1;
+                self.movelist.swap(i, end as usize);
+                end -= 1;
+            }
         }
+
+        self.limit -= self.bad_captures; // dont include bad captures in this stage
     }
 
     fn score_quiets(&mut self, board: &Board, history: &History) {
-        for elem in self.movelist.iter_mut().take(self.len) {
+        for elem in self
+            .movelist
+            .iter_mut()
+            .skip(self.index)
+            .take(self.limit - self.index)
+        {
+            debug_assert!(elem.mv.is_quiet());
             elem.score = history.score(board, elem.mv) as i16;
         }
     }
@@ -254,7 +280,7 @@ impl MoveGenerator {
             match self.stage {
                 MoveStage::TT => {
                     if tt_move.is_pseudolegal(board) {
-                        self.add_move(tt_move, &[]);
+                        return Some(tt_move);
                     }
                 }
                 MoveStage::CAPTURE => {
@@ -267,18 +293,22 @@ impl MoveGenerator {
                 }
                 MoveStage::KILLER => {
                     if INCLUDE_QUIETS && killer.is_pseudolegal(board) {
-                        self.add_move(killer, &[]);
+                        return Some(killer);
                     }
                 }
-                MoveStage::QUIET => {
+                MoveStage::QUIET_AND_BAD_CAP => {
+                    self.limit += self.bad_captures;
+                    self.index = self.limit;
+
                     if INCLUDE_QUIETS {
                         if !tt_move.is_null() && tt_move.is_quiet() {
                             self.generate_quiets(board, &[tt_move, killer]);
                         } else {
                             self.generate_quiets(board, &[killer]);
                         };
-                        self.score_quiets(board, history);
                     }
+                    self.score_quiets(board, history);
+                    self.index -= self.bad_captures;
                 }
                 _ => return None,
             }
@@ -320,18 +350,16 @@ mod tests {
         let mut ep_count = 0;
 
         let mut generator = MoveGenerator::new();
-        while let Some(mv) = generator.simple_next::<true>(&board) {
-            if generator.stage == MoveStage::CAPTURE {
-                let piece = board.piece_on_sq(mv.from());
-                counts[piece.as_index()] += 1;
+        while let Some(mv) = generator.simple_next::<false>(&board) {
+            let piece = board.piece_on_sq(mv.from());
+            counts[piece.as_index()] += 1;
 
-                if mv.is_promo() {
-                    promo_count += 1;
-                }
+            if mv.is_promo() {
+                promo_count += 1;
+            }
 
-                if mv.flag() == Flag::EP {
-                    ep_count += 1;
-                }
+            if mv.flag() == Flag::EP {
+                ep_count += 1;
             }
         }
 
@@ -358,7 +386,7 @@ mod tests {
 
         let mut generator = MoveGenerator::new();
         while let Some(mv) = generator.simple_next::<true>(&board) {
-            if generator.stage == MoveStage::QUIET {
+            if mv.is_quiet() {
                 let piece = board.piece_on_sq(mv.from());
                 counts[piece.as_index()] += 1;
 
@@ -380,5 +408,24 @@ mod tests {
         assert_eq!(counts[Piece::KING.as_index()], 3);
         assert_eq!(promo_count, 4);
         assert_eq!(castle_count, 1);
+    }
+
+    #[test]
+    fn correct_move_count() {
+        use super::*;
+
+        let board =
+            Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+        let expected_count = 48;
+        let mut actual = 0;
+        let mut list = vec![];
+
+        let mut g = MoveGenerator::new();
+        while let Some(mv) = g.simple_next::<true>(&board) {
+            actual += 1;
+            assert!(!list.contains(&mv), "{} is duplicate", mv.as_string());
+            list.push(mv);
+        }
+        assert_eq!(expected_count, actual);
     }
 }
