@@ -80,6 +80,7 @@ pub struct MoveGenerator {
     movelist: [MoveElement; MAX_MOVECOUNT],
     limit: usize,
     index: usize,
+    bad_captures: usize,
 }
 
 impl MoveGenerator {
@@ -89,6 +90,7 @@ impl MoveGenerator {
             movelist: [MoveElement::new(); MAX_MOVECOUNT],
             limit: 0,
             index: 0,
+            bad_captures: 0,
         }
     }
 
@@ -240,21 +242,18 @@ impl MoveGenerator {
             if board.see(mv, attacker, victim, 0) { // good capture
                 start += 1;
             } else { // bad capture
+                self.bad_captures += 1;
                 self.movelist.swap(start, end);
                 end -= 1;
             }
         }
-
-        self.limit = start;
     }
 
     fn score_quiets(&mut self, board: &Board, history: &History) {
         for elem in self.movelist.iter_mut().skip(self.index).take(self.limit - self.index) {
-            let mv = elem.mv;
-            if mv.is_quiet() {
-                elem.score = history.score(board, mv) as i16;
-            }
+            elem.score = history.score(board, elem.mv) as i16;
         }
+        self.index -= self.bad_captures; // we need to include bad captures in this stage
     }
 
     pub fn next<const INCLUDE_QUIETS: bool>(
@@ -293,8 +292,8 @@ impl MoveGenerator {
                         } else {
                             self.generate_quiets(board, &[killer]);
                         };
-                        self.score_quiets(board, history);
                     }
+                    self.score_quiets(board, history);
                 }
                 _ => return None,
             }
