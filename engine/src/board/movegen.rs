@@ -251,6 +251,7 @@ impl MoveGenerator {
 
     fn score_quiets(&mut self, board: &Board, history: &History) {
         for elem in self.movelist.iter_mut().skip(self.index).take(self.limit - self.index) {
+            debug_assert!(elem.mv.is_quiet());
             elem.score = history.score(board, elem.mv) as i16;
         }
         self.index -= self.bad_captures; // we need to include bad captures in this stage
@@ -373,7 +374,7 @@ mod tests {
 
         let mut generator = MoveGenerator::new();
         while let Some(mv) = generator.simple_next::<true>(&board) {
-            if generator.stage == MoveStage::QUIET_AND_BAD_CAP {
+            if mv.is_quiet() {
                 let piece = board.piece_on_sq(mv.from());
                 counts[piece.as_index()] += 1;
 
