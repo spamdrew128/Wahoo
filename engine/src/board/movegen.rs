@@ -228,22 +228,24 @@ impl MoveGenerator {
         self.generic_movegen(board, empty, Flag::NONE, repeats);
     }
 
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_wrap)]
     fn score_captures(&mut self, board: &Board) {
-        let mut start = self.index;
-        let mut end = self.limit - 1;
+        let mut start = self.index as i32;
+        let mut end = self.limit as i32 - 1;
 
         while start <= end {
-            let mv = self.movelist[start].mv;
+            let i = start as usize;
+            let mv = self.movelist[i].mv;
 
             let attacker = board.piece_on_sq(mv.from());
             let victim = board.piece_on_sq(mv.to());
-            self.movelist[start].score = mvv_lva(attacker, victim);
+            self.movelist[i].score = mvv_lva(attacker, victim);
 
             if board.see(mv, attacker, victim, 0) { // good capture
                 start += 1;
             } else { // bad capture
                 self.bad_captures += 1;
-                self.movelist.swap(start, end);
+                self.movelist.swap(i, end as usize);
                 end -= 1;
             }
         }
