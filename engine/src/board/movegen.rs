@@ -415,10 +415,14 @@ mod tests {
             Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
         let expected_count = 48;
         let mut actual = 0;
+        let mut list = vec![];
 
         let mut g = MoveGenerator::new();
-        while g.simple_next::<true>(&board).is_some() {
+        while let Some(mv) = g.simple_next::<true>(&board) {
             actual += 1;
+            assert!(!list.contains(&mv), "{} is duplicate", mv.as_string());
+            list.push(mv);
+
         }
         assert_eq!(expected_count, actual);
     }
