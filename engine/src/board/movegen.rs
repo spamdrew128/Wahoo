@@ -48,7 +48,7 @@ impl MoveStage {
         TT,
         CAPTURE,
         KILLER,
-        QUIET
+        QUIET_AND_BAD_CAP
     );
 
     const fn new(data: u8) -> Self {
@@ -269,7 +269,7 @@ impl MoveGenerator {
                         return Some(killer);
                     }
                 }
-                MoveStage::QUIET => {
+                MoveStage::QUIET_AND_BAD_CAP => {
                     if INCLUDE_QUIETS {
                         if !tt_move.is_null() && tt_move.is_quiet() {
                             self.generate_quiets(board, &[tt_move, killer]);
@@ -357,7 +357,7 @@ mod tests {
 
         let mut generator = MoveGenerator::new();
         while let Some(mv) = generator.simple_next::<true>(&board) {
-            if generator.stage == MoveStage::QUIET {
+            if generator.stage == MoveStage::QUIET_AND_BAD_CAP {
                 let piece = board.piece_on_sq(mv.from());
                 counts[piece.as_index()] += 1;
 
