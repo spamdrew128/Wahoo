@@ -440,7 +440,7 @@ impl<'a> Searcher<'a> {
         while let Some(mv) =
             generator.next::<true>(board, &self.history, self.killers.killer(ply), tt_move)
         {
-            /* MOVE PRUNING TECHNIQUES */
+            // MOVE PRUNING TECHNIQUES
             if pruning_allowed && best_score.abs() < MATE_THRESHOLD {
                 // SEE PRUNING
                 const MIN_SEE_DEPTH: Depth = 6;
