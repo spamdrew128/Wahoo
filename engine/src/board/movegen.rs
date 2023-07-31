@@ -78,6 +78,7 @@ impl MoveElement {
 pub struct MoveGenerator {
     stage: MoveStage,
     movelist: [MoveElement; MAX_MOVECOUNT],
+    start: usize,
     len: usize,
     index: usize,
 }
