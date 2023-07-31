@@ -241,9 +241,11 @@ impl MoveGenerator {
             let victim = board.piece_on_sq(mv.to());
             self.movelist[i].score = mvv_lva(attacker, victim);
 
-            if board.see(mv, attacker, victim, 0) { // good capture
+            if board.see(mv, attacker, victim, 0) {
+                // good capture
                 start += 1;
-            } else { // bad capture
+            } else {
+                // bad capture
                 self.bad_captures += 1;
                 self.movelist.swap(i, end as usize);
                 end -= 1;
@@ -252,7 +254,12 @@ impl MoveGenerator {
     }
 
     fn score_quiets(&mut self, board: &Board, history: &History) {
-        for elem in self.movelist.iter_mut().skip(self.index).take(self.limit - self.index) {
+        for elem in self
+            .movelist
+            .iter_mut()
+            .skip(self.index)
+            .take(self.limit - self.index)
+        {
             debug_assert!(elem.mv.is_quiet());
             elem.score = history.score(board, elem.mv) as i16;
         }
@@ -398,5 +405,21 @@ mod tests {
         assert_eq!(counts[Piece::KING.as_index()], 3);
         assert_eq!(promo_count, 4);
         assert_eq!(castle_count, 1);
+    }
+
+    #[test]
+    fn correct_move_count() {
+        use super::*;
+
+        let board =
+            Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+        let expected_count = 48;
+        let mut actual = 0;
+
+        let mut g = MoveGenerator::new();
+        while g.simple_next::<true>(&board).is_some() {
+            actual += 1;
+        }
+        assert_eq!(expected_count, actual);
     }
 }
