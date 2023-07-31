@@ -251,6 +251,8 @@ impl MoveGenerator {
                 end -= 1;
             }
         }
+
+        self.limit -= self.bad_captures; // dont include bad captures in this stage
     }
 
     fn score_quiets(&mut self, board: &Board, history: &History) {
@@ -263,7 +265,6 @@ impl MoveGenerator {
             debug_assert!(elem.mv.is_quiet());
             elem.score = history.score(board, elem.mv) as i16;
         }
-        self.index -= self.bad_captures; // we need to include bad captures in this stage
     }
 
     pub fn next<const INCLUDE_QUIETS: bool>(
@@ -296,6 +297,9 @@ impl MoveGenerator {
                     }
                 }
                 MoveStage::QUIET_AND_BAD_CAP => {
+                    self.limit += self.bad_captures;
+                    self.index = self.limit;
+
                     if INCLUDE_QUIETS {
                         if !tt_move.is_null() && tt_move.is_quiet() {
                             self.generate_quiets(board, &[tt_move, killer]);
@@ -304,6 +308,7 @@ impl MoveGenerator {
                         };
                     }
                     self.score_quiets(board, history);
+                    self.index -= self.bad_captures;
                 }
                 _ => return None,
             }
@@ -346,7 +351,7 @@ mod tests {
 
         let mut generator = MoveGenerator::new();
         while let Some(mv) = generator.simple_next::<true>(&board) {
-            if generator.stage == MoveStage::CAPTURE {
+            if mv.is_capture() {
                 let piece = board.piece_on_sq(mv.from());
                 counts[piece.as_index()] += 1;
 
