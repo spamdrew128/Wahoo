@@ -149,8 +149,17 @@ impl Square {
         self.0 as usize
     }
 
-    pub const fn flip(self) -> Self {
+    pub const fn mirror(self) -> Self {
         Self(self.0 ^ 0b111000)
+    }
+
+    pub const fn row_swap(self) -> Self {
+        // even rows become odd, odd rows become even
+        Self::new(self.0 ^ 0b1000)
+    }
+
+    pub const fn double_push_sq(self) -> Self {
+        Self::new(self.0 ^ 0b10000)
     }
 
     pub const fn rank(self) -> u8 {
@@ -320,6 +329,10 @@ impl Bitboard {
         let sq = self.lsb();
         self.reset_lsb();
         sq
+    }
+
+    pub const fn lsb_bb(self) -> Self {
+        Self::new(self.data & self.data.wrapping_neg())
     }
 
     pub const fn north_one(self) -> Self {
@@ -849,7 +862,7 @@ impl Board {
         to_sq: Square,
         hash_base: &mut ZobristHash,
     ) -> Option<Square> {
-        let ep_sq = to_sq.retreat(1, self.color_to_move);
+        let ep_sq = to_sq.row_swap();
         let opp_pawns = self.piece_bb(Piece::PAWN, self.color_to_move.flip());
 
         if attacks::pawn(ep_sq, self.color_to_move).overlaps(opp_pawns) {
@@ -923,7 +936,7 @@ impl Board {
             Flag::ROOK_PROMO => self.toggle_promotion(to_bb, Piece::ROOK, &mut hash_base, to_sq),
             Flag::ROOK_CAPTURE_PROMO => self.toggle_capture_promotion(to_bb, captured_piece, Piece::ROOK, &mut hash_base, to_sq),
             Flag::EP => {
-                let ep_sq = to_sq.retreat(1, color);
+                let ep_sq = to_sq.row_swap();
                 self.toggle(ep_sq.as_bitboard(), Piece::PAWN, opp_color);
                 hash_base.hash_piece(opp_color, Piece::PAWN, ep_sq);
             }

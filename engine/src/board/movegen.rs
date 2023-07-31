@@ -199,7 +199,7 @@ impl MoveGenerator {
         let mut double_pushs = attacks::pawn_double_push(single_pushs, empty, color);
 
         bitloop!(|to| promotions, {
-            let from = to.retreat(1, color);
+            let from = to.row_swap();
             self.add_move(Move::new(to, from, Flag::QUEEN_PROMO), repeats);
             self.add_move(Move::new(to, from, Flag::KNIGHT_PROMO), repeats);
             self.add_move(Move::new(to, from, Flag::ROOK_PROMO), repeats);
@@ -212,7 +212,7 @@ impl MoveGenerator {
         });
 
         bitloop!(|to| double_pushs, {
-            let from = to.retreat(2, color);
+            let from = to.double_push_sq();
             self.add_move(Move::new(to, from, Flag::DOUBLE_PUSH), repeats);
         });
 

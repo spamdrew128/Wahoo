@@ -397,7 +397,8 @@ impl<'a> Searcher<'a> {
             }
         }
 
-        if !is_pv && !in_check {
+        let pruning_allowed = !is_pv && !in_check;
+        if pruning_allowed {
             // REVERSE FUTILITY PRUNING
             const RFP_MAX_DEPTH: Depth = 8;
             const RFP_MARGIN: EvalScore = 90;
@@ -439,6 +440,15 @@ impl<'a> Searcher<'a> {
         while let Some(mv) =
             generator.next::<true>(board, &self.history, self.killers.killer(ply), tt_move)
         {
+            /* MOVE PRUNING TECHNIQUES */
+            if pruning_allowed && best_score.abs() < MATE_THRESHOLD {
+                // SEE PRUNING
+                const MIN_SEE_DEPTH: Depth = 6;
+                if depth <= MIN_SEE_DEPTH && !board.search_see(mv, -90 * i32::from(depth)) {
+                    continue; 
+                }
+            }
+
             let mut next_board = board.clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
             if !is_legal {

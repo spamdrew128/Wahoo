@@ -14,7 +14,7 @@ impl Pst {
         let mut i = 0;
         while i < NUM_SQUARES {
             let b_sq = Square::new(i);
-            let w_sq = b_sq.flip();
+            let w_sq = b_sq.mirror();
             let score = before[i as usize];
             table[Color::White.as_index()][w_sq.as_index()] = score;
             table[Color::Black.as_index()][b_sq.as_index()] = score;
