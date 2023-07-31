@@ -78,8 +78,7 @@ impl MoveElement {
 pub struct MoveGenerator {
     stage: MoveStage,
     movelist: [MoveElement; MAX_MOVECOUNT],
-    start: usize,
-    len: usize,
+    limit: usize,
     index: usize,
 }
 
@@ -88,34 +87,32 @@ impl MoveGenerator {
         Self {
             stage: MoveStage::START,
             movelist: [MoveElement::new(); MAX_MOVECOUNT],
-            start: 0,
-            len: 0,
+            limit: 0,
             index: 0,
         }
     }
 
     const fn stage_complete(&self) -> bool {
-        self.index >= self.len
+        self.index >= self.limit
     }
 
     fn advance_stage(&mut self) {
         self.stage.increment();
-        self.len = 0;
-        self.index = 0;
+        self.index = self.limit;
     }
 
     fn add_move(&mut self, mv: Move, repeats: &[Move]) {
         if repeats.contains(&mv) {
             return;
         }
-        self.movelist[self.len].mv = mv;
-        self.len += 1;
+        self.movelist[self.limit].mv = mv;
+        self.limit += 1;
     }
 
     fn pick_move(&mut self) -> Move {
         let mut best_index = self.index;
         let mut best_score = self.movelist[self.index].score;
-        for i in (self.index + 1)..self.len {
+        for i in (self.index + 1)..self.limit {
             let score = self.movelist[i].score;
             if score > best_score {
                 best_score = score;
@@ -230,7 +227,7 @@ impl MoveGenerator {
     }
 
     fn score_captures(&mut self, board: &Board) {
-        for elem in self.movelist.iter_mut().take(self.len) {
+        for elem in self.movelist.iter_mut().skip(self.index).take(self.limit - self.index) {
             let attacker = board.piece_on_sq(elem.mv.from());
             let victim = board.piece_on_sq(elem.mv.to());
             elem.score = mvv_lva(attacker, victim);
@@ -238,7 +235,7 @@ impl MoveGenerator {
     }
 
     fn score_quiets(&mut self, board: &Board, history: &History) {
-        for elem in self.movelist.iter_mut().take(self.len) {
+        for elem in self.movelist.iter_mut().skip(self.index).take(self.limit - self.index) {
             elem.score = history.score(board, elem.mv) as i16;
         }
     }
@@ -256,7 +253,7 @@ impl MoveGenerator {
             match self.stage {
                 MoveStage::TT => {
                     if tt_move.is_pseudolegal(board) {
-                        self.add_move(tt_move, &[]);
+                        return Some(tt_move);
                     }
                 }
                 MoveStage::CAPTURE => {
