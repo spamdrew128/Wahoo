@@ -350,18 +350,16 @@ mod tests {
         let mut ep_count = 0;
 
         let mut generator = MoveGenerator::new();
-        while let Some(mv) = generator.simple_next::<true>(&board) {
-            if mv.is_capture() {
-                let piece = board.piece_on_sq(mv.from());
-                counts[piece.as_index()] += 1;
+        while let Some(mv) = generator.simple_next::<false>(&board) {
+            let piece = board.piece_on_sq(mv.from());
+            counts[piece.as_index()] += 1;
 
-                if mv.is_promo() {
-                    promo_count += 1;
-                }
+            if mv.is_promo() {
+                promo_count += 1;
+            }
 
-                if mv.flag() == Flag::EP {
-                    ep_count += 1;
-                }
+            if mv.flag() == Flag::EP {
+                ep_count += 1;
             }
         }
 
@@ -427,7 +425,6 @@ mod tests {
             actual += 1;
             assert!(!list.contains(&mv), "{} is duplicate", mv.as_string());
             list.push(mv);
-
         }
         assert_eq!(expected_count, actual);
     }
