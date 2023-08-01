@@ -38,8 +38,8 @@ const fn mvv_lva(attacker: Piece, victim: Piece) -> i16 {
     MVV_LVA[attacker.as_index()][victim.as_index()]
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct MoveStage(u8);
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct MoveStage(u8);
 
 impl MoveStage {
     #[rustfmt::skip]
@@ -338,6 +338,10 @@ impl MoveGenerator {
 
     pub fn no_legal_moves(board: &Board) -> bool {
         Self::first_legal_move(board).is_none()
+    }
+
+    pub const fn stage(&self) -> MoveStage {
+        self.stage
     }
 }
 

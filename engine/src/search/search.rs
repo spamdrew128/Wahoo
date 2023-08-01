@@ -19,7 +19,7 @@ use crate::{
     board::board_representation::Board,
     board::chess_move::{Move, MAX_MOVECOUNT},
     board::movegen::MoveGenerator,
-    board::zobrist::ZobristHash,
+    board::{zobrist::ZobristHash, movegen::MoveStage},
     board::zobrist_stack::ZobristStack,
     eval::evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     tablebase::probe::Syzygy,
@@ -451,7 +451,9 @@ impl<'a> Searcher<'a> {
 
                 // STATIC EXCHANGE EVALUATION (SEE) PRUNING
                 const MIN_SEE_DEPTH: Depth = 6;
-                if depth <= MIN_SEE_DEPTH && !board.search_see(mv, -90 * i32::from(depth)) {
+                if generator.stage() > MoveStage::KILLER
+                    && depth <= MIN_SEE_DEPTH
+                    && !board.search_see(mv, -90 * i32::from(depth)) {
                     continue;
                 }
             }
