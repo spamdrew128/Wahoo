@@ -442,7 +442,13 @@ impl<'a> Searcher<'a> {
         {
             // MOVE PRUNING TECHNIQUES
             if pruning_allowed && best_score.abs() < MATE_THRESHOLD {
-                // SEE PRUNING
+                // LATE MOVE PRUNING (LMP)
+                const MIN_LMP_DEPTH: Depth = 3;
+                if depth <= MIN_LMP_DEPTH && moves_played > (10 * depth) {
+                    break;
+                }
+
+                // STATIC EXCHANGE EVALUATION (SEE) PRUNING
                 const MIN_SEE_DEPTH: Depth = 6;
                 if depth <= MIN_SEE_DEPTH && !board.search_see(mv, -90 * i32::from(depth)) {
                     continue;
