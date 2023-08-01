@@ -2,7 +2,7 @@ use std::ops::{Add, AddAssign, Sub};
 
 use crate::{
     bitloop,
-    board::board_representation::{Board, Color, Piece, Square},
+    board::board_representation::{Board, Color, Piece, Square, Bitboard, NUM_SQUARES, NUM_COLORS},
     eval::eval_constants::{
         BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS, PASSER_BLOCKERS_PRT, PASSER_PST,
         PHALANX_PAWNS_PRT, TEMPO_BONUS,
@@ -14,6 +14,20 @@ use crate::{
     },
     search::search::MAX_PLY,
     trace_update,
+};
+
+const fn passer_squares_init(is_stm: bool) -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
+    let result = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
+
+    let mut i = 0;
+    while i < NUM_SQUARES {
+        let sq = Square::new(i);
+        let w_rank = sq.rank();
+
+        i += 1;
+    }
+
+    result
 };
 
 pub type Phase = u8;
