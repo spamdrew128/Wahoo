@@ -267,7 +267,7 @@ impl MoveGenerator {
         }
     }
 
-    pub fn next<const INCLUDE_QUIETS: bool>(
+    pub fn next<const FULL_MOVEGEN: bool>(
         &mut self,
         board: &Board,
         history: &History,
@@ -292,7 +292,11 @@ impl MoveGenerator {
                     self.score_captures(board);
                 }
                 MoveStage::KILLER => {
-                    if INCLUDE_QUIETS && killer.is_pseudolegal(board) {
+                    if !FULL_MOVEGEN {
+                        return None;
+                    }
+
+                    if killer.is_pseudolegal(board) {
                         return Some(killer);
                     }
                 }
@@ -300,13 +304,12 @@ impl MoveGenerator {
                     self.limit += self.bad_captures;
                     self.index = self.limit;
 
-                    if INCLUDE_QUIETS {
-                        if !tt_move.is_null() && tt_move.is_quiet() {
-                            self.generate_quiets(board, &[tt_move, killer]);
-                        } else {
-                            self.generate_quiets(board, &[killer]);
-                        };
-                    }
+                    if !tt_move.is_null() && tt_move.is_quiet() {
+                        self.generate_quiets(board, &[tt_move, killer]);
+                    } else {
+                        self.generate_quiets(board, &[killer]);
+                    };
+
                     self.score_quiets(board, history);
                     self.index -= self.bad_captures;
                 }
@@ -317,8 +320,8 @@ impl MoveGenerator {
         Some(self.pick_move())
     }
 
-    pub fn simple_next<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
-        self.next::<INCLUDE_QUIETS>(board, &History::new(), Move::nullmove(), Move::nullmove())
+    pub fn simple_next<const FULL_MOVEGEN: bool>(&mut self, board: &Board) -> Option<Move> {
+        self.next::<FULL_MOVEGEN>(board, &History::new(), Move::nullmove(), Move::nullmove())
     }
 
     pub fn first_legal_move(board: &Board) -> Option<Move> {
