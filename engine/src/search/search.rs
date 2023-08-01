@@ -441,7 +441,8 @@ impl<'a> Searcher<'a> {
             generator.next::<true>(board, &self.history, self.killers.killer(ply), tt_move)
         {
             // MOVE PRUNING TECHNIQUES
-            if pruning_allowed && best_score.abs() < MATE_THRESHOLD {
+            const PRUNING_THRESHOLD: EvalScore = 700;
+            if pruning_allowed && best_score.abs() < PRUNING_THRESHOLD {
                 // LATE MOVE PRUNING (LMP)
                 const MIN_LMP_DEPTH: Depth = 3;
                 if depth <= MIN_LMP_DEPTH && moves_played > i32::from(10 * depth) {
