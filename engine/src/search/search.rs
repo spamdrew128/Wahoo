@@ -435,14 +435,21 @@ impl<'a> Searcher<'a> {
 
         let mut best_move = Move::nullmove();
         let mut best_score = -INF;
-        let mut moves_played = 0;
+        let mut moves_played: i32 = 0;
         let mut quiets: ArrayVec<Move, MAX_MOVECOUNT> = ArrayVec::new();
         while let Some(mv) =
             generator.next::<true>(board, &self.history, self.killers.killer(ply), tt_move)
         {
             // MOVE PRUNING TECHNIQUES
-            if pruning_allowed && best_score.abs() < MATE_THRESHOLD {
-                // SEE PRUNING
+            const PRUNING_THRESHOLD: EvalScore = 700;
+            if pruning_allowed && best_score.abs() < PRUNING_THRESHOLD {
+                // LATE MOVE PRUNING (LMP)
+                const MIN_LMP_DEPTH: Depth = 3;
+                if depth <= MIN_LMP_DEPTH && moves_played > i32::from(10 * depth) {
+                    break;
+                }
+
+                // STATIC EXCHANGE EVALUATION (SEE) PRUNING
                 const MIN_SEE_DEPTH: Depth = 6;
                 if depth <= MIN_SEE_DEPTH && !board.search_see(mv, -90 * i32::from(depth)) {
                     continue;
