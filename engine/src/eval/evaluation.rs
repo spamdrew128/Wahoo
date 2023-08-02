@@ -278,3 +278,19 @@ pub fn trace_of_position(board: &Board) -> Trace {
     eval_or_trace::<true>(board, &mut trace);
     trace
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{board::board_representation::{Board, Color, Square}, eval::evaluation::STM_PASSER_SQ};
+
+    #[test]
+    fn passer_sq_test() {
+        let board = Board::from_fen("8/8/8/2k2PP1/8/8/8/K7 w - - 0 1");
+        let k_sq = board.color_king_sq(Color::Black).as_bitboard();
+
+        let p1 = Square::F5.as_index();
+        let p2 = Square::G5.as_index();
+        assert!(STM_PASSER_SQ[Color::White.as_index()][p1].intersection(k_sq).is_not_empty());
+        assert!(STM_PASSER_SQ[Color::White.as_index()][p2].intersection(k_sq).is_empty());
+    }
+}
