@@ -6,7 +6,7 @@ use engine::{
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
     eval::{
         evaluation::SAFETY_LIMIT,
-        trace::{Attacks, Defenses, PawnStorm, Tropism, SAFETY_TRACE_LEN, PasserSqRule},
+        trace::{Attacks, Defenses, PasserSqRule, PawnStorm, Tropism, SAFETY_TRACE_LEN},
     },
     eval::{
         piece_loop_eval::MoveCounts,
@@ -606,8 +606,8 @@ impl Tuner {
         self.write_bishop_pair(&mut output);
         self.write_mobility(&mut output);
         self.write_forward_mobility(&mut output);
-        self.write_sq_rule(&mut output);
         self.write_threats(&mut output);
+        self.write_sq_rule(&mut output);
         self.write_tempo(&mut output);
 
         writeln!(output, "\n// KING SAFETY FEATURES").unwrap();
