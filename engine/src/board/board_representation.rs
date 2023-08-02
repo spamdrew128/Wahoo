@@ -403,6 +403,22 @@ impl Bitboard {
         result
     }
 
+    pub const fn row_set(self, count: u8) -> Self {
+        let mut result = self;
+        let mut east_marker = self.east_one();
+        let mut west_marker = self.west_one();
+
+        let mut i = 0;
+        while i < count {
+            result = result.union(east_marker).union(west_marker);
+            east_marker = east_marker.east_one();
+            west_marker = west_marker.west_one();
+            i += 1;
+        }
+
+        result
+    }
+
     pub const fn fill(self, color: Color) -> Self {
         let mut r = self;
         match color {

@@ -2,7 +2,7 @@ use std::ops::{Add, AddAssign, Sub};
 
 use crate::{
     bitloop,
-    board::board_representation::{Board, Color, Piece, Square, Bitboard, NUM_SQUARES, NUM_COLORS},
+    board::board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
     eval::eval_constants::{
         BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS, PASSER_BLOCKERS_PRT, PASSER_PST,
         PHALANX_PAWNS_PRT, TEMPO_BONUS,
@@ -16,19 +16,40 @@ use crate::{
     trace_update,
 };
 
-const fn passer_squares_init(is_stm: bool) -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
-    let result = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
+const fn passer_squares_init(
+    is_stm: bool,
+) -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
+    let mut result = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
 
-    let mut i = 0;
-    while i < NUM_SQUARES {
-        let sq = Square::new(i);
-        let w_rank = sq.rank();
+    let mut i = 8;
+    while i < (NUM_SQUARES - 8) {
+        let (w_sq, b_sq) = if is_stm {
+            (Square::new(i), Square::new(i))
+        } else {
+            (
+                Square::new(i).retreat(1, Color::White),
+                Square::new(i).retreat(1, Color::Black),
+            )
+        };
+        let (w_ranks_away, b_ranks_away) = (7 - w_sq.rank(), b_sq.rank());
+        let (w, b) = (
+            w_sq.as_bitboard().row_set(w_ranks_away).fill(Color::White),
+            b_sq.as_bitboard().row_set(b_ranks_away).fill(Color::Black),
+        );
+
+        result[Color::White.as_index()][i as usize] = w;
+        result[Color::Black.as_index()][i as usize] = b;
 
         i += 1;
     }
 
     result
-};
+}
+
+const STM_PASSER_SQ_RULE: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] =
+    passer_squares_init(true);
+const NON_STM_PASSER_SQ_RULE: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] =
+    passer_squares_init(false);
 
 pub type Phase = u8;
 pub const PHASE_MAX: Phase = 24;
