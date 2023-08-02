@@ -19,8 +19,8 @@ use crate::{
     board::board_representation::Board,
     board::chess_move::{Move, MAX_MOVECOUNT},
     board::movegen::MoveGenerator,
-    board::{zobrist::ZobristHash, movegen::MoveStage},
     board::zobrist_stack::ZobristStack,
+    board::{movegen::MoveStage, zobrist::ZobristHash},
     eval::evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     tablebase::probe::Syzygy,
 };

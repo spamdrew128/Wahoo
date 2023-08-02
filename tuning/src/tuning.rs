@@ -6,7 +6,7 @@ use engine::{
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
     eval::{
         evaluation::SAFETY_LIMIT,
-        trace::{Attacks, Defenses, PawnStorm, Tropism, SAFETY_TRACE_LEN},
+        trace::{Attacks, Defenses, PasserSqRule, PawnStorm, Tropism, SAFETY_TRACE_LEN},
     },
     eval::{
         piece_loop_eval::MoveCounts,
@@ -511,6 +511,15 @@ impl Tuner {
         }
     }
 
+    fn write_sq_rule(&self, output: &mut BufWriter<File>) {
+        writeln!(
+            output,
+            "\npub const PASSER_SQ_RULE_BONUS: ScoreTuple = {};",
+            self.weights.linear[PasserSqRule::index()]
+        )
+        .unwrap();
+    }
+
     fn write_tempo(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
@@ -598,6 +607,7 @@ impl Tuner {
         self.write_mobility(&mut output);
         self.write_forward_mobility(&mut output);
         self.write_threats(&mut output);
+        self.write_sq_rule(&mut output);
         self.write_tempo(&mut output);
 
         writeln!(output, "\n// KING SAFETY FEATURES").unwrap();
