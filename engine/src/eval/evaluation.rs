@@ -7,10 +7,13 @@ use crate::{
         BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS, PASSER_BLOCKERS_PRT, PASSER_PST,
         PHALANX_PAWNS_PRT, TEMPO_BONUS,
     },
-    eval::piece_loop_eval::mobility_threats_safety,
     eval::trace::{
         color_adjust, BishopPair, IsolatedPawns, MaterialPst, Passer, PasserBlocker, PhalanxPawns,
         TempoBonus, Trace,
+    },
+    eval::{
+        eval_constants::PASSER_SQ_RULE_BONUS, piece_loop_eval::mobility_threats_safety,
+        trace::PasserSqRule,
     },
     search::search::MAX_PLY,
     trace_update,
@@ -46,9 +49,9 @@ const fn passer_squares_init(
     result
 }
 
-const STM_PASSER_SQ_RULE: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] =
+const STM_PASSER_SQ: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] =
     passer_squares_init(true);
-const NON_STM_PASSER_SQ_RULE: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] =
+const NON_STM_PASSER_SQ: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] =
     passer_squares_init(false);
 
 pub type Phase = u8;
@@ -157,7 +160,11 @@ fn bishop_pair<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) ->
     }
 }
 
-fn passed_pawns<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) -> ScoreTuple {
+fn passed_pawns<const IS_STM: bool, const TRACE: bool>(
+    board: &Board,
+    color: Color,
+    t: &mut Trace,
+) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
     let mut passers = board.passed_pawns(color);
 
@@ -170,8 +177,23 @@ fn passed_pawns<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) -
             .intersection(board.all[Color::White.as_index()]),
     };
 
+    let enemy_king = board.piece_bb(Piece::KING, color.flip());
     bitloop!(|sq| passers, {
         score += PASSER_PST.access(color, sq);
+
+        let passer_sq = if IS_STM {
+            STM_PASSER_SQ[color.as_index()][sq.as_index()]
+        } else {
+            NON_STM_PASSER_SQ[color.as_index()][sq.as_index()]
+        };
+
+        if passer_sq.intersection(enemy_king).is_empty() {
+            score += PASSER_SQ_RULE_BONUS;
+
+            if TRACE {
+                trace_update!(t, PasserSqRule, (), color, 1);
+            }
+        }
 
         if TRACE {
             let sq = color_adjust(sq, color);
@@ -235,7 +257,8 @@ fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
     let mut score_tuple = TEMPO_BONUS;
     score_tuple += pst_eval::<TRACE>(board, us, t) - pst_eval::<TRACE>(board, them, t);
     score_tuple += bishop_pair::<TRACE>(board, us, t) - bishop_pair::<TRACE>(board, them, t);
-    score_tuple += passed_pawns::<TRACE>(board, us, t) - passed_pawns::<TRACE>(board, them, t);
+    score_tuple +=
+        passed_pawns::<true, TRACE>(board, us, t) - passed_pawns::<false, TRACE>(board, them, t);
     score_tuple += isolated_pawns::<TRACE>(board, us, t) - isolated_pawns::<TRACE>(board, them, t);
     score_tuple += phalanx_pawns::<TRACE>(board, us, t) - phalanx_pawns::<TRACE>(board, them, t);
     score_tuple += mobility_threats_safety::<TRACE>(board, us, them, t);

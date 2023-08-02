@@ -14,7 +14,8 @@ pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
     + PhalanxPawns::LEN
     + Threats::LEN
     + TempoBonus::LEN
-    + ForwardMobility::LEN;
+    + ForwardMobility::LEN
+    + PasserSqRule::LEN;
 
 pub const SAFETY_TRACE_LEN: usize =
     Attacks::LEN + Defenses::LEN + EnemyKingRank::LEN + Tropism::LEN + PawnStorm::LEN;
@@ -208,6 +209,16 @@ impl ForwardMobility {
 
     pub const fn index(piece: Piece, f_mobility: usize) -> usize {
         Self::START + f_mobility + Self::PIECE_OFFSETS[piece.as_index()]
+    }
+}
+
+pub struct PasserSqRule;
+impl PasserSqRule {
+    pub const START: usize = ForwardMobility::START + ForwardMobility::LEN;
+    pub const LEN: usize = 1;
+
+    pub const fn index() -> usize {
+        Self::START
     }
 }
 

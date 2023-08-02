@@ -162,6 +162,8 @@ pub const BISHOP_THREAT_ON_ROOK: ScoreTuple = s(71, 33);
 pub const BISHOP_THREAT_ON_QUEEN: ScoreTuple = s(92, 26);
 pub const ROOK_THREAT_ON_QUEEN: ScoreTuple = s(86, 12);
 
+pub const PASSER_SQ_RULE_BONUS: ScoreTuple = s(86, 12);
+
 pub const TEMPO_BONUS: ScoreTuple = s(34, 30);
 
 // KING SAFETY FEATURES
