@@ -278,7 +278,7 @@ impl<'a> Searcher<'a> {
             alpha = (prev_score - ASP_WINDOW_INIT_WINDOW).max(-INF);
             beta = (prev_score + ASP_WINDOW_INIT_WINDOW).min(INF);
         } else {
-            return self.negamax::<false>(board, asp_depth, 0, alpha, beta);
+            return self.negamax::<true, false>(board, asp_depth, 0, alpha, beta);
         }
 
         let mut w = 0;
@@ -290,7 +290,7 @@ impl<'a> Searcher<'a> {
                 beta = INF;
             }
 
-            let score = self.negamax::<false>(board, asp_depth, 0, alpha, beta);
+            let score = self.negamax::<true, false>(board, asp_depth, 0, alpha, beta);
 
             if score <= alpha {
                 alpha = (alpha - delta).max(-INF);
@@ -318,7 +318,7 @@ impl<'a> Searcher<'a> {
 
     #[rustfmt::skip]
     #[allow(clippy::cognitive_complexity)] // lol
-    fn negamax<const DO_NULL_MOVE: bool>(
+    fn negamax<const IS_ROOT: bool, const DO_NULL_MOVE: bool>(
         &mut self,
         board: &Board,
         mut depth: Depth,
@@ -331,11 +331,10 @@ impl<'a> Searcher<'a> {
         let old_alpha = alpha;
         let in_check = board.in_check();
         let is_pv = beta != alpha + 1;
-        let is_root = ply == 0;
         let is_drawn =
             self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
 
-        if !is_root {
+        if !IS_ROOT {
             if is_drawn {
                 return 0;
             }
@@ -349,7 +348,9 @@ impl<'a> Searcher<'a> {
         }
 
         // CHECK EXTENSION
-        if in_check { depth += 1 };
+        if IS_ROOT && in_check {
+            depth += 1;
+        };
 
         if depth == 0 || ply >= MAX_PLY {
             return self.qsearch(board, ply, alpha, beta);
@@ -389,7 +390,7 @@ impl<'a> Searcher<'a> {
         };
 
         // SYZYGY TABLEBASE PROBING
-        if !is_root {
+        if !IS_ROOT {
             if let Some(score) = self.tb.probe_score(board, ply) {
                 self.thread_data.increment_tb_hits();
                 self.tt.store(TTFlag::EXACT, score, hash, ply, depth, Move::nullmove());
@@ -415,7 +416,7 @@ impl<'a> Searcher<'a> {
 
                 let mut nmp_board = board.clone();
                 nmp_board.play_nullmove(&mut self.zobrist_stack);
-                let null_move_score = -self.negamax::<false>(
+                let null_move_score = -self.negamax::<false, false>(
                     &nmp_board,
                     depth - reduction,
                     ply + 1,
@@ -469,7 +470,7 @@ impl<'a> Searcher<'a> {
 
             let mut score = 0;
             if moves_played == 1 {
-                score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -beta, -alpha);
+                score = -self.negamax::<false, true>(&next_board, depth - 1, ply + 1, -beta, -alpha);
             } else {
                 // LATE MOVE REDUCTIONS (heavily inspired by Svart https://github.com/crippa1337/svart/blob/master/src/engine/search.rs)
                 const LMR_MIN_DEPTH: Depth = 3;
@@ -485,18 +486,18 @@ impl<'a> Searcher<'a> {
                     if r > 1 {
                         // REDUCED PVS
                         r = r.min(depth - 1);
-                        score = -self.negamax::<true>(&next_board, depth - r, ply + 1, -alpha - 1, -alpha);
+                        score = -self.negamax::<false, true>(&next_board, depth - r, ply + 1, -alpha - 1, -alpha);
                         do_full_depth_pvs = score > alpha && score < beta; // we want to try again without reductions if we beat alpha
                     }
                 }
 
                 if do_full_depth_pvs {
                     // FULL DEPTH PVS
-                    score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -alpha - 1, -alpha);
+                    score = -self.negamax::<false, true>(&next_board, depth - 1, ply + 1, -alpha - 1, -alpha);
 
                     // if our null-window search beat alpha without failing high, that means we might have a better move and need to re search with full window
                     if score > alpha && score < beta {
-                        score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -beta, -alpha);
+                        score = -self.negamax::<false, true>(&next_board, depth - 1, ply + 1, -beta, -alpha);
                     }
                 }
             };
