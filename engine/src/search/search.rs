@@ -397,7 +397,7 @@ impl<'a> Searcher<'a> {
             }
         }
 
-        let pruning_allowed = !is_pv && !in_check;
+        let pruning_allowed = !is_pv && !in_check && alpha.abs() < MATE_THRESHOLD;
         if pruning_allowed {
             // REVERSE FUTILITY PRUNING
             const RFP_MAX_DEPTH: Depth = 8;
