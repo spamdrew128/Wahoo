@@ -444,12 +444,6 @@ impl<'a> Searcher<'a> {
             const PRUNING_THRESHOLD: EvalScore = 700;
             if pruning_allowed && best_score.abs() < PRUNING_THRESHOLD {
                 let d = i32::from(depth);
-                // LATE MOVE PRUNING (LMP)
-                const MIN_LMP_DEPTH: Depth = 3;
-                if depth <= MIN_LMP_DEPTH && moves_played > 10 * d {
-                    break;
-                }
-
                 // QUIET LATE MOVE PRUNING
                 if generator.stage() > MoveStage::KILLER && moves_played > 2 + d * d {
                     break;
