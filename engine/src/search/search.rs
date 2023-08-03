@@ -348,7 +348,7 @@ impl<'a> Searcher<'a> {
         }
 
         // CHECK EXTENSION
-        if IS_ROOT && in_check {
+        if !IS_ROOT && in_check {
             depth += 1;
         };
 
