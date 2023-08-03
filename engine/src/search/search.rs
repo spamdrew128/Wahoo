@@ -341,8 +341,8 @@ impl<'a> Searcher<'a> {
             }
 
             // MATE DISTANCE PRUNING
-            let mate_alpha = alpha.max(i32::from(ply) - MATE_THRESHOLD);
-            let mate_beta = beta.min(MATE_THRESHOLD - (i32::from(ply) + 1));
+            let mate_alpha = alpha.max(i32::from(ply) - EVAL_MAX);
+            let mate_beta = beta.min(EVAL_MAX - (i32::from(ply) + 1));
             if mate_alpha >= mate_beta {
                 return mate_alpha;
             }
