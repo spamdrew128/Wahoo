@@ -454,7 +454,7 @@ impl<'a> Searcher<'a> {
                 const MIN_SEE_DEPTH: Depth = 6;
                 if generator.stage() > MoveStage::KILLER
                     && depth <= MIN_SEE_DEPTH
-                    && !board.search_see(mv, -90 * i32::from(depth)) {
+                    && !board.search_see(mv, -90 * d) {
                     continue;
                 }
             }
