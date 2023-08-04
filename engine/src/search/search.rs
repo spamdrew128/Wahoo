@@ -412,7 +412,7 @@ impl<'a> Searcher<'a> {
             const RFP_MIN_DEPTH: Depth = 8;
             const RFP_MARGIN_BASE: EvalScore = 90;
 
-            let margin = (RFP_MARGIN_BASE - improvement / 3).clamp(RFP_MARGIN_BASE - 50, RFP_MARGIN_BASE + 50);
+            let margin = (RFP_MARGIN_BASE - improvement / 3).clamp(RFP_MARGIN_BASE - 50, RFP_MARGIN_BASE);
             if depth <= RFP_MIN_DEPTH && static_eval >= (beta + margin * d) {
                 return static_eval;
             }
