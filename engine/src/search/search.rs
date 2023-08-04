@@ -7,6 +7,7 @@ use arrayvec::ArrayVec;
 
 use super::{
     history_table::History,
+    improving::EvalStack,
     killers::Killers,
     late_move_reductions::get_reduction,
     pv_table::PvTable,
@@ -69,6 +70,7 @@ pub struct Searcher<'a> {
     pv_table: PvTable,
     history: History,
     killers: Killers,
+    eval_stack: EvalStack,
     tt: &'a TranspositionTable,
     tb: Syzygy,
 
@@ -93,6 +95,7 @@ impl<'a> Searcher<'a> {
             zobrist_stack: zobrist_stack.clone(),
             history: history.clone(),
             killers: Killers::new(),
+            eval_stack: EvalStack::new(),
             tt,
             tb,
             pv_table: PvTable::new(),
@@ -398,6 +401,9 @@ impl<'a> Searcher<'a> {
             }
         }
 
+        // IMPROVING HEURISTIC
+        let improving = self.eval_stack.improving(static_eval, ply);
+
         let pruning_allowed = !is_pv && !in_check && alpha.abs() < MATE_THRESHOLD;
         if pruning_allowed {
             // REVERSE FUTILITY PRUNING
@@ -445,8 +451,10 @@ impl<'a> Searcher<'a> {
             const PRUNING_THRESHOLD: EvalScore = 700;
             if pruning_allowed && best_score.abs() < PRUNING_THRESHOLD {
                 let d = i32::from(depth);
+
                 // QUIET LATE MOVE PRUNING
-                if generator.stage() > MoveStage::KILLER && moves_played > 2 + d * d {
+                let divisor = if improving {1} else {2};
+                if generator.stage() > MoveStage::KILLER && moves_played > 2 + (d * d / divisor) {
                     break;
                 }
 
@@ -454,7 +462,7 @@ impl<'a> Searcher<'a> {
                 const MIN_SEE_DEPTH: Depth = 6;
                 if generator.stage() > MoveStage::KILLER
                     && depth <= MIN_SEE_DEPTH
-                    && !board.search_see(mv, -90 * i32::from(depth)) {
+                    && !board.search_see(mv, -90 * d) {
                     continue;
                 }
             }

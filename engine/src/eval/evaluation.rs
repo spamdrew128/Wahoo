@@ -281,7 +281,10 @@ pub fn trace_of_position(board: &Board) -> Trace {
 
 #[cfg(test)]
 mod tests {
-    use crate::{board::board_representation::{Board, Color, Square}, eval::evaluation::STM_PASSER_SQ};
+    use crate::{
+        board::board_representation::{Board, Color, Square},
+        eval::evaluation::STM_PASSER_SQ,
+    };
 
     #[test]
     fn passer_sq_test() {
@@ -290,7 +293,11 @@ mod tests {
 
         let p1 = Square::F5.as_index();
         let p2 = Square::G5.as_index();
-        assert!(STM_PASSER_SQ[Color::White.as_index()][p1].intersection(k_sq).is_not_empty());
-        assert!(STM_PASSER_SQ[Color::White.as_index()][p2].intersection(k_sq).is_empty());
+        assert!(STM_PASSER_SQ[Color::White.as_index()][p1]
+            .intersection(k_sq)
+            .is_not_empty());
+        assert!(STM_PASSER_SQ[Color::White.as_index()][p2]
+            .intersection(k_sq)
+            .is_empty());
     }
 }
