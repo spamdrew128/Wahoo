@@ -12,7 +12,7 @@ use super::{
     pv_table::PvTable,
     thread_data::{Nodes, ThreadData},
     time_management::{Milliseconds, SearchTimer},
-    transposition_table::{TTFlag, TranspositionTable},
+    transposition_table::{TTFlag, TranspositionTable}, improving::EvalStack,
 };
 
 use crate::{
@@ -69,6 +69,7 @@ pub struct Searcher<'a> {
     pv_table: PvTable,
     history: History,
     killers: Killers,
+    eval_stack: EvalStack,
     tt: &'a TranspositionTable,
     tb: Syzygy,
 
@@ -93,6 +94,7 @@ impl<'a> Searcher<'a> {
             zobrist_stack: zobrist_stack.clone(),
             history: history.clone(),
             killers: Killers::new(),
+            eval_stack: EvalStack::new(),
             tt,
             tb,
             pv_table: PvTable::new(),
