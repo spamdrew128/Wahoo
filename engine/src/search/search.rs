@@ -405,12 +405,15 @@ impl<'a> Searcher<'a> {
         let improving = self.eval_stack.improving(static_eval, ply);
 
         let pruning_allowed = !is_pv && !in_check && alpha.abs() < MATE_THRESHOLD;
+
+        let d = i32::from(depth);
         if pruning_allowed {
             // REVERSE FUTILITY PRUNING
             const RFP_MAX_DEPTH: Depth = 8;
             const RFP_MARGIN: EvalScore = 90;
 
-            if depth <= RFP_MAX_DEPTH && static_eval >= (beta + RFP_MARGIN * i32::from(depth)) {
+            let divisor = if improving {2} else {1};
+            if depth <= RFP_MAX_DEPTH && static_eval >= (beta + (RFP_MARGIN * d / divisor)) {
                 return static_eval;
             }
 
@@ -450,8 +453,6 @@ impl<'a> Searcher<'a> {
             // MOVE PRUNING TECHNIQUES
             const PRUNING_THRESHOLD: EvalScore = 700;
             if pruning_allowed && best_score.abs() < PRUNING_THRESHOLD {
-                let d = i32::from(depth);
-
                 // QUIET LATE MOVE PRUNING
                 let divisor = if improving {1} else {2};
                 if generator.stage() > MoveStage::KILLER && moves_played > 2 + (d * d / divisor) {
