@@ -7,12 +7,13 @@ use arrayvec::ArrayVec;
 
 use super::{
     history_table::History,
+    improving::EvalStack,
     killers::Killers,
     late_move_reductions::get_reduction,
     pv_table::PvTable,
     thread_data::{Nodes, ThreadData},
     time_management::{Milliseconds, SearchTimer},
-    transposition_table::{TTFlag, TranspositionTable}, improving::EvalStack,
+    transposition_table::{TTFlag, TranspositionTable},
 };
 
 use crate::{

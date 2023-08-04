@@ -1,16 +1,16 @@
 use crate::eval::evaluation::{EvalScore, INF};
 
-use super::search::{MAX_PLY, Ply};
+use super::search::{Ply, MAX_PLY};
 
 #[derive(Debug)]
 pub struct EvalStack {
-    table: [EvalScore; (MAX_PLY + 2) as usize]
+    table: [EvalScore; (MAX_PLY + 2) as usize],
 }
 
 impl EvalStack {
     pub const fn new() -> Self {
         Self {
-            table: [INF; (MAX_PLY + 2) as usize]
+            table: [INF; (MAX_PLY + 2) as usize],
         }
     }
 
