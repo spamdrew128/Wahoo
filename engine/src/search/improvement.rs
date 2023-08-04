@@ -14,10 +14,10 @@ impl EvalStack {
         }
     }
 
-    pub fn improving(&mut self, eval: EvalScore, ply: Ply) -> bool {
+    pub fn improvement(&mut self, eval: EvalScore, ply: Ply) -> EvalScore {
         self.table[(ply + 2) as usize] = eval;
 
         let prev_eval = self.table[ply as usize];
-        eval > prev_eval
+        eval - prev_eval
     }
 }

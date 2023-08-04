@@ -7,7 +7,7 @@ use arrayvec::ArrayVec;
 
 use super::{
     history_table::History,
-    improving::EvalStack,
+    improvement::EvalStack,
     killers::Killers,
     late_move_reductions::get_reduction,
     pv_table::PvTable,
@@ -401,19 +401,19 @@ impl<'a> Searcher<'a> {
             }
         }
 
-        // IMPROVING HEURISTIC
-        let improving = self.eval_stack.improving(static_eval, ply);
+        // improvement HEURISTIC
+        let improvement = self.eval_stack.improvement(static_eval, ply);
 
         let pruning_allowed = !is_pv && !in_check && alpha.abs() < MATE_THRESHOLD;
 
         let d = i32::from(depth);
         if pruning_allowed {
             // REVERSE FUTILITY PRUNING
-            const RFP_MAX_DEPTH: Depth = 8;
-            const RFP_MARGIN: EvalScore = 90;
+            const RFP_MIN_DEPTH: Depth = 8;
+            const RFP_MARGIN_BASE: EvalScore = 90;
 
-            let divisor = if improving {2} else {1};
-            if depth <= RFP_MAX_DEPTH && static_eval >= (beta + (RFP_MARGIN * d / divisor)) {
+            let margin = (RFP_MARGIN_BASE - improvement / 3).clamp(RFP_MARGIN_BASE - 50, RFP_MARGIN_BASE + 50);
+            if depth <= RFP_MIN_DEPTH && static_eval >= (beta + margin * d) {
                 return static_eval;
             }
 
@@ -454,7 +454,7 @@ impl<'a> Searcher<'a> {
             const PRUNING_THRESHOLD: EvalScore = 700;
             if pruning_allowed && best_score.abs() < PRUNING_THRESHOLD {
                 // QUIET LATE MOVE PRUNING
-                let divisor = if improving {1} else {2};
+                let divisor = if improvement > 0 {1} else {2};
                 if generator.stage() > MoveStage::KILLER && moves_played > 2 + (d * d / divisor) {
                     break;
                 }
