@@ -409,11 +409,11 @@ impl<'a> Searcher<'a> {
         let d = i32::from(depth);
         if pruning_allowed {
             // REVERSE FUTILITY PRUNING
-            const RFP_MAX_DEPTH: Depth = 8;
+            const RFP_MIN_DEPTH: Depth = 8;
             const RFP_MARGIN: EvalScore = 90;
 
             let divisor = if improving {2} else {1};
-            if depth <= RFP_MAX_DEPTH && static_eval >= (beta + (RFP_MARGIN * d / divisor)) {
+            if depth <= RFP_MIN_DEPTH && static_eval >= (beta + (RFP_MARGIN * d / divisor)) {
                 return static_eval;
             }
 
