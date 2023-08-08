@@ -32,8 +32,7 @@ fn pawn_locations() -> [[usize; NUM_SQUARES as usize]; NUM_FILES as usize] {
     result
 }
 
-
-pub fn pawn_locatoins_table_init_string() -> String {
+pub fn pawn_locations_table_init_string() -> String {
     let t = pawn_locations();
 
     let mut result = String::new();

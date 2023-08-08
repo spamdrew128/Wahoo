@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 use build_script_dependencies::lmr_init::lmr_init_string;
 use build_script_dependencies::magic_table_builder::magic_table_init_string;
-use build_script_dependencies::safety_net_builder::pawn_locatoins_table_init_string;
+use build_script_dependencies::safety_net_builder::pawn_locations_table_init_string;
 use build_script_dependencies::trophism_init::trophism_table_init_string;
 use build_script_dependencies::zobrist_init::zobrist_keys_init_string;
 
@@ -62,6 +62,6 @@ fn main() {
     gen_output_file("zobrist_keys_init.rs", zobrist_keys_init_string);
     gen_output_file("lmr_init.rs", lmr_init_string);
     gen_output_file("trophism_init.rs", trophism_table_init_string);
-    gen_output_file("pawn_locations_init.rs", pawn_locatoins_table_init_string);
+    gen_output_file("pawn_locations_init.rs", pawn_locations_table_init_string);
     build_syzygy_code();
 }
