@@ -31,24 +31,3 @@ fn pawn_locations() -> [[usize; NUM_SQUARES as usize]; NUM_FILES as usize] {
 
     result
 }
-
-
-pub fn pawn_locatoins_table_init_string() -> String {
-    let t = pawn_locations();
-
-    let mut result = String::new();
-    result.push_str("[\n");
-    for i in 0..NUM_FILES {
-        result.push('[');
-        for j in 0..NUM_SQUARES {
-            if j % 8 == 0 {
-                result.push_str("\n  ");
-            }
-            result.push_str(format!("{}, ", t[i as usize][j as usize]).as_str());
-        }
-        result.push_str("\n],\n");
-    }
-    result.push_str("]\n");
-
-    result
-}
