@@ -1,6 +1,8 @@
 #![cfg_attr(rustfmt, rustfmt_skip)]
 use crate::{eval::{evaluation::ScoreTuple, piece_tables::{Pst, Prt}}, board::board_representation::NUM_PIECES};
 
+use super::piece_tables::SafetyPrt;
+
 const fn s(mg: i32, eg: i32) -> ScoreTuple { ScoreTuple::new(mg, eg) }
 
 pub const MATERIAL_PSTS: [Pst; NUM_PIECES as usize] = [
@@ -213,7 +215,7 @@ pub const DEFENSES: [[ScoreTuple; 8]; (NUM_PIECES - 1) as usize] = [
 ],
 ];
 
-pub const ENEMY_KING_RANK: [[ScoreTuple; 8]; 8]= [
+pub const ENEMY_KING_RANK: SafetyPrt = SafetyPrt::new([
   [s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24)],
   [s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24)],
   [s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24)],
@@ -222,7 +224,7 @@ pub const ENEMY_KING_RANK: [[ScoreTuple; 8]; 8]= [
   [s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24)],
   [s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24)],
   [s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24)],
-];
+]);
 
 pub const TROPHISM_BONUS: [ScoreTuple; 8] = [
   s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24),

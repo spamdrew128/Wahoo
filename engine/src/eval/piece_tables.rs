@@ -3,6 +3,8 @@ use crate::{
     eval::evaluation::ScoreTuple,
 };
 
+use super::king_safety_net::HIDDEN_LAYER_SIZE;
+
 pub struct Pst {
     table: [[ScoreTuple; NUM_SQUARES as usize]; NUM_COLORS as usize],
 }
@@ -50,6 +52,31 @@ impl Prt {
     }
 
     pub const fn access(&self, color: Color, sq: Square) -> ScoreTuple {
+        self.table[color.as_index()][sq.rank() as usize]
+    }
+}
+
+pub struct SafetyPrt {
+    table: [[[ScoreTuple; HIDDEN_LAYER_SIZE]; NUM_RANKS as usize]; NUM_COLORS as usize],
+}
+
+impl SafetyPrt {
+    pub const fn new(before: [[ScoreTuple; HIDDEN_LAYER_SIZE]; NUM_RANKS as usize]) -> Self {
+        let mut table = [[[ScoreTuple::new(0, 0); HIDDEN_LAYER_SIZE]; NUM_RANKS as usize]; NUM_COLORS as usize];
+        let mut i = 0;
+        while i < NUM_RANKS {
+            let b_rank = i;
+            let w_rank = 7 - i;
+            let weights = before[i as usize];
+            table[Color::White.as_index()][w_rank as usize] = weights;
+            table[Color::Black.as_index()][b_rank as usize] = weights;
+            i += 1;
+        }
+
+        Self { table }
+    }
+
+    pub const fn access(&self, color: Color, sq: Square) -> [ScoreTuple; HIDDEN_LAYER_SIZE] {
         self.table[color.as_index()][sq.rank() as usize]
     }
 }
