@@ -1,6 +1,7 @@
-use std::ops::{BitOrAssign, Not};
+use std::ops::{BitAnd, BitOrAssign, Not};
 
 pub const NUM_SQUARES: u8 = 64;
+pub const NUM_FILES: u8 = 8;
 pub const NUM_PIECES: u8 = 6;
 pub const NUM_COLORS: u8 = 2;
 
@@ -23,6 +24,20 @@ impl Square {
     pub const fn file(self) -> u8 {
         self.0 % 8
     }
+
+    pub const fn as_index(self) -> usize {
+        self.0 as usize
+    }
+}
+
+#[macro_export]
+macro_rules! bitloop {
+    (|$sq:ident| $bb:ident, $body:expr) => {{
+        while $bb.is_not_empty() {
+            let $sq: Square = $bb.pop_lsb();
+            $body
+        }
+    }};
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
@@ -109,6 +124,46 @@ impl Bitboard {
     pub const fn northwest_one(self) -> Self {
         self.intersection(Self::A_FILE.complement()).l_shift(7)
     }
+
+    pub const fn union(self, rhs: Self) -> Self {
+        Self {
+            data: self.data | rhs.data,
+        }
+    }
+
+    pub const fn shift_north(self, shift: u8) -> Self {
+        self.l_shift(8 * shift)
+    }
+
+    pub const fn shift_south(self, shift: u8) -> Self {
+        self.r_shift(8 * shift)
+    }
+
+    pub fn file_fill(self) -> Self {
+        let mut r = self;
+        r |= r.shift_north(1);
+        r |= r.shift_north(2);
+        r |= r.shift_north(4);
+        r |= r.shift_south(1);
+        r |= r.shift_south(2);
+        r |= r.shift_south(4);
+        r
+    }
+
+    pub const fn lsb(self) -> Square {
+        Square::new(self.data.trailing_zeros() as u8)
+    }
+
+    fn reset_lsb(&mut self) {
+        self.data = self.data & (self.data - 1);
+    }
+
+    pub fn pop_lsb(&mut self) -> Square {
+        debug_assert!(self.is_not_empty());
+        let sq = self.lsb();
+        self.reset_lsb();
+        sq
+    }
 }
 
 impl Not for Bitboard {
@@ -122,5 +177,13 @@ impl Not for Bitboard {
 impl BitOrAssign for Bitboard {
     fn bitor_assign(&mut self, rhs: Self) {
         self.data |= rhs.data;
+    }
+}
+
+impl BitAnd for Bitboard {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        self.intersection(rhs)
     }
 }
