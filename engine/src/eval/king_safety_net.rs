@@ -12,6 +12,7 @@ const PAWN_LOCATIONS: [[usize; NUM_SQUARES as usize]; NUM_FILES as usize] = {
             .union(sq_bb.west_one())
             .forward_fill(Color::White)
             .without(Bitboard::RANK_8);
+        i += 1;
     }
     masks[0] = masks[1];
     masks[7] = masks[6];
@@ -26,6 +27,7 @@ const PAWN_LOCATIONS: [[usize; NUM_SQUARES as usize]; NUM_FILES as usize] = {
             location += 1;
             bb = bb.xor(sq.as_bitboard());
         }
+        i += 1;
     }
 
     result
