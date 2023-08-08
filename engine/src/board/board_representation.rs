@@ -316,7 +316,7 @@ impl Bitboard {
         self.data.count_ones()
     }
 
-    const fn lsb(self) -> Square {
+    pub const fn lsb(self) -> Square {
         Square::new(self.data.trailing_zeros() as u8)
     }
 
