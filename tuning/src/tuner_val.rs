@@ -34,6 +34,25 @@ impl S {
     pub fn max(self, m: f64) -> Self {
         Self(self.0.max(m), self.1.max(m))
     }
+
+    fn clamp(self, min: f64, max: f64) -> Self {
+        Self(self.0.clamp(min, max), self.1.clamp(min, max))
+    }
+
+    fn activation(sum: S) -> S {
+        sum.clamp(0.0, 1.0).square()
+    }
+
+    fn activation_prime(sum: S) -> S {
+        let mut adjusted = S::new(0.0, 0.0);
+        if sum.mg() > 0.0 && sum.mg() < 1.0 {
+            adjusted.0 = 2.0 * sum.mg()
+        };
+        if sum.eg() > 0.0 && sum.eg() < 1.0 {
+            adjusted.1 = 2.0 * sum.eg()
+        };
+        adjusted
+    }
 }
 
 impl Display for S {

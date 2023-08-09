@@ -1,10 +1,11 @@
-use crate::eval::trace::{AttackingPawnLocations, DefendingPawnLocations};
-use crate::{bitloop, trace_safety_update};
 use crate::board::board_representation::{Bitboard, Color, Piece, Square, NUM_FILES, NUM_SQUARES};
 use crate::eval::evaluation::ScoreTuple;
+use crate::eval::trace::{AttackingPawnLocations, DefendingPawnLocations};
+use crate::{bitloop, trace_safety_update};
 
 use super::eval_constants::{
-    ATTACKING_PAWN_LOCATIONS, ATTACKS, DEFENDING_PAWN_LOCATIONS, DEFENSES, ENEMY_KING_RANK, TROPISM, HIDDEN_BIASES, OUTPUT_BIAS, HIDDEN_WEIGHTS, SAFETY_WEIGHT,
+    ATTACKING_PAWN_LOCATIONS, ATTACKS, DEFENDING_PAWN_LOCATIONS, DEFENSES, ENEMY_KING_RANK,
+    HIDDEN_BIASES, HIDDEN_WEIGHTS, OUTPUT_BIAS, SAFETY_WEIGHT, TROPISM,
 };
 use super::trace::Trace;
 
@@ -61,7 +62,13 @@ impl SafetyNet {
         }
     }
 
-    pub fn update_attacking_pawns<const TRACE: bool>(&mut self, pawns: Bitboard, enemy_king_sq: Square, color: Color, t: &mut Trace) {
+    pub fn update_attacking_pawns<const TRACE: bool>(
+        &mut self,
+        pawns: Bitboard,
+        enemy_king_sq: Square,
+        color: Color,
+        t: &mut Trace,
+    ) {
         let king_file = enemy_king_sq.file() as usize;
         let mut attacking_pawns = pawns & PAWN_MASKS[king_file];
 
@@ -70,14 +77,20 @@ impl SafetyNet {
             for (i, &weight) in ATTACKING_PAWN_LOCATIONS[location].iter().enumerate() {
                 self.hidden_sums[i] += weight;
             }
-            
+
             if TRACE {
                 trace_safety_update!(t, AttackingPawnLocations, (location), color, 1);
             }
         });
     }
 
-    pub fn update_defending_pawns<const TRACE: bool>(&mut self, pawns: Bitboard, friendly_king_sq: Square, color: Color, t: &mut Trace) {
+    pub fn update_defending_pawns<const TRACE: bool>(
+        &mut self,
+        pawns: Bitboard,
+        friendly_king_sq: Square,
+        color: Color,
+        t: &mut Trace,
+    ) {
         let king_file = friendly_king_sq.file() as usize;
         let mut defending_pawns = pawns & PAWN_MASKS[king_file];
 
@@ -86,7 +99,7 @@ impl SafetyNet {
             for (i, &weight) in DEFENDING_PAWN_LOCATIONS[location].iter().enumerate() {
                 self.hidden_sums[i] += weight;
             }
-            
+
             if TRACE {
                 trace_safety_update!(t, DefendingPawnLocations, (location), color, 1);
             }

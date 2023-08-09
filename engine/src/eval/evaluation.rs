@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Sub, Mul, Div};
+use std::ops::{Add, AddAssign, Div, Mul, Sub};
 
 use crate::{
     bitloop,
@@ -94,10 +94,7 @@ impl ScoreTuple {
     pub fn activation(self) -> Self {
         let mg = self.mg().clamp(0, SCALE);
         let eg = self.eg().clamp(0, SCALE);
-        Self(
-            (mg * mg) / SCALE,
-            (eg * eg) / SCALE,
-        )
+        Self((mg * mg) / SCALE, (eg * eg) / SCALE)
     }
 }
 
@@ -138,7 +135,6 @@ impl Div<i32> for ScoreTuple {
         Self(self.0 / rhs, self.1 / rhs)
     }
 }
-
 
 pub fn phase(board: &Board) -> Phase {
     let phase = (board.pieces[Piece::KNIGHT.as_index()].popcount()

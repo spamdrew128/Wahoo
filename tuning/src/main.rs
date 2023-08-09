@@ -1,5 +1,6 @@
 #![allow(clippy::needless_range_loop)]
 
+mod safety_tuning;
 mod tuner_val;
 mod tuning;
 
