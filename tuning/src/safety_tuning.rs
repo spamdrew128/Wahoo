@@ -5,20 +5,16 @@ use crate::tuner_val::S;
 
 use crate::tuning::Entry;
 
-pub struct NetPartials {
-    hidden_weights: [[S; HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
-    hidden_biases: [S; HIDDEN_LAYER_SIZE],
-    output_weights: [S; HIDDEN_LAYER_SIZE],
-    output_bias: S,
+struct LayerSums {
+    hidden: [S; HIDDEN_LAYER_SIZE],
+    output: S,
 }
 
-impl NetPartials {
+impl LayerSums {
     fn new() -> Self {
         Self {
-            hidden_weights: [[S::new(0.0, 0.0); HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
-            hidden_biases: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
-            output_weights: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
-            output_bias: S::new(0.0, 0.0),
+            hidden: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
+            output: S::new(0.0, 0.0),
         }
     }
 }
@@ -26,10 +22,8 @@ impl NetPartials {
 pub struct Net {
     hidden_weights: [[S; HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
     hidden_biases: [S; HIDDEN_LAYER_SIZE],
-    hidden_sums: [S; HIDDEN_LAYER_SIZE],
     output_weights: [S; HIDDEN_LAYER_SIZE],
     output_bias: S,
-    output_sum: S,
 }
 
 impl Net {
@@ -37,48 +31,44 @@ impl Net {
         Self {
             hidden_weights: [[S::new(0.0, 0.0); HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
             hidden_biases: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
-            hidden_sums: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
             output_weights: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
             output_bias: S::new(0.0, 0.0),
-            output_sum: S::new(0.0, 0.0),
         }
     }
 
-    fn reset_sums(&mut self) {
-        // we reset the activations to just the biases, so that they are
-        // already accounted for when we calculate the sums
-        self.hidden_sums = self.hidden_biases;
-        self.output_sum = self.output_bias;
-    }
-
-    pub fn calculate(&mut self, entry: &Entry, color: Color) -> S {
-        self.reset_sums();
-
+    fn calculate_color(&mut self, sums: &mut LayerSums, entry: &Entry, color: Color) -> S {
         // calculate the weighted sums in the hidden layer (accumulator)
         for f in &entry.safety_feature_vec[color.as_index()] {
             let weights = self.hidden_weights[f.index];
 
             for (i, &weight) in weights.iter().enumerate() {
-                self.hidden_sums[i] += weight * f64::from(f.value);
+                sums.hidden[i] += weight * f64::from(f.value);
             }
         }
 
         // calculate the output sum using previous layer activations
         for (i, &weight) in self.output_weights.iter().enumerate() {
-            self.output_sum += weight * self.hidden_sums[i].activation();
+            sums.output += weight * sums.hidden[i].activation();
         }
 
         // return activated output
-        self.output_sum.activation()
+        sums.output.activation()
     }
 
-    fn update_partials(&mut self, partials: &mut NetPartials, entry: &Entry, color: Color, sign: f64) {
+    fn update_partials(
+        &mut self,
+        sums: &mut LayerSums,
+        partials: &mut Net,
+        entry: &Entry,
+        color: Color,
+        sign: f64,
+    ) {
         // update output bias partial
-        let output_bias_partial = self.output_sum.activation_prime() * sign;
+        let output_bias_partial = sums.output.activation_prime() * sign;
         partials.output_bias += output_bias_partial;
 
         // update output weights partials
-        for (i, &hidden_sum) in self.hidden_sums.iter().enumerate() {
+        for (i, &hidden_sum) in sums.hidden.iter().enumerate() {
             partials.output_weights[i] += output_bias_partial * hidden_sum.activation();
         }
 
@@ -91,7 +81,7 @@ impl Net {
         // update hidden bias partials
         let mut hidden_bias_partials = [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE];
         for (i, &output_partial) in output_activation_partials.iter().enumerate() {
-            hidden_bias_partials[i] = self.hidden_sums[i].activation() * output_partial;
+            hidden_bias_partials[i] = sums.hidden[i].activation() * output_partial;
             partials.hidden_biases[i] += hidden_bias_partials[i];
         }
 
@@ -105,15 +95,23 @@ impl Net {
         }
     }
 
-    pub fn calc_and_compute_partials(&mut self, entry: &Entry) -> (S, NetPartials) {
-        let mut partials = NetPartials::new();
+    pub fn calc_and_compute_partials(&mut self, entry: &Entry) -> (S, Net) {
+        let mut partials = Net::new();
+        let (mut w_sums, mut b_sums) = (LayerSums::new(), LayerSums::new());
 
-        let mut score = self.calculate(entry, Color::White);
-        self.update_partials(&mut partials, entry, Color::White, 1.0);
+        let mut score = self.calculate_color(&mut w_sums, entry, Color::White);
+        self.update_partials(&mut w_sums, &mut partials, entry, Color::White, 1.0);
 
-        score -= self.calculate(entry, Color::Black);
-        self.update_partials(&mut partials, entry, Color::Black, -1.0);
+        score -= self.calculate_color(&mut b_sums, entry, Color::Black);
+        self.update_partials(&mut b_sums, &mut partials, entry, Color::Black, -1.0);
 
         (score, partials)
+    }
+
+    fn calc_both_sides(&mut self, entry: &Entry) -> S {
+        let (mut w_sums, mut b_sums) = (LayerSums::new(), LayerSums::new());
+
+        self.calculate_color(&mut w_sums, entry, Color::White)
+            - self.calculate_color(&mut b_sums, entry, Color::Black)
     }
 }
