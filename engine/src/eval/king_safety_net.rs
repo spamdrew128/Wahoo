@@ -1,4 +1,7 @@
 use crate::board::board_representation::{Bitboard, Color, Square, NUM_FILES, NUM_SQUARES};
+use crate::eval::evaluation::ScoreTuple;
+
+use super::eval_constants::{ATTACKING_PAWN_LOCATIONS, DEFENDING_PAWN_LOCATIONS};
 
 pub const HIDDEN_LAYER_SIZE: usize = 8;
 
@@ -34,3 +37,27 @@ const PAWN_LOCATIONS: [[usize; NUM_SQUARES as usize]; NUM_FILES as usize] = {
 
     result
 };
+
+struct SafetyNet {
+    hidden_sums: [ScoreTuple; HIDDEN_LAYER_SIZE],
+}
+
+impl SafetyNet {
+    pub const fn new() -> Self {
+        Self {
+            hidden_sums: [ScoreTuple::new(0, 0); HIDDEN_LAYER_SIZE],
+        }
+    }
+
+    pub fn update_attacking_pawn(&mut self, location: usize) {
+        for (i, &weight) in ATTACKING_PAWN_LOCATIONS[location].iter().enumerate() {
+            self.hidden_sums[i] += weight;
+        }
+    }
+
+    pub fn update_defending_pawn(&mut self, location: usize) {
+        for (i, &weight) in DEFENDING_PAWN_LOCATIONS[location].iter().enumerate() {
+            self.hidden_sums[i] += weight;
+        }
+    }
+}

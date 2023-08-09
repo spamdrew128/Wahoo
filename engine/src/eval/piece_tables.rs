@@ -62,7 +62,8 @@ pub struct SafetyPrt {
 
 impl SafetyPrt {
     pub const fn new(before: [[ScoreTuple; HIDDEN_LAYER_SIZE]; NUM_RANKS as usize]) -> Self {
-        let mut table = [[[ScoreTuple::new(0, 0); HIDDEN_LAYER_SIZE]; NUM_RANKS as usize]; NUM_COLORS as usize];
+        let mut table =
+            [[[ScoreTuple::new(0, 0); HIDDEN_LAYER_SIZE]; NUM_RANKS as usize]; NUM_COLORS as usize];
         let mut i = 0;
         while i < NUM_RANKS {
             let b_rank = i;
