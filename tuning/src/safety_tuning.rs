@@ -94,25 +94,26 @@ impl Net {
         let params = &mut self.params;
         let partials = &mut self.partials;
 
-        let output_activation_prime = params.output_sum.activation_prime();
-
-        let mut hidden_activation_prime = params.hidden_sums;
-        hidden_activation_prime.iter_mut().for_each(|s| {
-            *s = s.activation_prime();
-        });
-
         // update output bias partial
-        partials.output_bias += output_activation_prime * sign;
+        let output_bias_partial = params.output_sum.activation_prime() * sign;
+        partials.output_bias += output_bias_partial;
 
         // update output weights partials
-        for (i, &prev_sum) in params.hidden_sums.iter().enumerate() {
-            partials.output_weights[i] += output_activation_prime * prev_sum.activation() * sign;
+        for (i, &hidden_sum) in params.hidden_sums.iter().enumerate() {
+            partials.output_weights[i] += output_bias_partial * hidden_sum.activation();
         }
 
         // find output activation partials
-        let mut activation_partials = [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE];
+        let mut output_activation_partials = [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE];
         for (i, &weight) in params.output_weights.iter().enumerate() {
-            activation_partials[i] = output_activation_prime * weight;
+            output_activation_partials[i] = output_bias_partial * weight;
+        }
+
+        // update hidden bias partials
+        let mut hidden_bias_partials = [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE];
+        for (i, &activation_partial) in output_activation_partials.iter().enumerate() {
+            hidden_bias_partials[i] = params.hidden_sums[i].activation() * activation_partial;
+            partials.hidden_biases[i] += hidden_bias_partials[i];
         }
     }
 }
