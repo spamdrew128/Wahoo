@@ -39,17 +39,17 @@ impl S {
         Self(self.0.clamp(min, max), self.1.clamp(min, max))
     }
 
-    fn activation(sum: S) -> S {
-        sum.clamp(0.0, 1.0).square()
+    pub fn activation(self) -> S {
+        self.clamp(0.0, 1.0).square()
     }
 
-    fn activation_prime(sum: S) -> S {
+    pub fn activation_prime(self) -> S {
         let mut adjusted = S::new(0.0, 0.0);
-        if sum.mg() > 0.0 && sum.mg() < 1.0 {
-            adjusted.0 = 2.0 * sum.mg()
+        if self.mg() > 0.0 && self.mg() < 1.0 {
+            adjusted.0 = 2.0 * self.mg()
         };
-        if sum.eg() > 0.0 && sum.eg() < 1.0 {
-            adjusted.1 = 2.0 * sum.eg()
+        if self.eg() > 0.0 && self.eg() < 1.0 {
+            adjusted.1 = 2.0 * self.eg()
         };
         adjusted
     }

@@ -50,8 +50,8 @@ impl TunerStruct {
 }
 
 struct Feature {
-    value: i8,
-    index: usize,
+    pub value: i8,
+    pub index: usize,
 }
 
 impl Feature {
