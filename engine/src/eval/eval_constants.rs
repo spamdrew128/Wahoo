@@ -281,3 +281,5 @@ pub const HIDDEN_WEIGHTS: [ScoreTuple; 8] = [
 ];
 
 pub const OUTPUT_BIAS: ScoreTuple = s(-125, 0);
+
+pub const SAFETY_WEIGHT: ScoreTuple = s(-125, 0);

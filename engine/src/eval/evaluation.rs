@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Sub};
+use std::ops::{Add, AddAssign, Sub, Mul, Div};
 
 use crate::{
     bitloop,
@@ -18,6 +18,8 @@ use crate::{
     search::search::MAX_PLY,
     trace_update,
 };
+
+use super::king_safety_net::SCALE;
 
 const fn passer_squares_init(
     is_stm: bool,
@@ -89,12 +91,12 @@ impl ScoreTuple {
         Self(self.0 * multiplier, self.1 * multiplier)
     }
 
-    pub fn king_safety_formula(self) -> Self {
-        let mg = self.mg().max(0);
-        let eg = self.eg().max(0);
+    pub fn activation(self) -> Self {
+        let mg = self.mg().clamp(0, SCALE);
+        let eg = self.eg().clamp(0, SCALE);
         Self(
-            ((mg * mg) / 100).min(SAFETY_LIMIT),
-            ((eg * eg) / 100).min(SAFETY_LIMIT),
+            (mg * mg) / SCALE,
+            (eg * eg) / SCALE,
         )
     }
 }
@@ -120,6 +122,23 @@ impl Sub for ScoreTuple {
         Self(self.0 - rhs.0, self.1 - rhs.1)
     }
 }
+
+impl Mul for ScoreTuple {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self {
+        Self(self.0 * rhs.0, self.1 * rhs.1)
+    }
+}
+
+impl Div<i32> for ScoreTuple {
+    type Output = Self;
+
+    fn div(self, rhs: i32) -> Self {
+        Self(self.0 / rhs, self.1 / rhs)
+    }
+}
+
 
 pub fn phase(board: &Board) -> Phase {
     let phase = (board.pieces[Piece::KNIGHT.as_index()].popcount()

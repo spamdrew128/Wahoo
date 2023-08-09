@@ -230,7 +230,7 @@ impl PasserSqRule {
 pub struct Attacks;
 impl Attacks {
     pub const START: usize = 0;
-    const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 2) as usize);
+    const LEN: usize = (NUM_PIECES - 2) as usize;
 
     pub const fn index(piece: Piece) -> usize {
         Self::START + piece.as_index()
@@ -240,7 +240,7 @@ impl Attacks {
 pub struct Defenses;
 impl Defenses {
     pub const START: usize = Attacks::START + Attacks::LEN;
-    const LEN: usize = (MoveCounts::QUEEN * (NUM_PIECES - 2) as usize);
+    const LEN: usize = (NUM_PIECES - 2) as usize;
 
     pub const fn index(piece: Piece) -> usize {
         Self::START + piece.as_index()

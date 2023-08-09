@@ -4,11 +4,13 @@ use crate::board::board_representation::{Bitboard, Color, Piece, Square, NUM_FIL
 use crate::eval::evaluation::ScoreTuple;
 
 use super::eval_constants::{
-    ATTACKING_PAWN_LOCATIONS, ATTACKS, DEFENDING_PAWN_LOCATIONS, DEFENSES, ENEMY_KING_RANK, TROPISM, HIDDEN_BIASES,
+    ATTACKING_PAWN_LOCATIONS, ATTACKS, DEFENDING_PAWN_LOCATIONS, DEFENSES, ENEMY_KING_RANK, TROPISM, HIDDEN_BIASES, OUTPUT_BIAS, HIDDEN_WEIGHTS, SAFETY_WEIGHT,
 };
 use super::trace::Trace;
 
 pub const HIDDEN_LAYER_SIZE: usize = 8;
+
+pub const SCALE: i32 = 128;
 
 const PAWN_MASKS: [Bitboard; NUM_FILES as usize] = {
     let mut masks = [Bitboard::EMPTY; NUM_FILES as usize];
@@ -116,6 +118,14 @@ impl SafetyNet {
     }
 
     pub fn calculate(&self) -> ScoreTuple {
-        ScoreTuple::new(0, 0)
+        let mut output = OUTPUT_BIAS;
+
+        for (i, &sum) in self.hidden_sums.iter().enumerate() {
+            let weight = HIDDEN_WEIGHTS[i];
+            let activation = sum.activation();
+            output += activation * weight;
+        }
+
+        output * SAFETY_WEIGHT / SCALE.pow(2)
     }
 }
