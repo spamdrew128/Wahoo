@@ -37,7 +37,7 @@ impl Net {
         }
     }
 
-    fn calculate_color(&mut self, sums: &mut LayerSums, entry: &Entry, color: Color) -> S {
+    fn calculate_color(&self, sums: &mut LayerSums, entry: &Entry, color: Color) -> S {
         // calculate the weighted sums in the hidden layer (accumulator)
         for f in &entry.safety_feature_vec[color.as_index()] {
             let weights = self.hidden_weights[f.index];
@@ -57,7 +57,7 @@ impl Net {
     }
 
     fn update_partials(
-        &mut self,
+        &self,
         sums: &mut LayerSums,
         partials: &mut Net,
         entry: &Entry,
@@ -96,7 +96,7 @@ impl Net {
         }
     }
 
-    pub fn calc_and_compute_partials(&mut self, entry: &Entry) -> (S, Net) {
+    pub fn calc_and_compute_partials(&self, entry: &Entry) -> (S, Net) {
         let mut partials = Net::new();
         let (mut w_sums, mut b_sums) = (LayerSums::new(), LayerSums::new());
 
@@ -109,7 +109,7 @@ impl Net {
         (score, partials)
     }
 
-    fn calc_both_sides(&mut self, entry: &Entry) -> S {
+    pub fn calc_both_sides(&self, entry: &Entry) -> S {
         let (mut w_sums, mut b_sums) = (LayerSums::new(), LayerSums::new());
 
         self.calculate_color(&mut w_sums, entry, Color::White)

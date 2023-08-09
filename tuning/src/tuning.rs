@@ -30,6 +30,7 @@ use std::{
 struct TunerStruct {
     linear: [S; LINEAR_TRACE_LEN],
     safety_net: Net,
+    safety_weight: S,
 }
 
 impl TunerStruct {
@@ -37,6 +38,7 @@ impl TunerStruct {
         Self {
             linear: [S::new(0.0, 0.0); LINEAR_TRACE_LEN],
             safety_net: Net::new(),
+            safety_weight: S::new(0.0, 0.0),
         }
     }
 
@@ -58,6 +60,8 @@ impl TunerStruct {
         }
 
         result.safety_net.output_bias += rhs.safety_net.output_bias;
+
+        result.safety_weight += rhs.safety_weight;
  
         result
     }
@@ -108,38 +112,19 @@ impl Entry {
         entry
     }
 
-    fn inner_safety_score(&self, weights: &TunerStruct) -> (S, S) {
-        let mut attack_power = [S::new(0.0, 0.0), S::new(0.0, 0.0)];
-        for color in Color::LIST {
-            for feature in &self.safety_feature_vec[color.as_index()] {
-                attack_power[color.as_index()] +=
-                    f64::from(feature.value) * weights.safety[feature.index];
-            }
-        }
-
-        (
-            attack_power[Color::White.as_index()],
-            attack_power[Color::Black.as_index()],
-        )
-    }
-
-    fn evaluation(&self, weights: &TunerStruct) -> f64 {
-        let mut score = S::new(0.0, 0.0);
+    fn evaluation(&self, weights: &TunerStruct, net_output: S) -> f64 {
+        let mut score = net_output * weights.safety_weight;
 
         for feature in &self.feature_vec {
             score += f64::from(feature.value) * weights.linear[feature.index];
         }
 
-        let (w_ap, b_ap) = self.inner_safety_score(weights);
-        let limit = f64::from(SAFETY_LIMIT);
-        score +=
-            (0.01 * w_ap.max(0.0).square()).min(limit) - (0.01 * b_ap.max(0.0).square()).min(limit);
-
         (score.mg() * self.mg_phase() + score.eg() * self.eg_phase()) / f64::from(PHASE_MAX)
     }
 
     fn error(&self, weights: &TunerStruct) -> f64 {
-        let eval = self.evaluation(weights);
+        let net_output = weights.safety_net.calc_both_sides(self);
+        let eval = self.evaluation(weights, net_output);
         let error = self.game_result - Tuner::sigmoid(eval);
         error * error
     }
