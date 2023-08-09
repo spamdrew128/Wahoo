@@ -70,6 +70,7 @@ impl Net {
     }
 
     pub fn calculate(&mut self, entry: &Entry, color: Color) -> S {
+        self.reset_sums();
         let params = &mut self.params;
 
         // calculate the weighted sums in the hidden layer (accumulator)
@@ -124,5 +125,17 @@ impl Net {
                 weight_partials[i] += bias_partial * f64::from(f.value);
             }
         }
+    }
+
+    pub fn calc_and_update_partials(&mut self, entry: &Entry) -> S {
+        self.reset_partials();
+
+        let mut score = self.calculate(entry, Color::White);
+        self.update_partials(entry, Color::White, 1.0);
+
+        score -= self.calculate(entry, Color::Black);
+        self.update_partials(entry, Color::Black, -1.0);
+
+        score
     }
 }
