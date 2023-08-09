@@ -1,7 +1,9 @@
-use crate::board::board_representation::{Bitboard, Color, Square, NUM_FILES, NUM_SQUARES};
+use crate::board::board_representation::{Bitboard, Color, Piece, Square, NUM_FILES, NUM_SQUARES};
 use crate::eval::evaluation::ScoreTuple;
 
-use super::eval_constants::{ATTACKING_PAWN_LOCATIONS, DEFENDING_PAWN_LOCATIONS};
+use super::eval_constants::{
+    ATTACKING_PAWN_LOCATIONS, ATTACKS, DEFENDING_PAWN_LOCATIONS, DEFENSES, ENEMY_KING_RANK, TROPISM,
+};
 
 pub const HIDDEN_LAYER_SIZE: usize = 8;
 
@@ -58,6 +60,30 @@ impl SafetyNet {
     pub fn update_defending_pawn(&mut self, location: usize) {
         for (i, &weight) in DEFENDING_PAWN_LOCATIONS[location].iter().enumerate() {
             self.hidden_sums[i] += weight;
+        }
+    }
+
+    pub fn update_enemy_king_rank(&mut self, sq: Square, color: Color) {
+        for (i, &weight) in ENEMY_KING_RANK.access(color, sq).iter().enumerate() {
+            self.hidden_sums[i] += weight;
+        }
+    }
+
+    pub fn update_tropism(&mut self, trop: i32) {
+        for (i, &weight) in TROPISM.iter().enumerate() {
+            self.hidden_sums[i] += weight.mult(trop);
+        }
+    }
+
+    pub fn update_attacks(&mut self, piece: Piece, count: i32) {
+        for (i, &weight) in ATTACKS[piece.as_index()].iter().enumerate() {
+            self.hidden_sums[i] += weight.mult(count);
+        }
+    }
+
+    pub fn update_defenses(&mut self, piece: Piece, count: i32) {
+        for (i, &weight) in DEFENSES[piece.as_index()].iter().enumerate() {
+            self.hidden_sums[i] += weight.mult(count);
         }
     }
 }

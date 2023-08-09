@@ -226,7 +226,7 @@ pub const ENEMY_KING_RANK: SafetyPrt = SafetyPrt::new([
   [s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24)],
 ]);
 
-pub const TROPISM_BONUS: [ScoreTuple; 8] = [
+pub const TROPISM: [ScoreTuple; 8] = [
   s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24),
 ];
 
