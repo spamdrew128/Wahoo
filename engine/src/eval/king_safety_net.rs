@@ -4,7 +4,7 @@ use crate::board::board_representation::{Bitboard, Color, Piece, Square, NUM_FIL
 use crate::eval::evaluation::ScoreTuple;
 
 use super::eval_constants::{
-    ATTACKING_PAWN_LOCATIONS, ATTACKS, DEFENDING_PAWN_LOCATIONS, DEFENSES, ENEMY_KING_RANK, TROPISM,
+    ATTACKING_PAWN_LOCATIONS, ATTACKS, DEFENDING_PAWN_LOCATIONS, DEFENSES, ENEMY_KING_RANK, TROPISM, HIDDEN_BIASES,
 };
 use super::trace::Trace;
 
@@ -55,7 +55,7 @@ pub struct SafetyNet {
 impl SafetyNet {
     pub const fn new() -> Self {
         Self {
-            hidden_sums: [ScoreTuple::new(0, 0); HIDDEN_LAYER_SIZE],
+            hidden_sums: HIDDEN_BIASES,
         }
     }
 
