@@ -41,8 +41,10 @@ impl Net {
     }
 
     fn reset_activations(&mut self) {
-        self.params.hidden_activations = [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE];
-        self.params.output_activation = S::new(0.0, 0.0);
+        // we reset the activations to just the biases, so that they are
+        // already accounted for when we calculate the sums
+        self.params.hidden_activations = self.params.hidden_biases;
+        self.params.output_activation = self.params.output_bias;
     }
 
     fn reset_partials(&mut self) {
