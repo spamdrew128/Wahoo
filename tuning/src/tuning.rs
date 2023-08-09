@@ -60,9 +60,9 @@ impl Feature {
     }
 }
 
-struct Entry {
+pub struct Entry {
     feature_vec: Vec<Feature>,
-    safety_feature_vec: [Vec<Feature>; NUM_COLORS as usize],
+    pub safety_feature_vec: [Vec<Feature>; NUM_COLORS as usize],
     phase: Phase,
     game_result: f64,
 }
