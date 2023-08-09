@@ -61,6 +61,7 @@ pub struct SafetyPrt {
 }
 
 impl SafetyPrt {
+    #[allow(clippy::large_types_passed_by_value)]
     pub const fn new(before: [[ScoreTuple; HIDDEN_LAYER_SIZE]; NUM_RANKS as usize]) -> Self {
         let mut table =
             [[[ScoreTuple::new(0, 0); HIDDEN_LAYER_SIZE]; NUM_RANKS as usize]; NUM_COLORS as usize];

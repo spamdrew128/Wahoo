@@ -1,14 +1,16 @@
+use crate::eval::trace::{AttackingPawnLocations, DefendingPawnLocations};
+use crate::{bitloop, trace_safety_update};
 use crate::board::board_representation::{Bitboard, Color, Piece, Square, NUM_FILES, NUM_SQUARES};
 use crate::eval::evaluation::ScoreTuple;
 
 use super::eval_constants::{
     ATTACKING_PAWN_LOCATIONS, ATTACKS, DEFENDING_PAWN_LOCATIONS, DEFENSES, ENEMY_KING_RANK, TROPISM,
 };
+use super::trace::Trace;
 
 pub const HIDDEN_LAYER_SIZE: usize = 8;
 
-const PAWN_LOCATIONS: [[usize; NUM_SQUARES as usize]; NUM_FILES as usize] = {
-    let mut result = [[0; NUM_SQUARES as usize]; NUM_FILES as usize];
+const PAWN_MASKS: [Bitboard; NUM_FILES as usize] = {
     let mut masks = [Bitboard::EMPTY; NUM_FILES as usize];
 
     let mut i = 1;
@@ -24,9 +26,15 @@ const PAWN_LOCATIONS: [[usize; NUM_SQUARES as usize]; NUM_FILES as usize] = {
     masks[0] = masks[1];
     masks[7] = masks[6];
 
-    i = 0;
+    masks
+};
+
+const PAWN_LOCATIONS: [[usize; NUM_SQUARES as usize]; NUM_FILES as usize] = {
+    let mut result = [[0; NUM_SQUARES as usize]; NUM_FILES as usize];
+
+    let mut i = 0;
     while i < (NUM_FILES as usize) {
-        let mut bb = masks[i];
+        let mut bb = PAWN_MASKS[i];
         let mut location = 0;
         while bb.is_not_empty() {
             let sq = bb.lsb();
@@ -40,7 +48,7 @@ const PAWN_LOCATIONS: [[usize; NUM_SQUARES as usize]; NUM_FILES as usize] = {
     result
 };
 
-struct SafetyNet {
+pub struct SafetyNet {
     hidden_sums: [ScoreTuple; HIDDEN_LAYER_SIZE],
 }
 
@@ -51,16 +59,36 @@ impl SafetyNet {
         }
     }
 
-    pub fn update_attacking_pawn(&mut self, location: usize) {
-        for (i, &weight) in ATTACKING_PAWN_LOCATIONS[location].iter().enumerate() {
-            self.hidden_sums[i] += weight;
-        }
+    pub fn update_attacking_pawns<const TRACE: bool>(&mut self, pawns: Bitboard, enemy_king_sq: Square, color: Color, t: &mut Trace) {
+        let king_file = enemy_king_sq.file() as usize;
+        let mut attacking_pawns = pawns & PAWN_MASKS[king_file];
+
+        bitloop!(|sq| attacking_pawns, {
+            let location = PAWN_LOCATIONS[king_file][sq.as_index()];
+            for (i, &weight) in ATTACKING_PAWN_LOCATIONS[location].iter().enumerate() {
+                self.hidden_sums[i] += weight;
+            }
+            
+            if TRACE {
+                trace_safety_update!(t, AttackingPawnLocations, (location), color, 1);
+            }
+        });
     }
 
-    pub fn update_defending_pawn(&mut self, location: usize) {
-        for (i, &weight) in DEFENDING_PAWN_LOCATIONS[location].iter().enumerate() {
-            self.hidden_sums[i] += weight;
-        }
+    pub fn update_defending_pawns<const TRACE: bool>(&mut self, pawns: Bitboard, friendly_king_sq: Square, color: Color, t: &mut Trace) {
+        let king_file = friendly_king_sq.file() as usize;
+        let mut defending_pawns = pawns & PAWN_MASKS[king_file];
+
+        bitloop!(|sq| defending_pawns, {
+            let location = PAWN_LOCATIONS[king_file][sq.as_index()];
+            for (i, &weight) in DEFENDING_PAWN_LOCATIONS[location].iter().enumerate() {
+                self.hidden_sums[i] += weight;
+            }
+            
+            if TRACE {
+                trace_safety_update!(t, DefendingPawnLocations, (location), color, 1);
+            }
+        });
     }
 
     pub fn update_enemy_king_rank(&mut self, sq: Square, color: Color) {
@@ -85,5 +113,9 @@ impl SafetyNet {
         for (i, &weight) in DEFENSES[piece.as_index()].iter().enumerate() {
             self.hidden_sums[i] += weight.mult(count);
         }
+    }
+
+    pub fn calculate(&self) -> ScoreTuple {
+        ScoreTuple::new(0, 0)
     }
 }
