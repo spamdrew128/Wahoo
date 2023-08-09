@@ -95,5 +95,19 @@ impl Net {
         let partials = &mut self.partials;
 
         let output_activation_prime = params.output_sum.activation_prime();
+
+        // update output bias partial
+        partials.output_bias += output_activation_prime * sign;
+
+        // update output weights partials
+        for (i, &prev_sum) in params.hidden_sums.iter().enumerate() {
+            partials.output_weights[i] += output_activation_prime * prev_sum.activation() * sign;
+        }
+
+        // find activation partials
+        let mut activation_partials = [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE];
+        for (i, &weight) in params.output_weights.iter().enumerate() {
+            activation_partials[i] += output_activation_prime * weight;
+        }
     }
 }
