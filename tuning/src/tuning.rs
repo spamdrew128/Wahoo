@@ -6,7 +6,7 @@ use engine::{
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
     eval::{
         evaluation::SAFETY_LIMIT,
-        trace::{Attacks, Defenses, PasserSqRule, PawnStorm, Tropism, SAFETY_TRACE_LEN},
+        trace::{Attacks, Defenses, PasserSqRule, Tropism, SAFETY_TRACE_LEN},
     },
     eval::{
         piece_loop_eval::MoveCounts,
@@ -49,7 +49,7 @@ impl TunerStruct {
     }
 }
 
-struct Feature {
+pub struct Feature {
     pub value: i8,
     pub index: usize,
 }
@@ -558,42 +558,42 @@ impl Tuner {
         writeln!(output, "];\n").unwrap();
     }
 
-    fn write_safety(&self, output: &mut BufWriter<File>) {
-        self.virt_mobility_index_writer(output, "ATTACKS", Attacks::index);
-        self.virt_mobility_index_writer(output, "DEFENSES", Defenses::index);
+    // fn write_safety(&self, output: &mut BufWriter<File>) {
+    //     self.virt_mobility_index_writer(output, "ATTACKS", Attacks::index);
+    //     self.virt_mobility_index_writer(output, "DEFENSES", Defenses::index);
 
-        write!(output, "pub const ENEMY_KING_RANK: Prt = ").unwrap();
-        self.write_prt(
-            output,
-            ";\n",
-            self.weights.safety.as_slice(),
-            EnemyKingRank::index,
-        );
+    //     write!(output, "pub const ENEMY_KING_RANK: Prt = ").unwrap();
+    //     self.write_prt(
+    //         output,
+    //         ";\n",
+    //         self.weights.safety.as_slice(),
+    //         EnemyKingRank::index,
+    //     );
 
-        write!(
-            output,
-            "pub const TROPHISM_BONUS: [ScoreTuple; {}] = [\n  ",
-            Tropism::LEN
-        )
-        .unwrap();
-        for i in 0..Tropism::LEN {
-            let w = self.weights.safety[Tropism::index(i)];
-            write!(output, "{w}, ",).unwrap();
-        }
-        writeln!(output, "\n];").unwrap();
+    //     write!(
+    //         output,
+    //         "pub const TROPHISM_BONUS: [ScoreTuple; {}] = [\n  ",
+    //         Tropism::LEN
+    //     )
+    //     .unwrap();
+    //     for i in 0..Tropism::LEN {
+    //         let w = self.weights.safety[Tropism::index(i)];
+    //         write!(output, "{w}, ",).unwrap();
+    //     }
+    //     writeln!(output, "\n];").unwrap();
 
-        write!(
-            output,
-            "\npub const PAWN_STORM_BONUS: [ScoreTuple; {}] = [\n  ",
-            PawnStorm::LEN
-        )
-        .unwrap();
-        for i in 0..PawnStorm::LEN {
-            let w = self.weights.safety[PawnStorm::index(i)];
-            write!(output, "{w}, ",).unwrap();
-        }
-        writeln!(output, "\n];").unwrap();
-    }
+    //     write!(
+    //         output,
+    //         "\npub const PAWN_STORM_BONUS: [ScoreTuple; {}] = [\n  ",
+    //         PawnStorm::LEN
+    //     )
+    //     .unwrap();
+    //     for i in 0..PawnStorm::LEN {
+    //         let w = self.weights.safety[PawnStorm::index(i)];
+    //         write!(output, "{w}, ",).unwrap();
+    //     }
+    //     writeln!(output, "\n];").unwrap();
+    // }
 
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
@@ -611,6 +611,6 @@ impl Tuner {
         self.write_tempo(&mut output);
 
         writeln!(output, "\n// KING SAFETY FEATURES").unwrap();
-        self.write_safety(&mut output);
+        // self.write_safety(&mut output);
     }
 }

@@ -74,7 +74,7 @@ impl Net {
         let params = &mut self.params;
 
         // calculate the weighted sums in the hidden layer (accumulator)
-        for f in entry.safety_feature_vec[color.as_index()] {
+        for f in &entry.safety_feature_vec[color.as_index()] {
             let weights = params.hidden_weights[f.index];
 
             for (i, &weight) in weights.iter().enumerate() {
@@ -118,7 +118,7 @@ impl Net {
         }
 
         // update hidden weight partials
-        for f in entry.safety_feature_vec[color.as_index()] {
+        for f in &entry.safety_feature_vec[color.as_index()] {
             let weight_partials = &mut partials.hidden_weights[f.index];
 
             for (i, &bias_partial) in hidden_bias_partials.iter().enumerate() {
