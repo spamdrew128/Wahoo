@@ -8,10 +8,10 @@ use crate::tuning::Entry;
 struct NetInfo {
     hidden_weights: [[S; HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
     hidden_biases: [S; HIDDEN_LAYER_SIZE],
-    hidden_activations: [S; HIDDEN_LAYER_SIZE],
+    hidden_sums: [S; HIDDEN_LAYER_SIZE],
     output_weights: [S; HIDDEN_LAYER_SIZE],
     output_bias: S,
-    output_activation: S,
+    output_sum: S,
 }
 
 impl NetInfo {
@@ -19,10 +19,10 @@ impl NetInfo {
         Self {
             hidden_weights: [[S::new(0.0, 0.0); HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
             hidden_biases: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
-            hidden_activations: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
+            hidden_sums: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
             output_weights: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
             output_bias: S::new(0.0, 0.0),
-            output_activation: S::new(0.0, 0.0),
+            output_sum: S::new(0.0, 0.0),
         }
     }
 }
@@ -40,11 +40,11 @@ impl Net {
         }
     }
 
-    fn reset_activations(&mut self) {
+    fn reset_sums(&mut self) {
         // we reset the activations to just the biases, so that they are
         // already accounted for when we calculate the sums
-        self.params.hidden_activations = self.params.hidden_biases;
-        self.params.output_activation = self.params.output_bias;
+        self.params.hidden_sums = self.params.hidden_biases;
+        self.params.output_sum = self.params.output_bias;
     }
 
     fn reset_partials(&mut self) {
@@ -59,24 +59,20 @@ impl Net {
             let weights = params.hidden_weights[f.index];
 
             for (i, &weight) in weights.iter().enumerate() {
-                params.hidden_activations[i] += weight * f64::from(f.value);
+                params.hidden_sums[i] += weight * f64::from(f.value);
             }
         }
 
-        // pass each hidden layer sum through the activation function
-        params.hidden_activations.iter_mut().for_each(|s| {
-            *s = s.activation();
-        });
-
         // calculate the output sum using previous layer activations
         for (i, &weight) in params.output_weights.iter().enumerate() {
-            params.output_activation += weight * params.hidden_activations[i];
+            params.output_sum += weight * params.hidden_sums[i].activation();
         }
 
-        // pass output through the activation function
-        params.output_activation = params.output_activation.activation();
-
         // return activated output
-        self.params.output_activation
+        self.params.output_sum.activation()
+    }
+
+    fn update_partials(&mut self, sign: f64) {
+
     }
 }
