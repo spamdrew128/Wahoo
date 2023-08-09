@@ -5,7 +5,7 @@ use crate::tuner_val::S;
 
 use crate::tuning::Entry;
 
-struct NetInfo {
+struct NetParams {
     hidden_weights: [[S; HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
     hidden_biases: [S; HIDDEN_LAYER_SIZE],
     hidden_sums: [S; HIDDEN_LAYER_SIZE],
@@ -14,7 +14,7 @@ struct NetInfo {
     output_sum: S,
 }
 
-impl NetInfo {
+impl NetParams {
     fn new() -> Self {
         Self {
             hidden_weights: [[S::new(0.0, 0.0); HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
@@ -27,16 +27,34 @@ impl NetInfo {
     }
 }
 
+struct NetPartials {
+    hidden_weights: [[S; HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
+    hidden_biases: [S; HIDDEN_LAYER_SIZE],
+    output_weights: [S; HIDDEN_LAYER_SIZE],
+    output_bias: S,
+}
+
+impl NetPartials {
+    fn new() -> Self {
+        Self {
+            hidden_weights: [[S::new(0.0, 0.0); HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
+            hidden_biases: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
+            output_weights: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
+            output_bias: S::new(0.0, 0.0),
+        }
+    }
+}
+
 pub struct Net {
-    params: NetInfo,
-    partials: NetInfo,
+    params: NetParams,
+    partials: NetPartials,
 }
 
 impl Net {
     fn new() -> Self {
         Self {
-            params: NetInfo::new(),
-            partials: NetInfo::new(),
+            params: NetParams::new(),
+            partials: NetPartials::new(),
         }
     }
 
@@ -48,7 +66,7 @@ impl Net {
     }
 
     fn reset_partials(&mut self) {
-        self.partials = NetInfo::new();
+        self.partials = NetPartials::new();
     }
 
     fn calculate(&mut self, entry: &Entry, color: Color) -> S {
@@ -73,6 +91,9 @@ impl Net {
     }
 
     fn update_partials(&mut self, sign: f64) {
+        let params = &mut self.params;
+        let partials = &mut self.partials;
 
+        let output_activation_prime = params.output_sum.activation_prime();
     }
 }
