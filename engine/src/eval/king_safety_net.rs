@@ -126,6 +126,6 @@ impl SafetyNet {
             output += activation * weight;
         }
 
-        output * SAFETY_WEIGHT / SCALE.pow(2)
+        output.activation() * SAFETY_WEIGHT / SCALE.pow(2)
     }
 }
