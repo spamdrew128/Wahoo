@@ -69,7 +69,7 @@ impl Net {
         self.partials = NetPartials::new();
     }
 
-    fn calculate(&mut self, entry: &Entry, color: Color) -> S {
+    pub fn calculate(&mut self, entry: &Entry, color: Color) -> S {
         let params = &mut self.params;
 
         // calculate the weighted sums in the hidden layer (accumulator)
@@ -111,9 +111,18 @@ impl Net {
 
         // update hidden bias partials
         let mut hidden_bias_partials = [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE];
-        for (i, &activation_partial) in output_activation_partials.iter().enumerate() {
-            hidden_bias_partials[i] = params.hidden_sums[i].activation() * activation_partial;
+        for (i, &output_partial) in output_activation_partials.iter().enumerate() {
+            hidden_bias_partials[i] = params.hidden_sums[i].activation() * output_partial;
             partials.hidden_biases[i] += hidden_bias_partials[i];
+        }
+
+        // update hidden weight partials
+        for f in entry.safety_feature_vec[color.as_index()] {
+            let weight_partials = &mut partials.hidden_weights[f.index];
+
+            for (i, &bias_partial) in hidden_bias_partials.iter().enumerate() {
+                weight_partials[i] += bias_partial * f64::from(f.value);
+            }
         }
     }
 }
