@@ -1,4 +1,7 @@
 use crate::tuner_val::S;
+
+use crate::safety_tuning::Net;
+
 use engine::{
     board::board_representation::{
         Board, Color, Piece, Square, NUM_COLORS, NUM_RANKS, NUM_SQUARES,
@@ -6,7 +9,7 @@ use engine::{
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
     eval::{
         evaluation::SAFETY_LIMIT,
-        trace::{Attacks, Defenses, PasserSqRule, Tropism, SAFETY_TRACE_LEN},
+        trace::{Attacks, Defenses, PasserSqRule, Tropism, SAFETY_TRACE_LEN}, king_safety_net::{SafetyNet, HIDDEN_LAYER_SIZE},
     },
     eval::{
         piece_loop_eval::MoveCounts,
@@ -26,14 +29,14 @@ use std::{
 #[derive(Clone)]
 struct TunerStruct {
     linear: [S; LINEAR_TRACE_LEN],
-    safety: [S; SAFETY_TRACE_LEN],
+    safety_net: Net,
 }
 
 impl TunerStruct {
     fn new() -> Self {
         Self {
             linear: [S::new(0.0, 0.0); LINEAR_TRACE_LEN],
-            safety: [S::new(0.0, 0.0); SAFETY_TRACE_LEN],
+            safety_net: Net::new(),
         }
     }
 
@@ -42,9 +45,20 @@ impl TunerStruct {
         for (r, &a) in result.linear.iter_mut().zip(rhs.linear.iter()) {
             *r += a;
         }
-        for (r, &a) in result.safety.iter_mut().zip(rhs.safety.iter()) {
-            *r += a;
+
+        for i in 0..SAFETY_TRACE_LEN {
+            for (r, &a) in result.safety_net.hidden_weights[i].iter_mut().zip(rhs.safety_net.hidden_weights[i].iter()) {
+                *r += a;
+            }
         }
+
+        for i in 0..HIDDEN_LAYER_SIZE {
+            result.safety_net.hidden_biases[i] += rhs.safety_net.hidden_biases[i];
+            result.safety_net.output_weights[i] += rhs.safety_net.output_weights[i];
+        }
+
+        result.safety_net.output_bias += rhs.safety_net.output_bias;
+ 
         result
     }
 }

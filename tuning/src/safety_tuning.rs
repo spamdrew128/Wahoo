@@ -19,15 +19,16 @@ impl LayerSums {
     }
 }
 
+#[derive(Clone)]
 pub struct Net {
-    hidden_weights: [[S; HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
-    hidden_biases: [S; HIDDEN_LAYER_SIZE],
-    output_weights: [S; HIDDEN_LAYER_SIZE],
-    output_bias: S,
+    pub hidden_weights: [[S; HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
+    pub hidden_biases: [S; HIDDEN_LAYER_SIZE],
+    pub output_weights: [S; HIDDEN_LAYER_SIZE],
+    pub output_bias: S,
 }
 
 impl Net {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             hidden_weights: [[S::new(0.0, 0.0); HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
             hidden_biases: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
