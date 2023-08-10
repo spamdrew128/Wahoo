@@ -19,7 +19,7 @@ impl LayerSums {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Net {
     pub hidden_weights: [[S; HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
     pub hidden_biases: [S; HIDDEN_LAYER_SIZE],
