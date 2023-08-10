@@ -97,7 +97,7 @@ impl Net {
     }
 
     pub fn calc_and_compute_partials(&self, entry: &Entry) -> (S, Net) {
-        let mut partials = Net::new(0.0);
+        let mut partials = Self::new(0.0);
         let (mut w_sums, mut b_sums) = (LayerSums::new(), LayerSums::new());
 
         let mut score = self.calculate_color(&mut w_sums, entry, Color::White);
@@ -114,5 +114,21 @@ impl Net {
 
         self.calculate_color(&mut w_sums, entry, Color::White)
             - self.calculate_color(&mut b_sums, entry, Color::Black)
+    }
+
+    pub fn gradient_update(&mut self, partials: &Self, coeff: S) {
+        for (grad, &partial) in self.hidden_weights.iter_mut().flatten().zip(partials.hidden_weights.iter().flatten()) {
+            *grad += coeff * partial;
+        }
+
+        for (grad, &partial) in self.hidden_biases.iter_mut().zip(partials.hidden_biases.iter()) {
+            *grad += coeff * partial;
+        }
+
+        for (grad, &partial) in self.output_weights.iter_mut().zip(partials.output_weights.iter()) {
+            *grad += coeff * partial;
+        }
+
+        self.output_bias += coeff * partials.output_bias;
     }
 }

@@ -48,20 +48,21 @@ impl TunerStruct {
             *r += a;
         }
 
-        for i in 0..SAFETY_TRACE_LEN {
-            for (r, &a) in result.safety_net.hidden_weights[i].iter_mut().zip(rhs.safety_net.hidden_weights[i].iter()) {
-                *r += a;
-            }
+        result.safety_weight += rhs.safety_weight;
+
+        for (r, &a) in result.safety_net.hidden_weights.iter_mut().flatten().zip(rhs.safety_net.hidden_weights.iter().flatten()) {
+            *r += a;
         }
 
-        for i in 0..HIDDEN_LAYER_SIZE {
-            result.safety_net.hidden_biases[i] += rhs.safety_net.hidden_biases[i];
-            result.safety_net.output_weights[i] += rhs.safety_net.output_weights[i];
+        for (r, &a) in result.safety_net.hidden_biases.iter_mut().zip(rhs.safety_net.hidden_biases.iter()) {
+            *r += a;
+        }
+
+        for (r, &a) in result.safety_net.output_weights.iter_mut().zip(rhs.safety_net.output_weights.iter()) {
+            *r += a;
         }
 
         result.safety_net.output_bias += rhs.safety_net.output_bias;
-
-        result.safety_weight += rhs.safety_weight;
  
         result
     }
@@ -250,6 +251,11 @@ impl Tuner {
         for feature in &entry.feature_vec {
             gradient.linear[feature.index] += coeff * f64::from(feature.value);
         }
+
+        gradient.safety_weight += coeff * net_output;
+
+        let safety_coeff = coeff * weights.safety_weight;
+        gradient.safety_net.gradient_update(&net_partials, safety_coeff);
     }
 
     fn update_gradient(&mut self) {
