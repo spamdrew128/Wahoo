@@ -364,7 +364,7 @@ impl Tuner {
         writeln!(output, "#![cfg_attr(rustfmt, rustfmt_skip)]").unwrap();
         writeln!(
             output,
-            "use crate::{{eval::{{evaluation::ScoreTuple, piece_tables::{{Pst, Prt}}}}, board::board_representation::NUM_PIECES}};\n"
+            "use crate::{{eval::{{evaluation::ScoreTuple, piece_tables::{{Pst, Prt, SafetyPrt}}}}, board::board_representation::NUM_PIECES}};\n"
         )
         .unwrap();
 
@@ -569,9 +569,9 @@ impl Tuner {
         Self::write_net_rows(&self.weights.safety_net.hidden_weights[EnemyKingRank::START..EnemyKingRank::END], output);
         writeln!(output, "]);\n",).unwrap();
 
-        writeln!(output, "pub const TROPISM: [ScoreTuple; {}] = [", HIDDEN_LAYER_SIZE).unwrap();
+        writeln!(output, "pub const TROPISM: [ScoreTuple; {}] = ", HIDDEN_LAYER_SIZE).unwrap();
         Self::write_net_rows(&self.weights.safety_net.hidden_weights[Tropism::START..Tropism::END], output);
-        writeln!(output, "];\n",).unwrap();
+        writeln!(output).unwrap();
 
         writeln!(output, "pub const ATTACKING_PAWN_LOCATIONS: [[ScoreTuple; {}]; {}] = [", HIDDEN_LAYER_SIZE, AttackingPawnLocations::LEN).unwrap();
         Self::write_net_rows(&self.weights.safety_net.hidden_weights[AttackingPawnLocations::START..AttackingPawnLocations::END], output);
@@ -581,13 +581,13 @@ impl Tuner {
         Self::write_net_rows(&self.weights.safety_net.hidden_weights[DefendingPawnLocations::START..DefendingPawnLocations::END], output);
         writeln!(output, "];\n",).unwrap();
 
-        writeln!(output, "pub const HIDDEN_BIASES: [ScoreTuple; {}]; = [", HIDDEN_LAYER_SIZE).unwrap();
+        writeln!(output, "pub const HIDDEN_BIASES: [ScoreTuple; {}] = ", HIDDEN_LAYER_SIZE).unwrap();
         Self::write_net_rows(&[self.weights.safety_net.hidden_biases], output);
-        writeln!(output, "];\n",).unwrap();
+        writeln!(output).unwrap();
 
-        writeln!(output, "pub const OUTPUT_WEIGHTS: [ScoreTuple; {}]; = [", HIDDEN_LAYER_SIZE).unwrap();
+        writeln!(output, "pub const OUTPUT_WEIGHTS: [ScoreTuple; {}] = ", HIDDEN_LAYER_SIZE).unwrap();
         Self::write_net_rows(&[self.weights.safety_net.output_weights], output);
-        writeln!(output, "];\n",).unwrap();
+        writeln!(output).unwrap();
 
         writeln!(output, "pub const OUTPUT_BIAS: ScoreTuple = {};\n", self.weights.safety_net.output_bias).unwrap();
         writeln!(output, "pub const SAFETY_WEIGHT: ScoreTuple = {};\n", self.weights.safety_weight).unwrap();
