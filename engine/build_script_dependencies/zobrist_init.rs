@@ -1,5 +1,5 @@
 use crate::build_script_dependencies::dummy_types::{NUM_COLORS, NUM_PIECES, NUM_SQUARES};
-use crate::random_number_generation::rng::Rng;
+use crate::build_script_dependencies::rng::Rng;
 
 const NUM_CASTLING_CONFIGURATIONS: usize = 16;
 const NUM_FILES: usize = 8;
