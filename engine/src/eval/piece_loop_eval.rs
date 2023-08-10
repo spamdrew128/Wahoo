@@ -80,7 +80,7 @@ const KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = king
 
 const FORWARD_MASKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = forward_masks_init();
 
-const TROPISM_LOOKUP: [[i32; NUM_SQUARES as usize]; NUM_SQUARES as usize] =
+const TROPISM_LOOKUP: [[i16; NUM_SQUARES as usize]; NUM_SQUARES as usize] =
     include!(concat!(env!("OUT_DIR"), "/trophism_init.rs"));
 
 const fn king_zone(board: &Board, color: Color) -> Bitboard {
@@ -94,7 +94,7 @@ const fn forward_mobility(moves: Bitboard, sq: Square, color: Color) -> usize {
         .popcount() as usize
 }
 
-const fn tropism(king_sq: Square, piece_sq: Square) -> i32 {
+const fn tropism(king_sq: Square, piece_sq: Square) -> i16 {
     TROPISM_LOOKUP[king_sq.as_index()][piece_sq.as_index()]
 }
 
@@ -152,7 +152,7 @@ struct LoopEvaluator {
     hv_occupied: Bitboard,
     d12_occupied: Bitboard,
 
-    tropism: i32,
+    tropism: i16,
 }
 
 impl LoopEvaluator {
@@ -379,9 +379,11 @@ pub fn mobility_threats_safety<const TRACE: bool>(
 mod tests {
     use crate::{
         board::attacks,
-        board::board_representation::{Board, Color, Square},
-        eval::piece_loop_eval::forward_mobility,
+        board::board_representation::{Board, Color, Square, Piece},
+        eval::{piece_loop_eval::forward_mobility, evaluation::trace_of_position, trace::{SAFETY_TRACE_LEN, Attacks, Defenses, Tropism, EnemyKingRank, AttackingPawnLocations, DefendingPawnLocations}},
     };
+
+    use super::tropism;
 
     #[test]
     fn forward_mobility_test() {
@@ -391,5 +393,32 @@ mod tests {
         let f_mobility = forward_mobility(moves, sq, Color::Black);
 
         assert_eq!(f_mobility, 5);
+    }
+
+    #[test]
+    fn safety_trace_test() {
+        let board = Board::from_fen("8/4pkpb/5p2/p7/3N4/8/2PP4/1K6 w - - 0 1");
+        let actual = trace_of_position(&board).safety;
+
+        let (w_king, b_king) = (board.color_king_sq(Color::White), board.color_king_sq(Color::Black));
+
+        let mut w_expected = [0; SAFETY_TRACE_LEN];
+        w_expected[Attacks::index(Piece::KNIGHT)] += 2;
+        w_expected[Defenses::index(Piece::BISHOP)] += 4;
+        w_expected[Tropism::index()] += tropism(b_king, Square::D4);
+        w_expected[EnemyKingRank::index(b_king.mirror().rank())] += 1;
+        w_expected[DefendingPawnLocations::index(13)] += 1;
+        w_expected[DefendingPawnLocations::index(15)] += 1;
+        w_expected[DefendingPawnLocations::index(17)] += 1;
+
+        let mut b_expected = [0; SAFETY_TRACE_LEN];
+        b_expected[Attacks::index(Piece::BISHOP)] += 1;
+        b_expected[Defenses::index(Piece::KNIGHT)] += 1;
+        b_expected[Tropism::index()] += tropism(w_king, Square::H7);
+        b_expected[EnemyKingRank::index(w_king.rank())] += 1;
+        b_expected[AttackingPawnLocations::index(9)] += 1;
+        b_expected[DefendingPawnLocations::index(2)] += 1;
+
+        assert_eq!(actual, [w_expected, b_expected]);
     }
 }

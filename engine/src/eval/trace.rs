@@ -25,8 +25,8 @@ pub const SAFETY_TRACE_LEN: usize = Attacks::LEN
     + DefendingPawnLocations::LEN;
 
 pub struct Trace {
-    pub linear: [i8; LINEAR_TRACE_LEN],
-    pub safety: [[i8; SAFETY_TRACE_LEN]; NUM_COLORS as usize],
+    pub linear: [i16; LINEAR_TRACE_LEN],
+    pub safety: [[i16; SAFETY_TRACE_LEN]; NUM_COLORS as usize],
 }
 
 impl Trace {
@@ -53,7 +53,7 @@ macro_rules! trace_update {
             Color::Black => -1,
         };
         let index = $name::index($($arg,)*);
-        $trace.linear[index] += mult * ($val as i8);
+        $trace.linear[index] += mult * ($val as i16);
     };
 }
 
@@ -65,7 +65,7 @@ macro_rules! trace_threat_update {
             Color::Black => -1,
         };
         let val = ($attacks & $enemy).popcount();
-        $trace.linear[Threats::$index_name] += mult * (val as i8);
+        $trace.linear[Threats::$index_name] += mult * (val as i16);
     };
 }
 
@@ -73,7 +73,7 @@ macro_rules! trace_threat_update {
 macro_rules! trace_safety_update {
     ($trace:ident, $name:ident, ($($arg:ident),*), $color:expr, $val:expr) => {
         let index = $name::index($($arg,)*);
-        $trace.safety[$color.as_index()][index] += $val as i8;
+        $trace.safety[$color.as_index()][index] += $val as i16;
     };
 }
 

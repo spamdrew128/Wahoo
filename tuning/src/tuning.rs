@@ -107,12 +107,12 @@ impl TunerStruct {
 }
 
 pub struct Feature {
-    pub value: i8,
+    pub value: i16,
     pub index: usize,
 }
 
 impl Feature {
-    fn new(value: i8, index: usize) -> Self {
+    fn new(value: i16, index: usize) -> Self {
         Self { value, index }
     }
 }

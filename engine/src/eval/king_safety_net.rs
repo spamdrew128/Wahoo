@@ -112,9 +112,9 @@ impl SafetyNet {
         }
     }
 
-    pub fn update_tropism(&mut self, trop: i32) {
+    pub fn update_tropism(&mut self, trop: i16) {
         for (i, &weight) in TROPISM.iter().enumerate() {
-            self.hidden_sums[i] += weight.mult(trop);
+            self.hidden_sums[i] += weight.mult(trop.into());
         }
     }
 
