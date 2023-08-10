@@ -53,7 +53,7 @@ impl Net {
             .hidden_biases
             .iter_mut()
             .for_each(|s| *s = S::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)));
-        
+
         result
             .output_weights
             .iter_mut()

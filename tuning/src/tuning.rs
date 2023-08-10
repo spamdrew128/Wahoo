@@ -351,7 +351,7 @@ impl Tuner {
                 self.create_output_file();
                 // self.create_weights_file();
 
-                if delta_mse < Self::CONVERGENCE_DELTA {
+                if epoch > 0 && delta_mse < Self::CONVERGENCE_DELTA {
                     return;
                 }
                 prev_mse = mse;
@@ -571,7 +571,7 @@ impl Tuner {
 
         writeln!(output, "pub const TROPISM: [ScoreTuple; {}] = [", HIDDEN_LAYER_SIZE).unwrap();
         Self::write_net_rows(&self.weights.safety_net.hidden_weights[Tropism::START..Tropism::END], output);
-        writeln!(output, "]);\n",).unwrap();
+        writeln!(output, "];\n",).unwrap();
 
         writeln!(output, "pub const ATTACKING_PAWN_LOCATIONS: [[ScoreTuple; {}]; {}] = [", HIDDEN_LAYER_SIZE, AttackingPawnLocations::LEN).unwrap();
         Self::write_net_rows(&self.weights.safety_net.hidden_weights[AttackingPawnLocations::START..AttackingPawnLocations::END], output);
