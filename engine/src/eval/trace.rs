@@ -231,6 +231,7 @@ pub struct Attacks;
 impl Attacks {
     pub const START: usize = 0;
     const LEN: usize = (NUM_PIECES - 2) as usize;
+    pub const END: usize = Self::START + Self::LEN;
 
     pub const fn index(piece: Piece) -> usize {
         Self::START + piece.as_index()
@@ -241,6 +242,7 @@ pub struct Defenses;
 impl Defenses {
     pub const START: usize = Attacks::START + Attacks::LEN;
     const LEN: usize = (NUM_PIECES - 2) as usize;
+    pub const END: usize = Self::START + Self::LEN;
 
     pub const fn index(piece: Piece) -> usize {
         Self::START + piece.as_index()
@@ -251,6 +253,7 @@ pub struct EnemyKingRank;
 impl EnemyKingRank {
     pub const START: usize = Defenses::START + Defenses::LEN;
     pub const LEN: usize = NUM_RANKS as usize;
+    pub const END: usize = Self::START + Self::LEN;
 
     pub const fn index(rank: u8) -> usize {
         Self::START + rank as usize
@@ -261,6 +264,7 @@ pub struct Tropism;
 impl Tropism {
     pub const START: usize = EnemyKingRank::START + EnemyKingRank::LEN;
     pub const LEN: usize = 1;
+    pub const END: usize = Self::START + Self::LEN;
 
     pub const fn index() -> usize {
         Self::START
@@ -271,6 +275,7 @@ pub struct AttackingPawnLocations;
 impl AttackingPawnLocations {
     pub const START: usize = Tropism::START + Tropism::LEN;
     pub const LEN: usize = 18;
+    pub const END: usize = Self::START + Self::LEN;
 
     pub const fn index(location: usize) -> usize {
         Self::START + location
@@ -281,6 +286,7 @@ pub struct DefendingPawnLocations;
 impl DefendingPawnLocations {
     pub const START: usize = AttackingPawnLocations::START + AttackingPawnLocations::LEN;
     pub const LEN: usize = 18;
+    pub const END: usize = Self::START + Self::LEN;
 
     pub const fn index(location: usize) -> usize {
         Self::START + location

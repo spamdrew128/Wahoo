@@ -169,7 +169,7 @@ pub const PASSER_SQ_RULE_BONUS: ScoreTuple = s(-32, 85);
 pub const TEMPO_BONUS: ScoreTuple = s(35, 24);
 
 // KING SAFETY FEATURES
-pub const ATTACKS: [[ScoreTuple; 8]; (NUM_PIECES - 1) as usize] = [
+pub const ATTACKS: [[ScoreTuple; 8]; (NUM_PIECES - 2) as usize] = [
 // Knight attacks
 [
   s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24),
@@ -186,13 +186,9 @@ pub const ATTACKS: [[ScoreTuple; 8]; (NUM_PIECES - 1) as usize] = [
 [
   s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24),
 ],
-// Pawn attacks
-[
-  s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24),
-],
 ];
 
-pub const DEFENSES: [[ScoreTuple; 8]; (NUM_PIECES - 1) as usize] = [
+pub const DEFENSES: [[ScoreTuple; 8]; (NUM_PIECES - 2) as usize] = [
 // Knight defenses
 [
   s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24),
@@ -206,10 +202,6 @@ pub const DEFENSES: [[ScoreTuple; 8]; (NUM_PIECES - 1) as usize] = [
   s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24),
 ],
 // Queen defenses
-[
-  s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24),
-],
-// Pawn defenses
 [
   s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24),
 ],
@@ -276,7 +268,7 @@ pub const HIDDEN_BIASES: [ScoreTuple; 8] = [
   s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24),
 ];
 
-pub const HIDDEN_WEIGHTS: [ScoreTuple; 8] = [
+pub const OUTPUT_WEIGHTS: [ScoreTuple; 8] = [
   s(-125, 0), s(78, -23), s(97, -18), s(103, -24), s(108, -22), s(105, -23), s(106, -24), s(108, -24),
 ];
 

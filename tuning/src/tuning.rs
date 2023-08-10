@@ -8,17 +8,13 @@ use engine::{
     },
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
     eval::{
-        evaluation::SAFETY_LIMIT,
-        king_safety_net::{SafetyNet, HIDDEN_LAYER_SIZE},
-        trace::{Attacks, Defenses, PasserSqRule, Tropism, SAFETY_TRACE_LEN},
+        king_safety_net::{HIDDEN_LAYER_SIZE, SCALE},
+        trace::{Attacks, Defenses, PasserSqRule, Tropism, AttackingPawnLocations, DefendingPawnLocations},
     },
-    eval::{
-        piece_loop_eval::MoveCounts,
-        trace::{
+    eval::trace::{
             BishopPair, EnemyKingRank, ForwardMobility, IsolatedPawns, MaterialPst, Mobility,
             Passer, PasserBlocker, PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN,
         },
-    },
 };
 use std::{
     fs::{read_to_string, File},
@@ -187,29 +183,6 @@ pub struct Tuner {
     threads: usize,
 }
 
-macro_rules! update_weights {
-    ($self:ident, $type:ident) => {{
-        const BETA1: f64 = 0.9;
-        const BETA2: f64 = 0.999;
-        const EPSILON: f64 = 1e-8;
-
-        for i in 0..$self.gradient.$type.len() {
-            // we left off k eariler, so we add it back here
-            let grad_component: S =
-                -2.0 * Tuner::K * $self.gradient.$type[i] / ($self.entries.len() as f64);
-
-            $self.momentum.$type[i] =
-                BETA1 * $self.momentum.$type[i] + (1.0 - BETA1) * grad_component;
-            $self.velocity.$type[i] =
-                BETA2 * $self.velocity.$type[i] + (1.0 - BETA2) * (grad_component * grad_component);
-
-            $self.weights.$type[i] -= ($self.momentum.$type[i]
-                / (EPSILON + $self.velocity.$type[i].sqrt()))
-                * Self::LEARN_RATE;
-        }
-    }};
-}
-
 impl Tuner {
     const K: f64 = 0.006634;
     const CONVERGENCE_DELTA: f64 = 7e-7;
@@ -261,14 +234,6 @@ impl Tuner {
     fn sigmoid_prime(sigmoid: f64) -> f64 {
         // K is omitted for now but will be added later
         sigmoid * (1.0 - sigmoid)
-    }
-
-    fn safety_prime(x: f64) -> f64 {
-        if x > 0.0 && x < 10.0 * f64::from(SAFETY_LIMIT).sqrt() {
-            0.01 * 2.0 * x
-        } else {
-            0.0
-        }
     }
 
     fn update_entry_gradient_component(
@@ -574,42 +539,55 @@ impl Tuner {
         .unwrap();
     }
 
-    // fn write_safety(&self, output: &mut BufWriter<File>) {
-    //     self.virt_mobility_index_writer(output, "ATTACKS", Attacks::index);
-    //     self.virt_mobility_index_writer(output, "DEFENSES", Defenses::index);
+    fn write_net_rows(rows: &[[S; HIDDEN_LAYER_SIZE]], output: &mut BufWriter<File>) {
+        for row in rows {
+            write!(output, "  [",).unwrap();
 
-    //     write!(output, "pub const ENEMY_KING_RANK: Prt = ").unwrap();
-    //     self.write_prt(
-    //         output,
-    //         ";\n",
-    //         self.weights.safety.as_slice(),
-    //         EnemyKingRank::index,
-    //     );
+            for &s in row {
+                let val = s * f64::from(SCALE);
+                write!(output, "{val}",).unwrap();
+            }
 
-    //     write!(
-    //         output,
-    //         "pub const TROPHISM_BONUS: [ScoreTuple; {}] = [\n  ",
-    //         Tropism::LEN
-    //     )
-    //     .unwrap();
-    //     for i in 0..Tropism::LEN {
-    //         let w = self.weights.safety[Tropism::index(i)];
-    //         write!(output, "{w}, ",).unwrap();
-    //     }
-    //     writeln!(output, "\n];").unwrap();
+            writeln!(output, "],",).unwrap();
+        }
+    }
 
-    //     write!(
-    //         output,
-    //         "\npub const PAWN_STORM_BONUS: [ScoreTuple; {}] = [\n  ",
-    //         PawnStorm::LEN
-    //     )
-    //     .unwrap();
-    //     for i in 0..PawnStorm::LEN {
-    //         let w = self.weights.safety[PawnStorm::index(i)];
-    //         write!(output, "{w}, ",).unwrap();
-    //     }
-    //     writeln!(output, "\n];").unwrap();
-    // }
+    fn write_safety(&self, output: &mut BufWriter<File>) {
+        writeln!(output, "pub const ATTACKS: [[ScoreTuple; {}]; (NUM_PIECES - 2) as usize] = [", HIDDEN_LAYER_SIZE).unwrap();
+        Self::write_net_rows(&self.weights.safety_net.hidden_weights[Attacks::START..Attacks::END], output);
+        writeln!(output, "];",).unwrap();
+
+        writeln!(output, "pub const DEFENSES: [[ScoreTuple; {}]; (NUM_PIECES - 2) as usize] = [", HIDDEN_LAYER_SIZE).unwrap();
+        Self::write_net_rows(&self.weights.safety_net.hidden_weights[Defenses::START..Defenses::END], output);
+        writeln!(output, "];",).unwrap();
+
+        writeln!(output, "pub const ENEMY_KING_RANK: SafetyPrt = SafetyPrt::new([").unwrap();
+        Self::write_net_rows(&self.weights.safety_net.hidden_weights[EnemyKingRank::START..EnemyKingRank::END], output);
+        writeln!(output, "]);",).unwrap();
+
+        writeln!(output, "pub const TROPISM: [ScoreTuple; {}] = [", HIDDEN_LAYER_SIZE).unwrap();
+        Self::write_net_rows(&self.weights.safety_net.hidden_weights[Tropism::START..Tropism::END], output);
+        writeln!(output, "]);",).unwrap();
+
+        writeln!(output, "pub const ATTACKING_PAWN_LOCATIONS: [[ScoreTuple; {}]; {}] = [", HIDDEN_LAYER_SIZE, AttackingPawnLocations::LEN).unwrap();
+        Self::write_net_rows(&self.weights.safety_net.hidden_weights[AttackingPawnLocations::START..AttackingPawnLocations::END], output);
+        writeln!(output, "];",).unwrap();
+
+        writeln!(output, "pub const DEFENDING_PAWN_LOCATIONS: [[ScoreTuple; {}]; {}] = [", HIDDEN_LAYER_SIZE, DefendingPawnLocations::LEN).unwrap();
+        Self::write_net_rows(&self.weights.safety_net.hidden_weights[DefendingPawnLocations::START..DefendingPawnLocations::END], output);
+        writeln!(output, "];",).unwrap();
+
+        writeln!(output, "pub const HIDDEN_BIASES: [ScoreTuple; {}]; = [", HIDDEN_LAYER_SIZE).unwrap();
+        Self::write_net_rows(&[self.weights.safety_net.hidden_biases], output);
+        writeln!(output, "];",).unwrap();
+
+        writeln!(output, "pub const OUTPUT_WEIGHTS: [ScoreTuple; {}]; = [", HIDDEN_LAYER_SIZE).unwrap();
+        Self::write_net_rows(&[self.weights.safety_net.output_weights], output);
+        writeln!(output, "];",).unwrap();
+
+        writeln!(output, "pub const OUTPUT_BIAS: ScoreTuple = {};\n", self.weights.safety_net.output_bias).unwrap();
+        writeln!(output, "pub const SAFETY_WEIGHT: ScoreTuple = {};\n", self.weights.safety_weight).unwrap();
+    }
 
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
@@ -627,6 +605,6 @@ impl Tuner {
         self.write_tempo(&mut output);
 
         writeln!(output, "\n// KING SAFETY FEATURES").unwrap();
-        // self.write_safety(&mut output);
+        self.write_safety(&mut output);
     }
 }
