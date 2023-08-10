@@ -59,7 +59,7 @@ impl TunerStruct {
     fn new() -> Self {
         Self {
             linear: [S::new(0.0, 0.0); LINEAR_TRACE_LEN],
-            safety_net: Net::new(0.0),
+            safety_net: Net::new(),
             safety_weight: S::new(0.0, 0.0),
         }
     }
@@ -203,7 +203,7 @@ impl Tuner {
             }
         }
 
-        result.safety_net = Net::new(0.1);
+        result.safety_net = Net::new_randomized();
 
         result
     }

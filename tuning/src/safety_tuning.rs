@@ -1,6 +1,8 @@
 use engine::board::board_representation::Color;
 use engine::eval::{king_safety_net::HIDDEN_LAYER_SIZE, trace::SAFETY_TRACE_LEN};
 
+use rand::{thread_rng, Rng};
+
 use crate::tuner_val::S;
 
 use crate::tuning::Entry;
@@ -28,13 +30,38 @@ pub struct Net {
 }
 
 impl Net {
-    pub fn new(init: f64) -> Self {
+    pub fn new() -> Self {
         Self {
-            hidden_weights: [[S::new(init, init); HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
-            hidden_biases: [S::new(init, init); HIDDEN_LAYER_SIZE],
-            output_weights: [S::new(init, init); HIDDEN_LAYER_SIZE],
-            output_bias: S::new(init, init),
+            hidden_weights: [[S::new(0.0, 0.0); HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
+            hidden_biases: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
+            output_weights: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
+            output_bias: S::new(0.0, 0.0),
         }
+    }
+
+    pub fn new_randomized() -> Self {
+        let mut result = Self::new();
+
+        let mut rng = thread_rng();
+        result
+            .hidden_weights
+            .iter_mut()
+            .flatten()
+            .for_each(|s| *s = S::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)));
+
+        result
+            .hidden_biases
+            .iter_mut()
+            .for_each(|s| *s = S::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)));
+        
+        result
+            .output_weights
+            .iter_mut()
+            .for_each(|s| *s = S::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)));
+
+        result.output_bias = S::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0));
+
+        result
     }
 
     fn calculate_color(&self, sums: &mut LayerSums, entry: &Entry, color: Color) -> S {
@@ -97,7 +124,7 @@ impl Net {
     }
 
     pub fn calc_and_compute_partials(&self, entry: &Entry) -> (S, Net) {
-        let mut partials = Self::new(0.0);
+        let mut partials = Self::new();
         let (mut w_sums, mut b_sums) = (LayerSums::new(), LayerSums::new());
 
         let mut score = self.calculate_color(&mut w_sums, entry, Color::White);
