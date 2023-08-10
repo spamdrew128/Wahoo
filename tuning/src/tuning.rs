@@ -37,7 +37,7 @@ impl TunerStruct {
     fn new() -> Self {
         Self {
             linear: [S::new(0.0, 0.0); LINEAR_TRACE_LEN],
-            safety_net: Net::new(),
+            safety_net: Net::new(0.0),
             safety_weight: S::new(0.0, 0.0),
         }
     }
@@ -187,9 +187,7 @@ impl Tuner {
             }
         }
 
-        for w in result.safety.iter_mut() {
-            *w = S::new(1.0, 1.0);
-        }
+        result.safety_net = Net::new(0.1);
 
         result
     }
@@ -239,7 +237,8 @@ impl Tuner {
         weights: &TunerStruct,
     ) {
         let r = entry.game_result;
-        let eval = entry.evaluation(weights);
+        let (net_output, net_partials) = weights.safety_net.calc_and_compute_partials(entry);
+        let eval = entry.evaluation(weights, net_output);
         let sigmoid = Self::sigmoid(eval);
         let sigmoid_prime = Self::sigmoid_prime(sigmoid);
 
@@ -250,23 +249,6 @@ impl Tuner {
 
         for feature in &entry.feature_vec {
             gradient.linear[feature.index] += coeff * f64::from(feature.value);
-        }
-
-        let (x_w, x_b) = entry.inner_safety_score(weights);
-        let (x_w_prime, x_b_prime) = (
-            S::new(Self::safety_prime(x_w.mg()), Self::safety_prime(x_w.eg())),
-            S::new(Self::safety_prime(x_b.mg()), Self::safety_prime(x_b.eg())),
-        );
-        for color in Color::LIST {
-            let x_prime = if color == Color::White {
-                x_w_prime
-            } else {
-                -x_b_prime
-            };
-
-            for feature in &entry.safety_feature_vec[color.as_index()] {
-                gradient.safety[feature.index] += coeff * x_prime * f64::from(feature.value);
-            }
         }
     }
 

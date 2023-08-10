@@ -28,12 +28,12 @@ pub struct Net {
 }
 
 impl Net {
-    pub fn new() -> Self {
+    pub fn new(init: f64) -> Self {
         Self {
-            hidden_weights: [[S::new(0.0, 0.0); HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
-            hidden_biases: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
-            output_weights: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
-            output_bias: S::new(0.0, 0.0),
+            hidden_weights: [[S::new(init, init); HIDDEN_LAYER_SIZE]; SAFETY_TRACE_LEN],
+            hidden_biases: [S::new(init, init); HIDDEN_LAYER_SIZE],
+            output_weights: [S::new(init, init); HIDDEN_LAYER_SIZE],
+            output_bias: S::new(init, init),
         }
     }
 
@@ -97,7 +97,7 @@ impl Net {
     }
 
     pub fn calc_and_compute_partials(&self, entry: &Entry) -> (S, Net) {
-        let mut partials = Net::new();
+        let mut partials = Net::new(0.0);
         let (mut w_sums, mut b_sums) = (LayerSums::new(), LayerSums::new());
 
         let mut score = self.calculate_color(&mut w_sums, entry, Color::White);
