@@ -551,7 +551,11 @@ impl Tuner {
                 write!(output, "{val}, ",).unwrap();
             }
 
-            writeln!(output, "],",).unwrap();
+            if rows.len() == 1 {
+                writeln!(output, "];",).unwrap();
+            } else {
+                writeln!(output, "],",).unwrap();
+            }
         }
     }
 
