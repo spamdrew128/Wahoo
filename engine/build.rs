@@ -1,4 +1,5 @@
 mod build_script_dependencies;
+pub mod random_number_generation;
 
 use std::fs::File;
 use std::io::BufWriter;
