@@ -7,14 +7,17 @@ use engine::{
         Board, Color, Piece, Square, NUM_COLORS, NUM_RANKS, NUM_SQUARES,
     },
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
+    eval::trace::{
+        BishopPair, EnemyKingRank, ForwardMobility, IsolatedPawns, MaterialPst, Mobility, Passer,
+        PasserBlocker, PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN,
+    },
     eval::{
         king_safety_net::{HIDDEN_LAYER_SIZE, SCALE},
-        trace::{Attacks, Defenses, PasserSqRule, Tropism, AttackingPawnLocations, DefendingPawnLocations},
-    },
-    eval::trace::{
-            BishopPair, EnemyKingRank, ForwardMobility, IsolatedPawns, MaterialPst, Mobility,
-            Passer, PasserBlocker, PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN,
+        trace::{
+            AttackingPawnLocations, Attacks, DefendingPawnLocations, Defenses, PasserSqRule,
+            Tropism,
         },
+    },
 };
 use std::{
     fs::{read_to_string, File},
@@ -545,45 +548,46 @@ impl Tuner {
 
             for &s in row {
                 let val = s * f64::from(SCALE);
-                write!(output, "{val}",).unwrap();
+                write!(output, "{val}, ",).unwrap();
             }
 
             writeln!(output, "],",).unwrap();
         }
     }
 
+    #[rustfmt::skip]
     fn write_safety(&self, output: &mut BufWriter<File>) {
         writeln!(output, "pub const ATTACKS: [[ScoreTuple; {}]; (NUM_PIECES - 2) as usize] = [", HIDDEN_LAYER_SIZE).unwrap();
         Self::write_net_rows(&self.weights.safety_net.hidden_weights[Attacks::START..Attacks::END], output);
-        writeln!(output, "];",).unwrap();
+        writeln!(output, "];\n",).unwrap();
 
         writeln!(output, "pub const DEFENSES: [[ScoreTuple; {}]; (NUM_PIECES - 2) as usize] = [", HIDDEN_LAYER_SIZE).unwrap();
         Self::write_net_rows(&self.weights.safety_net.hidden_weights[Defenses::START..Defenses::END], output);
-        writeln!(output, "];",).unwrap();
+        writeln!(output, "];\n",).unwrap();
 
         writeln!(output, "pub const ENEMY_KING_RANK: SafetyPrt = SafetyPrt::new([").unwrap();
         Self::write_net_rows(&self.weights.safety_net.hidden_weights[EnemyKingRank::START..EnemyKingRank::END], output);
-        writeln!(output, "]);",).unwrap();
+        writeln!(output, "]);\n",).unwrap();
 
         writeln!(output, "pub const TROPISM: [ScoreTuple; {}] = [", HIDDEN_LAYER_SIZE).unwrap();
         Self::write_net_rows(&self.weights.safety_net.hidden_weights[Tropism::START..Tropism::END], output);
-        writeln!(output, "]);",).unwrap();
+        writeln!(output, "]);\n",).unwrap();
 
         writeln!(output, "pub const ATTACKING_PAWN_LOCATIONS: [[ScoreTuple; {}]; {}] = [", HIDDEN_LAYER_SIZE, AttackingPawnLocations::LEN).unwrap();
         Self::write_net_rows(&self.weights.safety_net.hidden_weights[AttackingPawnLocations::START..AttackingPawnLocations::END], output);
-        writeln!(output, "];",).unwrap();
+        writeln!(output, "];\n",).unwrap();
 
         writeln!(output, "pub const DEFENDING_PAWN_LOCATIONS: [[ScoreTuple; {}]; {}] = [", HIDDEN_LAYER_SIZE, DefendingPawnLocations::LEN).unwrap();
         Self::write_net_rows(&self.weights.safety_net.hidden_weights[DefendingPawnLocations::START..DefendingPawnLocations::END], output);
-        writeln!(output, "];",).unwrap();
+        writeln!(output, "];\n",).unwrap();
 
         writeln!(output, "pub const HIDDEN_BIASES: [ScoreTuple; {}]; = [", HIDDEN_LAYER_SIZE).unwrap();
         Self::write_net_rows(&[self.weights.safety_net.hidden_biases], output);
-        writeln!(output, "];",).unwrap();
+        writeln!(output, "];\n",).unwrap();
 
         writeln!(output, "pub const OUTPUT_WEIGHTS: [ScoreTuple; {}]; = [", HIDDEN_LAYER_SIZE).unwrap();
         Self::write_net_rows(&[self.weights.safety_net.output_weights], output);
-        writeln!(output, "];",).unwrap();
+        writeln!(output, "];\n",).unwrap();
 
         writeln!(output, "pub const OUTPUT_BIAS: ScoreTuple = {};\n", self.weights.safety_net.output_bias).unwrap();
         writeln!(output, "pub const SAFETY_WEIGHT: ScoreTuple = {};\n", self.weights.safety_weight).unwrap();
