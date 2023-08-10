@@ -117,15 +117,28 @@ impl Net {
     }
 
     pub fn gradient_update(&mut self, partials: &Self, coeff: S) {
-        for (grad, &partial) in self.hidden_weights.iter_mut().flatten().zip(partials.hidden_weights.iter().flatten()) {
+        for (grad, &partial) in self
+            .hidden_weights
+            .iter_mut()
+            .flatten()
+            .zip(partials.hidden_weights.iter().flatten())
+        {
             *grad += coeff * partial;
         }
 
-        for (grad, &partial) in self.hidden_biases.iter_mut().zip(partials.hidden_biases.iter()) {
+        for (grad, &partial) in self
+            .hidden_biases
+            .iter_mut()
+            .zip(partials.hidden_biases.iter())
+        {
             *grad += coeff * partial;
         }
 
-        for (grad, &partial) in self.output_weights.iter_mut().zip(partials.output_weights.iter()) {
+        for (grad, &partial) in self
+            .output_weights
+            .iter_mut()
+            .zip(partials.output_weights.iter())
+        {
             *grad += coeff * partial;
         }
 

@@ -9,7 +9,8 @@ use engine::{
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
     eval::{
         evaluation::SAFETY_LIMIT,
-        trace::{Attacks, Defenses, PasserSqRule, Tropism, SAFETY_TRACE_LEN}, king_safety_net::{SafetyNet, HIDDEN_LAYER_SIZE},
+        king_safety_net::{SafetyNet, HIDDEN_LAYER_SIZE},
+        trace::{Attacks, Defenses, PasserSqRule, Tropism, SAFETY_TRACE_LEN},
     },
     eval::{
         piece_loop_eval::MoveCounts,
@@ -33,6 +34,28 @@ struct TunerStruct {
     safety_weight: S,
 }
 
+macro_rules! flatten_tuner_struct {
+    ($self:expr, $result:ident) => {
+        let mut $result = vec![&mut $self.safety_weight, &mut $self.safety_net.output_bias];
+
+        for v in $self.linear.iter_mut() {
+            $result.push(v);
+        }
+
+        for v in $self.safety_net.hidden_weights.iter_mut().flatten() {
+            $result.push(v);
+        }
+
+        for v in $self.safety_net.hidden_biases.iter_mut() {
+            $result.push(v);
+        }
+
+        for v in $self.safety_net.output_weights.iter_mut() {
+            $result.push(v);
+        }
+    };
+}
+
 impl TunerStruct {
     fn new() -> Self {
         Self {
@@ -48,22 +71,38 @@ impl TunerStruct {
             *r += a;
         }
 
-        result.safety_weight += rhs.safety_weight;
-
-        for (r, &a) in result.safety_net.hidden_weights.iter_mut().flatten().zip(rhs.safety_net.hidden_weights.iter().flatten()) {
+        for (r, &a) in result
+            .safety_net
+            .hidden_weights
+            .iter_mut()
+            .flatten()
+            .zip(rhs.safety_net.hidden_weights.iter().flatten())
+        {
             *r += a;
         }
 
-        for (r, &a) in result.safety_net.hidden_biases.iter_mut().zip(rhs.safety_net.hidden_biases.iter()) {
+        for (r, &a) in result
+            .safety_net
+            .hidden_biases
+            .iter_mut()
+            .zip(rhs.safety_net.hidden_biases.iter())
+        {
             *r += a;
         }
 
-        for (r, &a) in result.safety_net.output_weights.iter_mut().zip(rhs.safety_net.output_weights.iter()) {
+        for (r, &a) in result
+            .safety_net
+            .output_weights
+            .iter_mut()
+            .zip(rhs.safety_net.output_weights.iter())
+        {
             *r += a;
         }
 
         result.safety_net.output_bias += rhs.safety_net.output_bias;
- 
+
+        result.safety_weight += rhs.safety_weight;
+
         result
     }
 }
@@ -255,7 +294,9 @@ impl Tuner {
         gradient.safety_weight += coeff * net_output;
 
         let safety_coeff = coeff * weights.safety_weight;
-        gradient.safety_net.gradient_update(&net_partials, safety_coeff);
+        gradient
+            .safety_net
+            .gradient_update(&net_partials, safety_coeff);
     }
 
     fn update_gradient(&mut self) {
@@ -283,10 +324,27 @@ impl Tuner {
         });
     }
 
-    #[rustfmt::skip]
     fn update_weights(&mut self) {
-        update_weights!(self, linear);
-        update_weights!(self, safety);
+        flatten_tuner_struct!(self.weights, weights);
+        flatten_tuner_struct!(self.gradient, gradient);
+        flatten_tuner_struct!(self.velocity, velocity);
+        flatten_tuner_struct!(self.momentum, momentum);
+
+        const BETA1: f64 = 0.9;
+        const BETA2: f64 = 0.999;
+        const EPSILON: f64 = 1e-8;
+
+        for i in 0..gradient.len() {
+            let (grad, mom, vel) = (*gradient[i], *momentum[i], *velocity[i]);
+
+            // we left off k eariler, so we add it back here
+            let grad_component: S = -2.0 * Tuner::K * grad / (self.entries.len() as f64);
+
+            *momentum[i] = BETA1 * mom + (1.0 - BETA1) * grad_component;
+            *velocity[i] = BETA2 * vel + (1.0 - BETA2) * (grad_component * grad_component);
+
+            *weights[i] -= (mom / (EPSILON + vel.sqrt())) * Self::LEARN_RATE;
+        }
     }
 
     fn mse(&self) -> f64 {
@@ -514,35 +572,6 @@ impl Tuner {
             self.weights.linear[TempoBonus::index()]
         )
         .unwrap();
-    }
-
-    fn virt_mobility_index_writer<F>(&self, output: &mut BufWriter<File>, name: &str, index_fn: F)
-    where
-        F: Fn(Piece, usize) -> usize,
-    {
-        writeln!(
-            output,
-            "pub const {name}: [[ScoreTuple; 28]; (NUM_PIECES - 1) as usize] = ["
-        )
-        .unwrap();
-        for &piece in Piece::LIST.iter().take(5) {
-            writeln!(
-                output,
-                "// {} {}",
-                piece.as_string().unwrap(),
-                name.to_lowercase()
-            )
-            .unwrap();
-            write!(output, "[\n  ").unwrap();
-
-            for i in 0..MoveCounts::QUEEN {
-                let index = index_fn(piece, i);
-                let w = self.weights.safety[index];
-                write!(output, "{w}, ",).unwrap();
-            }
-            writeln!(output, "\n],").unwrap();
-        }
-        writeln!(output, "];\n").unwrap();
     }
 
     // fn write_safety(&self, output: &mut BufWriter<File>) {
