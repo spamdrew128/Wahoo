@@ -7,6 +7,7 @@ use crate::tuner_val::S;
 
 use crate::tuning::Entry;
 
+#[derive(Debug, PartialEq)]
 struct LayerSums {
     hidden: [S; HIDDEN_LAYER_SIZE],
     output: S,
@@ -175,9 +176,9 @@ impl Net {
 
 #[cfg(test)]
 mod tests {
-    use engine::board::board_representation::{Board, Color};
+    use engine::board::board_representation::{Board, Color, START_FEN};
 
-    use crate::{tuning::Entry, tuner_val::S};
+    use crate::{tuning::{Entry, Feature}, tuner_val::S};
 
     use super::{Net, LayerSums};
 
@@ -230,5 +231,97 @@ mod tests {
         assert_eq!(pos_partials.output_bias, -neg_partials.output_bias);
 
         println!("{} {}", total.mg(), total.eg());
+    }
+
+    #[test]
+    fn example_expected_output() {
+        let some_board = Board::from_fen(START_FEN);
+        let mut entry = Entry::new(&some_board, 0.5);
+        let color = Color::White;
+
+        let f1 = Feature::new(1, 0);
+        let f2 = Feature::new(2, 13);
+        let f3 = Feature::new(1, 15);
+        entry.safety_feature_vec[color.as_index()] = vec![f1, f2, f3];
+
+        let mut net = Net::new_randomized();
+        net.hidden_weights[f1.index] = [
+            S::new(0.2, 0.0),
+            S::new(-0.1, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.01, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+        ];
+
+        net.hidden_weights[f2.index] = [
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.1, 0.0),
+            S::new(0.2, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+        ];
+
+        net.hidden_weights[f3.index] = [
+            S::new(0.7, 0.0),
+            S::new(-0.2, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+        ];
+
+        net.hidden_biases = [
+            S::new(-0.1, 0.0),
+            S::new(0.2, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.3, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+        ];
+
+        net.output_weights = [
+            S::new(0.1, 0.0),
+            S::new(-0.1, 0.0),
+            S::new(0.2, 0.0),
+            S::new(-0.3, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+        ];
+
+        net.output_bias = S::new(0.4, 0.0);
+
+        // OUTPUTS
+        let expected_output = S::new(0.32077_f64.powi(2), 0.0);
+        let expected_sums = LayerSums {
+            hidden: [
+                S::new(0.8, 0.0),
+                S::new(-0.1, 0.0),
+                S::new(0.2, 0.0),
+                S::new(0.71, 0.0),
+                S::new(0.0, 0.0),
+                S::new(0.0, 0.0),
+                S::new(0.0, 0.0),
+                S::new(0.0, 0.0),
+            ],
+            output: S::new(0.32077, 0.0)
+        };
+
+        let mut sums = LayerSums::new();
+        let output = net.calculate_color(&mut sums, &entry, Color::White);
+
+        assert_eq!(expected_output, output);
+        assert_eq!(expected_sums, sums);
     }
 }

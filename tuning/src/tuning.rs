@@ -106,13 +106,14 @@ impl TunerStruct {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Feature {
     pub value: i16,
     pub index: usize,
 }
 
 impl Feature {
-    fn new(value: i16, index: usize) -> Self {
+    pub fn new(value: i16, index: usize) -> Self {
         Self { value, index }
     }
 }
