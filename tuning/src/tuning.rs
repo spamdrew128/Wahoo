@@ -125,7 +125,7 @@ pub struct Entry {
 }
 
 impl Entry {
-    fn new(board: &Board, game_result: f64) -> Self {
+    pub fn new(board: &Board, game_result: f64) -> Self {
         let mut entry = Self {
             feature_vec: vec![],
             safety_feature_vec: [vec![], vec![]],

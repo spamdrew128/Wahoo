@@ -47,19 +47,19 @@ impl Net {
             .hidden_weights
             .iter_mut()
             .flatten()
-            .for_each(|s| *s = S::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)));
+            .for_each(|s| *s = S::new(rng.gen_range(-0.1..0.1), rng.gen_range(-0.1..0.1)));
 
         result
             .hidden_biases
             .iter_mut()
-            .for_each(|s| *s = S::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)));
+            .for_each(|s| *s = S::new(rng.gen_range(-0.1..0.1), rng.gen_range(-0.1..0.1)));
 
         result
             .output_weights
             .iter_mut()
-            .for_each(|s| *s = S::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)));
+            .for_each(|s| *s = S::new(rng.gen_range(-0.1..0.1), rng.gen_range(-0.1..0.1)));
 
-        result.output_bias = S::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0));
+        result.output_bias = S::new(rng.gen_range(-0.1..0.1), rng.gen_range(-0.1..0.1));
 
         result
     }
@@ -170,5 +170,65 @@ impl Net {
         }
 
         self.output_bias += coeff * partials.output_bias;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use engine::board::board_representation::{Board, Color};
+
+    use crate::{tuning::Entry, tuner_val::S};
+
+    use super::{Net, LayerSums};
+
+    #[test]
+    fn sign_works() {
+        let board = Board::from_fen("B2r2k1/3p1p2/p4PpB/1p3b2/8/2Nq2PP/PP2R1NK/3R4 b - - 2 23");
+        let entry = Entry::new(&board, 0.5);
+
+        let net = Net::new_randomized();
+
+        let (mut pos_sums, mut neg_sums) = (LayerSums::new(), LayerSums::new());
+
+        let mut pos_partials = Net::new();
+        net.calculate_color(&mut pos_sums, &entry, Color::White);
+        net.update_partials(&mut pos_sums, &mut pos_partials, &entry, Color::White, 1.0);
+
+        let mut neg_partials = Net::new();
+        net.calculate_color(&mut neg_sums, &entry, Color::White);
+        net.update_partials(&mut neg_sums, &mut neg_partials, &entry, Color::White, -1.0);
+
+        let mut total = S::new(0.0, 0.0);
+        for (&pos_partial, &neg_partial) in pos_partials
+            .hidden_weights
+            .iter()
+            .flatten()
+            .zip(neg_partials.hidden_weights.iter().flatten())
+        {
+            assert_eq!(pos_partial, -neg_partial);
+            total += pos_partial;
+        }
+
+        for (&pos_partial, &neg_partial) in pos_partials
+            .hidden_biases
+            .iter()
+            .zip(neg_partials.hidden_biases.iter())
+        {
+            assert_eq!(pos_partial, -neg_partial);
+            total += pos_partial;
+        }
+
+        for (&pos_partial, &neg_partial) in pos_partials
+            .output_weights
+            .iter()
+            .zip(neg_partials.output_weights.iter())
+        {
+            assert_eq!(pos_partial, -neg_partial);
+            total += pos_partial;
+        }
+
+        assert_eq!(pos_partials.output_bias, -neg_partials.output_bias);
+
+        println!("{} {}", total.mg(), total.eg());
     }
 }
