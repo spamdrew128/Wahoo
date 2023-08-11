@@ -184,6 +184,30 @@ mod tests {
 
     use super::{LayerSums, Net};
 
+    fn net_compare<F>(net1: &Net, net2: &Net, comp: F)
+    where
+        F: Fn(S, S),
+    {
+        for (&a, &b) in net1
+            .hidden_weights
+            .iter()
+            .flatten()
+            .zip(net2.hidden_weights.iter().flatten())
+        {
+            comp(a, b);
+        }
+
+        for (&a, &b) in net1.hidden_biases.iter().zip(net2.hidden_biases.iter()) {
+            comp(a, b);
+        }
+
+        for (&a, &b) in net1.output_weights.iter().zip(net2.output_weights.iter()) {
+            comp(a, b);
+        }
+
+        comp(net1.output_bias, net2.output_bias);
+    }
+
     #[test]
     fn sign_works() {
         let board = Board::from_fen("B2r2k1/3p1p2/p4PpB/1p3b2/8/2Nq2PP/PP2R1NK/3R4 b - - 2 23");
@@ -201,38 +225,9 @@ mod tests {
         net.calculate_color(&mut neg_sums, &entry, Color::White);
         net.update_partials(&mut neg_sums, &mut neg_partials, &entry, Color::White, -1.0);
 
-        let mut total = S::new(0.0, 0.0);
-        for (&pos_partial, &neg_partial) in pos_partials
-            .hidden_weights
-            .iter()
-            .flatten()
-            .zip(neg_partials.hidden_weights.iter().flatten())
-        {
-            assert_eq!(pos_partial, -neg_partial);
-            total += pos_partial;
-        }
-
-        for (&pos_partial, &neg_partial) in pos_partials
-            .hidden_biases
-            .iter()
-            .zip(neg_partials.hidden_biases.iter())
-        {
-            assert_eq!(pos_partial, -neg_partial);
-            total += pos_partial;
-        }
-
-        for (&pos_partial, &neg_partial) in pos_partials
-            .output_weights
-            .iter()
-            .zip(neg_partials.output_weights.iter())
-        {
-            assert_eq!(pos_partial, -neg_partial);
-            total += pos_partial;
-        }
-
-        assert_eq!(pos_partials.output_bias, -neg_partials.output_bias);
-
-        println!("{} {}", total.mg(), total.eg());
+        net_compare(&pos_partials, &neg_partials, |a, b| {
+            assert_eq!(a, -b);
+        });
     }
 
     #[test]
