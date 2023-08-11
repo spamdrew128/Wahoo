@@ -124,17 +124,16 @@ impl Net {
         }
     }
 
-    pub fn calc_and_compute_partials(&self, entry: &Entry) -> (S, Net) {
-        let mut partials = Self::new();
+    pub fn calc_and_compute_partials(&self, partials: &mut Self, entry: &Entry) -> S {
         let (mut w_sums, mut b_sums) = (LayerSums::new(self), LayerSums::new(self));
 
         let mut score = self.calculate_color(&mut w_sums, entry, Color::White);
-        self.update_partials(&mut w_sums, &mut partials, entry, Color::White, 1.0);
+        self.update_partials(&mut w_sums, partials, entry, Color::White, 1.0);
 
         score -= self.calculate_color(&mut b_sums, entry, Color::Black);
-        self.update_partials(&mut b_sums, &mut partials, entry, Color::Black, -1.0);
+        self.update_partials(&mut b_sums, partials, entry, Color::Black, -1.0);
 
-        (score, partials)
+        score
     }
 
     pub fn calc_both_sides(&self, entry: &Entry) -> S {

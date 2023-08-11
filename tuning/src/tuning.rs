@@ -189,7 +189,7 @@ pub struct Tuner {
 
 impl Tuner {
     const K: f64 = 0.006634;
-    const CONVERGENCE_DELTA: f64 = 7e-7;
+    const CONVERGENCE_DELTA: f64 = 1e-7;
     const CONVERGENCE_CHECK_FREQ: u32 = 50;
     const MAX_EPOCHS: u32 = 20000;
     const LEARN_RATE: f64 = 0.12;
@@ -246,7 +246,10 @@ impl Tuner {
         weights: &TunerStruct,
     ) {
         let r = entry.game_result;
-        let (net_output, net_partials) = weights.safety_net.calc_and_compute_partials(entry);
+        let mut net_partials = Net::new();
+        let net_output = weights
+            .safety_net
+            .calc_and_compute_partials(&mut net_partials, entry);
         let eval = entry.evaluation(weights, net_output);
         let sigmoid = Self::sigmoid(eval);
         let sigmoid_prime = Self::sigmoid_prime(sigmoid);
