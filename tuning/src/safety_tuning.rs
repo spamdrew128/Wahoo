@@ -306,24 +306,25 @@ mod tests {
         net.output_bias = S::new(0.4, 0.0);
 
         // OUTPUTS
-        let expected_output = S::new(0.32077_f64.powi(2), 0.0);
-        let expected_sums = LayerSums {
-            hidden: [
-                S::new(0.8, 0.0),
-                S::new(-0.1, 0.0),
-                S::new(0.2, 0.0),
-                S::new(0.71, 0.0),
-                S::new(0.0, 0.0),
-                S::new(0.0, 0.0),
-                S::new(0.0, 0.0),
-                S::new(0.0, 0.0),
-            ],
-            output: S::new(0.32077, 0.0),
-        };
-
         let mut sums = LayerSums::new(&net);
         let output = net.calculate_color(&mut sums, &entry, Color::White);
 
+        // let expected_sums = LayerSums {
+        //     hidden: [
+        //         S::new(0.8, 0.0),
+        //         S::new(-0.1, 0.0),
+        //         S::new(0.2, 0.0),
+        //         S::new(0.71, 0.0),
+        //         S::new(0.0, 0.0),
+        //         S::new(0.0, 0.0),
+        //         S::new(0.0, 0.0),
+        //         S::new(0.0, 0.0),
+        //     ],
+        //     output: S::new(0.32077, 0.0),
+        // };
+        // assert_eq!(expected_sums, sums);
+
+        let expected_output = S::new(0.32077_f64.powi(2), 0.0);
         assert_eq!(expected_output, output);
     }
 }
