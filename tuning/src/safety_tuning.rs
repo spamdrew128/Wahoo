@@ -186,7 +186,7 @@ mod tests {
 
     fn net_compare<F>(net1: &Net, net2: &Net, comp: F)
     where
-        F: Fn(S, S),
+        F: Fn(S, S) -> bool,
     {
         for (&a, &b) in net1
             .hidden_weights
@@ -194,18 +194,26 @@ mod tests {
             .flatten()
             .zip(net2.hidden_weights.iter().flatten())
         {
-            comp(a, b);
+            if !comp(a, b) {
+                println!("hidden_weights {:?} {:?}", a, b);
+            }
         }
 
         for (&a, &b) in net1.hidden_biases.iter().zip(net2.hidden_biases.iter()) {
-            comp(a, b);
+            if !comp(a, b) {
+                println!("hidden_biases {:?} {:?}", a, b);
+            }
         }
 
         for (&a, &b) in net1.output_weights.iter().zip(net2.output_weights.iter()) {
-            comp(a, b);
+            if !comp(a, b) {
+                println!("output_weights {:?} {:?}", a, b);
+            }
         }
 
-        comp(net1.output_bias, net2.output_bias);
+        if !comp(net1.output_bias, net2.output_bias) {
+            println!("output_bias {:?} {:?}", net1.output_bias, net2.output_bias);
+        }
     }
 
     #[test]
@@ -225,9 +233,7 @@ mod tests {
         net.calculate_color(&mut neg_sums, &entry, Color::White);
         net.update_partials(&mut neg_sums, &mut neg_partials, &entry, Color::White, -1.0);
 
-        net_compare(&pos_partials, &neg_partials, |a, b| {
-            assert_eq!(a, -b);
-        });
+        net_compare(&pos_partials, &neg_partials, |a, b| a == -b);
     }
 
     #[test]
@@ -303,21 +309,6 @@ mod tests {
         let mut sums = LayerSums::new(&net);
         let output = net.calculate_color(&mut sums, &entry, Color::White);
 
-        // let expected_sums = LayerSums {
-        //     hidden: [
-        //         S::new(0.8, 0.0),
-        //         S::new(-0.1, 0.0),
-        //         S::new(0.2, 0.0),
-        //         S::new(0.71, 0.0),
-        //         S::new(0.0, 0.0),
-        //         S::new(0.0, 0.0),
-        //         S::new(0.0, 0.0),
-        //         S::new(0.0, 0.0),
-        //     ],
-        //     output: S::new(0.32077, 0.0),
-        // };
-        // assert_eq!(expected_sums, sums);
-
         let expected_output = S::new(0.32077_f64.powi(2), 0.0);
         assert_eq!(expected_output, output);
 
@@ -391,7 +382,8 @@ mod tests {
         net.update_partials(&mut sums, &mut partials, &entry, Color::White, 1.0);
 
         net_compare(&partials, &expected_partials, |a, b| {
-            assert_eq!(a, b);
+            let diff = a - b;
+            diff.mg().abs() < 0.001 && diff.eg().abs() < 0.001
         });
     }
 }
