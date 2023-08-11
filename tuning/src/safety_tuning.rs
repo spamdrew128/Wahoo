@@ -325,5 +325,74 @@ mod tests {
 
         let expected_output = S::new(0.32077_f64.powi(2), 0.0);
         assert_eq!(expected_output, output);
+
+        // PARTIALS
+        let mut expected_partials = Net::new();
+        expected_partials.output_bias = S::new(2.0 * 0.32077, 0.0);
+
+        expected_partials.output_weights = [
+            expected_partials.output_bias * 0.8_f64.powi(2),
+            S::new(0.0, 0.0),
+            expected_partials.output_bias * 0.2_f64.powi(2),
+            expected_partials.output_bias * 0.71_f64.powi(2),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+        ];
+
+        let activation_partials = [
+            expected_partials.output_bias * 0.1,
+            expected_partials.output_bias * -0.1,
+            expected_partials.output_bias * 0.2,
+            expected_partials.output_bias * -0.3,
+        ];
+
+        expected_partials.hidden_biases = [
+            activation_partials[0] * 2.0 * 0.8,
+            activation_partials[1] * 2.0 * 0.0,
+            activation_partials[2] * 2.0 * 0.2,
+            activation_partials[3] * 2.0 * 0.71,
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+        ];
+
+        expected_partials.hidden_weights[f1.index] = [
+            f64::from(f1.value) * expected_partials.hidden_biases[0],
+            f64::from(f1.value) * expected_partials.hidden_biases[1],
+            f64::from(f1.value) * expected_partials.hidden_biases[2],
+            f64::from(f1.value) * expected_partials.hidden_biases[3],
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+        ];
+
+        expected_partials.hidden_weights[f2.index] = [
+            f64::from(f2.value) * expected_partials.hidden_biases[0],
+            f64::from(f2.value) * expected_partials.hidden_biases[1],
+            f64::from(f2.value) * expected_partials.hidden_biases[2],
+            f64::from(f2.value) * expected_partials.hidden_biases[3],
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+        ];
+
+        expected_partials.hidden_weights[f3.index] = [
+            f64::from(f3.value) * expected_partials.hidden_biases[0],
+            f64::from(f3.value) * expected_partials.hidden_biases[1],
+            f64::from(f3.value) * expected_partials.hidden_biases[2],
+            f64::from(f3.value) * expected_partials.hidden_biases[3],
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+            S::new(0.0, 0.0),
+        ];
+
+        let mut partials = Net::new();
+        net.update_partials(&mut sums, &mut partials, &entry, Color::White, 1.0);
     }
 }
