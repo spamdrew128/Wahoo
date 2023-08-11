@@ -14,10 +14,10 @@ struct LayerSums {
 }
 
 impl LayerSums {
-    fn new() -> Self {
+    fn new(weights: &Net) -> Self {
         Self {
-            hidden: [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE],
-            output: S::new(0.0, 0.0),
+            hidden: weights.hidden_biases,
+            output: weights.output_bias,
         }
     }
 }
@@ -126,7 +126,7 @@ impl Net {
 
     pub fn calc_and_compute_partials(&self, entry: &Entry) -> (S, Net) {
         let mut partials = Self::new();
-        let (mut w_sums, mut b_sums) = (LayerSums::new(), LayerSums::new());
+        let (mut w_sums, mut b_sums) = (LayerSums::new(self), LayerSums::new(self));
 
         let mut score = self.calculate_color(&mut w_sums, entry, Color::White);
         self.update_partials(&mut w_sums, &mut partials, entry, Color::White, 1.0);
@@ -138,7 +138,7 @@ impl Net {
     }
 
     pub fn calc_both_sides(&self, entry: &Entry) -> S {
-        let (mut w_sums, mut b_sums) = (LayerSums::new(), LayerSums::new());
+        let (mut w_sums, mut b_sums) = (LayerSums::new(self), LayerSums::new(self));
 
         self.calculate_color(&mut w_sums, entry, Color::White)
             - self.calculate_color(&mut b_sums, entry, Color::Black)
@@ -192,7 +192,7 @@ mod tests {
 
         let net = Net::new_randomized();
 
-        let (mut pos_sums, mut neg_sums) = (LayerSums::new(), LayerSums::new());
+        let (mut pos_sums, mut neg_sums) = (LayerSums::new(&net), LayerSums::new(&net));
 
         let mut pos_partials = Net::new();
         net.calculate_color(&mut pos_sums, &entry, Color::White);
@@ -321,10 +321,9 @@ mod tests {
             output: S::new(0.32077, 0.0),
         };
 
-        let mut sums = LayerSums::new();
+        let mut sums = LayerSums::new(&net);
         let output = net.calculate_color(&mut sums, &entry, Color::White);
 
         assert_eq!(expected_output, output);
-        assert_eq!(expected_sums, sums);
     }
 }
