@@ -389,5 +389,9 @@ mod tests {
 
         let mut partials = Net::new();
         net.update_partials(&mut sums, &mut partials, &entry, Color::White, 1.0);
+
+        net_compare(&partials, &expected_partials, |a, b| {
+            assert_eq!(a, b);
+        });
     }
 }
