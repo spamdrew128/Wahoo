@@ -110,7 +110,7 @@ impl Net {
         // update hidden bias partials
         let mut hidden_bias_partials = [S::new(0.0, 0.0); HIDDEN_LAYER_SIZE];
         for (i, &output_partial) in output_activation_partials.iter().enumerate() {
-            hidden_bias_partials[i] = sums.hidden[i].activation() * output_partial;
+            hidden_bias_partials[i] = sums.hidden[i].activation_prime() * output_partial;
             partials.hidden_biases[i] += hidden_bias_partials[i];
         }
 
