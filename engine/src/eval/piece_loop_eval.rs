@@ -379,8 +379,15 @@ pub fn mobility_threats_safety<const TRACE: bool>(
 mod tests {
     use crate::{
         board::attacks,
-        board::board_representation::{Board, Color, Square, Piece},
-        eval::{piece_loop_eval::forward_mobility, evaluation::trace_of_position, trace::{SAFETY_TRACE_LEN, Attacks, Defenses, Tropism, EnemyKingRank, AttackingPawnLocations, DefendingPawnLocations}},
+        board::board_representation::{Board, Color, Piece, Square},
+        eval::{
+            evaluation::trace_of_position,
+            piece_loop_eval::forward_mobility,
+            trace::{
+                AttackingPawnLocations, Attacks, DefendingPawnLocations, Defenses, EnemyKingRank,
+                Tropism, SAFETY_TRACE_LEN,
+            },
+        },
     };
 
     use super::tropism;
@@ -400,7 +407,10 @@ mod tests {
         let board = Board::from_fen("8/4pkpb/5p2/p7/3N4/8/2PP4/1K6 w - - 0 1");
         let actual = trace_of_position(&board).safety;
 
-        let (w_king, b_king) = (board.color_king_sq(Color::White), board.color_king_sq(Color::Black));
+        let (w_king, b_king) = (
+            board.color_king_sq(Color::White),
+            board.color_king_sq(Color::Black),
+        );
 
         let mut w_expected = [0; SAFETY_TRACE_LEN];
         w_expected[Attacks::index(Piece::KNIGHT)] += 2;

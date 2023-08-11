@@ -178,9 +178,12 @@ impl Net {
 mod tests {
     use engine::board::board_representation::{Board, Color, START_FEN};
 
-    use crate::{tuning::{Entry, Feature}, tuner_val::S};
+    use crate::{
+        tuner_val::S,
+        tuning::{Entry, Feature},
+    };
 
-    use super::{Net, LayerSums};
+    use super::{LayerSums, Net};
 
     #[test]
     fn sign_works() {
@@ -315,7 +318,7 @@ mod tests {
                 S::new(0.0, 0.0),
                 S::new(0.0, 0.0),
             ],
-            output: S::new(0.32077, 0.0)
+            output: S::new(0.32077, 0.0),
         };
 
         let mut sums = LayerSums::new();
