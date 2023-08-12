@@ -1,4 +1,4 @@
-use crate::board::board_representation::{Bitboard, Color, Piece, Square, NUM_FILES, NUM_SQUARES};
+use crate::board::board_representation::{Bitboard, Color, Piece, Square, NUM_FILES, NUM_SQUARES, NUM_COLORS};
 use crate::eval::evaluation::ScoreTuple;
 use crate::eval::trace::{AttackingPawnLocations, DefendingPawnLocations};
 use crate::{bitloop, trace_safety_update};
@@ -32,8 +32,8 @@ const PAWN_MASKS: [Bitboard; NUM_FILES as usize] = {
     masks
 };
 
-const PAWN_LOCATIONS: [[usize; NUM_SQUARES as usize]; NUM_FILES as usize] = {
-    let mut result = [[0; NUM_SQUARES as usize]; NUM_FILES as usize];
+const PAWN_LOCATIONS: [[[usize; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_COLORS as usize] = {
+    let mut result = [[[0; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_COLORS as usize];
 
     let mut i = 0;
     while i < (NUM_FILES as usize) {
@@ -41,7 +41,8 @@ const PAWN_LOCATIONS: [[usize; NUM_SQUARES as usize]; NUM_FILES as usize] = {
         let mut location = 0;
         while bb.is_not_empty() {
             let sq = bb.lsb();
-            result[i][sq.as_index()] = location;
+            result[Color::White.as_index()][i][sq.mirror().as_index()] = location;
+            result[Color::Black.as_index()][i][sq.as_index()] = location;
             location += 1;
             bb = bb.xor(sq.as_bitboard());
         }
@@ -73,7 +74,7 @@ impl SafetyNet {
         let mut attacking_pawns = pawns & PAWN_MASKS[king_file];
 
         bitloop!(|sq| attacking_pawns, {
-            let location = PAWN_LOCATIONS[king_file][sq.as_index()];
+            let location = PAWN_LOCATIONS[color.as_index()][king_file][sq.as_index()];
             for (i, &weight) in ATTACKING_PAWN_LOCATIONS[location].iter().enumerate() {
                 self.hidden_sums[i] += weight;
             }
@@ -95,7 +96,7 @@ impl SafetyNet {
         let mut defending_pawns = pawns & PAWN_MASKS[king_file];
 
         bitloop!(|sq| defending_pawns, {
-            let location = PAWN_LOCATIONS[king_file][sq.as_index()];
+            let location = PAWN_LOCATIONS[color.as_index()][king_file][sq.as_index()];
             for (i, &weight) in DEFENDING_PAWN_LOCATIONS[location].iter().enumerate() {
                 self.hidden_sums[i] += weight;
             }

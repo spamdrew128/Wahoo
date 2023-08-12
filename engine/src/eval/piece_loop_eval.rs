@@ -417,9 +417,9 @@ mod tests {
         w_expected[Defenses::index(Piece::BISHOP)] += 4;
         w_expected[Tropism::index()] += tropism(b_king, Square::D4);
         w_expected[EnemyKingRank::index(b_king.mirror().rank())] += 1;
-        w_expected[DefendingPawnLocations::index(13)] += 1;
-        w_expected[DefendingPawnLocations::index(15)] += 1;
-        w_expected[DefendingPawnLocations::index(17)] += 1;
+        w_expected[DefendingPawnLocations::index(0)] += 1;
+        w_expected[DefendingPawnLocations::index(2)] += 1;
+        w_expected[DefendingPawnLocations::index(4)] += 1;
 
         let mut b_expected = [0; SAFETY_TRACE_LEN];
         b_expected[Attacks::index(Piece::BISHOP)] += 1;
