@@ -1,4 +1,6 @@
-use crate::board::board_representation::{Bitboard, Color, Piece, Square, NUM_FILES, NUM_SQUARES, NUM_COLORS};
+use crate::board::board_representation::{
+    Bitboard, Color, Piece, Square, NUM_COLORS, NUM_FILES, NUM_SQUARES,
+};
 use crate::eval::evaluation::ScoreTuple;
 use crate::eval::trace::{AttackingPawnLocations, DefendingPawnLocations};
 use crate::{bitloop, trace_safety_update};

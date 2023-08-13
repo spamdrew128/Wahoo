@@ -91,9 +91,7 @@ impl ScoreTuple {
     }
 
     pub fn activation(self) -> Self {
-        let mg = self.mg().clamp(0, SCALE);
-        let eg = self.eg().clamp(0, SCALE);
-        Self((mg * mg) / SCALE, (eg * eg) / SCALE)
+        Self(self.mg().clamp(0, SCALE), self.eg().clamp(0, SCALE))
     }
 }
 

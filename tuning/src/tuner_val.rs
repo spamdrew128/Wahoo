@@ -40,18 +40,22 @@ impl S {
     }
 
     pub fn activation(self) -> S {
-        self.clamp(0.0, 1.0).square()
+        self.clamp(0.0, 1.0)
     }
 
     pub fn activation_prime(self) -> S {
-        let mut adjusted = S::new(0.0, 0.0);
-        if self.mg() > 0.0 && self.mg() < 1.0 {
-            adjusted.0 = 2.0 * self.mg()
-        };
-        if self.eg() > 0.0 && self.eg() < 1.0 {
-            adjusted.1 = 2.0 * self.eg()
-        };
-        adjusted
+        S::new(
+            if self.mg() > 0.0 && self.mg() < 1.0 {
+                1.0
+            } else {
+                0.0
+            },
+            if self.eg() > 0.0 && self.eg() < 1.0 {
+                1.0
+            } else {
+                0.0
+            },
+        )
     }
 }
 
