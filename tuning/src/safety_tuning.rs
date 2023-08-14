@@ -80,8 +80,8 @@ impl Net {
             sums.output += weight * sums.hidden[i].activation();
         }
 
-        // return activated output
-        sums.output.activation()
+        // return output
+        sums.output
     }
 
     fn update_partials(
@@ -93,7 +93,7 @@ impl Net {
         sign: f64,
     ) {
         // update output bias partial
-        let output_bias_partial = sums.output.activation_prime() * sign;
+        let output_bias_partial = S::new(1.0, 1.0) * sign;
         partials.output_bias += output_bias_partial;
 
         // update output weights partials
