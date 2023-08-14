@@ -655,8 +655,7 @@ impl Tuner {
             ("8/8/3bk2p/1r2p1pP/p1p3P1/P1B1K3/1PP5/5R2 b - - 25 52", ""),
         ];
 
-        writeln!(output).unwrap();
-
+        writeln!(output, "/*").unwrap();
         for s in samples {
             let board = Board::from_fen(s.0);
             let entry = Entry::new(&board, 0.5);
@@ -670,5 +669,6 @@ impl Tuner {
 
             writeln!(output, "fen: {}\n{}output: S({}, {})\n", s.0, desc, eval.mg(), eval.eg()).unwrap();
         }
+        writeln!(output, "*/").unwrap();
     }
 }
