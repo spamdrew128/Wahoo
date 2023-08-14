@@ -204,6 +204,8 @@ impl Tuner {
             }
         }
 
+        result.safety_weight = S::new(100.0, 25.0);
+
         result.safety_net = Net::new_randomized();
 
         result
