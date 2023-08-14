@@ -138,10 +138,10 @@ impl SafetyNet {
 
         for (i, &sum) in self.hidden_sums.iter().enumerate() {
             let weight = OUTPUT_WEIGHTS[i];
-            let activation = sum.activation();
+            let activation = sum.activation(SCALE);
             output += activation * weight;
         }
 
-        output.activation() * SAFETY_WEIGHT / SCALE.pow(2)
+        output.activation(SCALE.pow(2)) * SAFETY_WEIGHT / SCALE.pow(2)
     }
 }

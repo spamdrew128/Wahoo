@@ -19,8 +19,6 @@ use crate::{
     trace_update,
 };
 
-use super::king_safety_net::SCALE;
-
 const fn passer_squares_init(
     is_stm: bool,
 ) -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
@@ -90,8 +88,8 @@ impl ScoreTuple {
         Self(self.0 * multiplier, self.1 * multiplier)
     }
 
-    pub fn activation(self) -> Self {
-        Self(self.mg().clamp(0, SCALE), self.eg().clamp(0, SCALE))
+    pub fn activation(self, scale: i32) -> Self {
+        Self(self.mg().clamp(0, scale), self.eg().clamp(0, scale))
     }
 }
 
