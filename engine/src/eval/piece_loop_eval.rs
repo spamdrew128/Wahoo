@@ -222,7 +222,7 @@ impl LoopEvaluator {
         safety_net[color.as_index()].update_attacks(piece, kz_attacks);
         safety_net[opp_color.as_index()].update_defenses(piece, kz_defenses);
 
-        self.tropism += tropism(self.enemy_king_sq, sq);
+        // self.tropism += tropism(self.enemy_king_sq, sq);
 
         match PIECE {
             ConstPiece::KNIGHT => {
@@ -293,8 +293,8 @@ impl LoopEvaluator {
     fn pawn_score<const TRACE: bool>(&self, pawns: Bitboard, color: Color, safety_net: &mut [SafetyNet; 2], t: &mut Trace) -> ScoreTuple {
         let us = color;
         let them = color.flip();
-        safety_net[us.as_index()].update_attacking_pawns::<TRACE>(pawns, self.enemy_king_sq, us, t);
-        safety_net[them.as_index()].update_defending_pawns::<TRACE>(pawns, self.friendly_king_sq, them, t);
+        // safety_net[us.as_index()].update_attacking_pawns::<TRACE>(pawns, self.enemy_king_sq, us, t);
+        // safety_net[them.as_index()].update_defending_pawns::<TRACE>(pawns, self.friendly_king_sq, them, t);
 
         let pawn_attacks = attacks::pawn_setwise(pawns, color);
         if TRACE {
@@ -343,17 +343,17 @@ fn one_sided_eval<const TRACE: bool>(
         + looper.piece_loop::<{ ConstPiece::QUEEN }, TRACE>(queens, safety_net, t)
         + looper.pawn_score::<TRACE>(pawns, color, safety_net, t);
 
-    let opp_king_sq = looper.enemy_king_sq;
-    safety_net[color.as_index()].update_enemy_king_rank(opp_king_sq, color);
+    // let opp_king_sq = looper.enemy_king_sq;
+    // safety_net[color.as_index()].update_enemy_king_rank(opp_king_sq, color);
 
-    let trop = looper.tropism;
-    safety_net[color.as_index()].update_tropism(trop);
+    // let trop = looper.tropism;
+    // safety_net[color.as_index()].update_tropism(trop);
 
     if TRACE {
-        let rank = color_adjust(opp_king_sq, color).rank();
-        trace_safety_update!(t, EnemyKingRank, (rank), color, 1);
+        // let rank = color_adjust(opp_king_sq, color).rank();
+        // trace_safety_update!(t, EnemyKingRank, (rank), color, 1);
 
-        trace_safety_update!(t, Tropism, (), color, trop);
+        // trace_safety_update!(t, Tropism, (), color, trop);
     }
 
     score
