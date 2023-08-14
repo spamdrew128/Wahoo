@@ -41,16 +41,8 @@ impl S {
 
     pub fn activation_prime(self) -> S {
         S::new(
-            if self.mg() > 0.0 {
-                1.0
-            } else {
-                0.0
-            },
-            if self.eg() > 0.0 {
-                1.0
-            } else {
-                0.0
-            },
+            if self.mg() > 0.0 { 1.0 } else { 0.0 },
+            if self.eg() > 0.0 { 1.0 } else { 0.0 },
         )
     }
 }

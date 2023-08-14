@@ -1,4 +1,4 @@
-use crate::{tuner_val::S, safety_tuning::LayerSums};
+use crate::{safety_tuning::LayerSums, tuner_val::S};
 
 use crate::safety_tuning::Net;
 
@@ -259,9 +259,7 @@ impl Tuner {
             gradient.linear[feature.index] += coeff * f64::from(feature.value);
         }
 
-        gradient
-            .safety_net
-            .gradient_update(&net_partials, coeff);
+        gradient.safety_net.gradient_update(&net_partials, coeff);
     }
 
     fn update_gradient(&mut self) {
@@ -655,6 +653,7 @@ impl Tuner {
             let (mut w_sums, mut b_sums) = (LayerSums::new(net), LayerSums::new(net));
             let white = net.calculate_color(&mut w_sums, &entry, Color::White);
             let black = net.calculate_color(&mut b_sums, &entry, Color::Black);
+            let total = white - black;
 
             let desc = if s.1.is_empty() {
                 String::new()
@@ -662,7 +661,19 @@ impl Tuner {
                 format!("desc: {}\n", s.1)
             };
 
-            writeln!(output, "fen: {}\n{}output: S({}, {}) - S({}, {})\n", s.0, desc, white.mg(), white.eg(), black.mg(), black.eg()).unwrap();
+            writeln!(
+                output,
+                "fen: {}\n{}output: S({}, {}) - S({}, {})\n= S({}, {})\n",
+                s.0,
+                desc,
+                white.mg(),
+                white.eg(),
+                black.mg(),
+                black.eg(),
+                total.mg(),
+                total.eg()
+            )
+            .unwrap();
         }
         writeln!(output, "*/").unwrap();
     }
