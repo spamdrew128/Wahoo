@@ -133,6 +133,12 @@ impl Div<i32> for ScoreTuple {
     }
 }
 
+impl std::fmt::Display for ScoreTuple {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "s({}, {})", self.0, self.1)
+    }
+}
+
 pub fn phase(board: &Board) -> Phase {
     let phase = (board.pieces[Piece::KNIGHT.as_index()].popcount()
         + board.pieces[Piece::BISHOP.as_index()].popcount()
