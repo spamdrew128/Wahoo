@@ -343,15 +343,15 @@ fn one_sided_eval<const TRACE: bool>(
         + looper.piece_loop::<{ ConstPiece::QUEEN }, TRACE>(queens, safety_net, t)
         + looper.pawn_score::<TRACE>(pawns, color, safety_net, t);
 
-    // let opp_king_sq = looper.enemy_king_sq;
-    // safety_net[color.as_index()].update_enemy_king_rank(opp_king_sq, color);
+    let opp_king_sq = looper.enemy_king_sq;
+    safety_net[color.as_index()].update_enemy_king_rank(opp_king_sq, color);
 
     // let trop = looper.tropism;
     // safety_net[color.as_index()].update_tropism(trop);
 
     if TRACE {
-        // let rank = color_adjust(opp_king_sq, color).rank();
-        // trace_safety_update!(t, EnemyKingRank, (rank), color, 1);
+        let rank = color_adjust(opp_king_sq, color).rank();
+        trace_safety_update!(t, EnemyKingRank, (rank), color, 1);
 
         // trace_safety_update!(t, Tropism, (), color, trop);
     }
