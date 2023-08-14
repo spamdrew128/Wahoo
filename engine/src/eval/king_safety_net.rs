@@ -134,7 +134,7 @@ impl SafetyNet {
     }
 
     pub fn calculate(&self) -> ScoreTuple {
-        let mut output = OUTPUT_BIAS;
+        let mut output = OUTPUT_BIAS.mult(SCALE);
 
         for (i, &sum) in self.hidden_sums.iter().enumerate() {
             let weight = OUTPUT_WEIGHTS[i];
