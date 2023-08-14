@@ -1,4 +1,4 @@
-use crate::tuner_val::S;
+use crate::{tuner_val::S, safety_tuning::LayerSums};
 
 use crate::safety_tuning::Net;
 
@@ -620,5 +620,60 @@ impl Tuner {
 
         writeln!(output, "\n// KING SAFETY FEATURES").unwrap();
         self.write_safety(&mut output);
+        self.test_positions(&mut output);
+    }
+
+    fn test_positions(&self, output: &mut BufWriter<File>) {
+        let samples = [
+            (
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                "startpos",
+            ),
+            (
+                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+                "kiwipete",
+            ),
+            (
+                "r1bq1b1r/ppp2kpp/2n5/3np3/2B5/8/PPPP1PPP/RNBQK2R w KQ - 0 7",
+                "fried liver attack",
+            ),
+            (
+                "1r2r1k1/pbp1qpp1/1p1p4/4nPR1/4P3/P1N4P/1PPQB3/1K1R4 w - - 1 24",
+                "wahoo vs akimbo",
+            ),
+            (
+                "2kr3r/ppp1qppp/2b2n2/4p3/4P3/P1P2Q2/P1B2PPP/R1B2RK1 w - - 7 14",
+                "",
+            ),
+            (
+                "rnbq1b1r/ppPknQ1p/3pp3/1B6/5pp1/BP2P3/P1PK1PPP/RN4NR b - - 4 11",
+                "",
+            ),
+            ("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", ""),
+            ("8/3kp1p1/8/1p6/4PP2/5K2/1P6/8 w - - 0 1", ""),
+            ("2k1n3/3bp1p1/8/1p6/4PP2/5K2/1P2R3/8 w - - 0 1", ""),
+            ("8/8/3bk2p/1r2p1pP/p1p3P1/P1B1K3/1PP5/5R2 b - - 25 52", ""),
+        ];
+
+        let net = &self.weights.safety_net;
+
+        writeln!(output, "/*").unwrap();
+        for s in samples {
+            let board = Board::from_fen(s.0);
+            let entry = Entry::new(&board, 0.5);
+
+            let (mut w_sums, mut b_sums) = (LayerSums::new(net), LayerSums::new(net));
+            let white = net.calculate_color(&mut w_sums, &entry, Color::White) * self.weights.safety_weight;
+            let black = net.calculate_color(&mut b_sums, &entry, Color::Black) * self.weights.safety_weight;
+
+            let desc = if s.1.is_empty() {
+                String::new()
+            } else {
+                format!("desc: {}\n", s.1)
+            };
+
+            writeln!(output, "fen: {}\n{}output: S({}, {}) - S({}, {})\n", s.0, desc, white.mg(), white.eg(), black.mg(), black.eg()).unwrap();
+        }
+        writeln!(output, "*/").unwrap();
     }
 }
