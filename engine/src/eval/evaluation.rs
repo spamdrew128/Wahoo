@@ -88,8 +88,8 @@ impl ScoreTuple {
         Self(self.0 * multiplier, self.1 * multiplier)
     }
 
-    pub fn activation(self, scale: i32) -> Self {
-        Self(self.mg().clamp(0, scale), self.eg().clamp(0, scale))
+    pub fn activation(self) -> Self {
+        Self(self.mg().max(0), self.eg().max(0))
     }
 }
 
