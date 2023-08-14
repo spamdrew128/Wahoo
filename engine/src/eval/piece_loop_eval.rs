@@ -464,7 +464,9 @@ mod tests {
         let mut w_expected = [0; SAFETY_TRACE_LEN];
         w_expected[Attacks::index(Piece::QUEEN)] += 1;
         w_expected[Defenses::index(Piece::BISHOP)] += 4;
-        w_expected[Defenses::index(Piece::KNIGHT)] += 3;
+        w_expected[Defenses::index(Piece::KNIGHT)] += 4;
+        w_expected[Defenses::index(Piece::QUEEN)] += 4;
+        w_expected[Defenses::index(Piece::ROOK)] += 1;
         w_expected[Tropism::index()] += full_tropism(&board, Color::White);
         w_expected[EnemyKingRank::index(1)] += 1;
 
@@ -474,9 +476,10 @@ mod tests {
         w_expected[DefendingPawnLocations::index(6)] += 1;
 
         let mut b_expected = [0; SAFETY_TRACE_LEN];
-        b_expected[Attacks::index(Piece::KNIGHT)] += 3;
-        b_expected[Defenses::index(Piece::BISHOP)] += 2;
+        b_expected[Attacks::index(Piece::KNIGHT)] += 2;
+        b_expected[Defenses::index(Piece::BISHOP)] += 3;
         b_expected[Defenses::index(Piece::QUEEN)] += 2;
+        b_expected[Defenses::index(Piece::ROOK)] += 1;
         b_expected[Tropism::index()] += full_tropism(&board, Color::Black);
         b_expected[EnemyKingRank::index(0)] += 1;
 
