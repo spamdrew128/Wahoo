@@ -293,8 +293,8 @@ impl LoopEvaluator {
     fn pawn_score<const TRACE: bool>(&self, pawns: Bitboard, color: Color, safety_net: &mut [SafetyNet; 2], t: &mut Trace) -> ScoreTuple {
         let us = color;
         let them = color.flip();
-        // safety_net[us.as_index()].update_attacking_pawns::<TRACE>(pawns, self.enemy_king_sq, us, t);
-        // safety_net[them.as_index()].update_defending_pawns::<TRACE>(pawns, self.friendly_king_sq, them, t);
+        safety_net[us.as_index()].update_attacking_pawns::<TRACE>(pawns, self.enemy_king_sq, us, t);
+        safety_net[them.as_index()].update_defending_pawns::<TRACE>(pawns, self.friendly_king_sq, them, t);
 
         let pawn_attacks = attacks::pawn_setwise(pawns, color);
         if TRACE {
