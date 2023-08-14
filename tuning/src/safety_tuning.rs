@@ -8,13 +8,13 @@ use crate::tuner_val::S;
 use crate::tuning::Entry;
 
 #[derive(Debug, PartialEq)]
-struct LayerSums {
+pub struct LayerSums {
     hidden: [S; HIDDEN_LAYER_SIZE],
     output: S,
 }
 
 impl LayerSums {
-    fn new(weights: &Net) -> Self {
+    pub fn new(weights: &Net) -> Self {
         Self {
             hidden: weights.hidden_biases,
             output: weights.output_bias,
@@ -65,7 +65,7 @@ impl Net {
         result
     }
 
-    fn calculate_color(&self, sums: &mut LayerSums, entry: &Entry, color: Color) -> S {
+    pub fn calculate_color(&self, sums: &mut LayerSums, entry: &Entry, color: Color) -> S {
         // calculate the weighted sums in the hidden layer (accumulator)
         for f in &entry.safety_feature_vec[color.as_index()] {
             let weights = self.hidden_weights[f.index];

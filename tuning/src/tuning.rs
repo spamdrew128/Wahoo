@@ -1,4 +1,4 @@
-use crate::tuner_val::S;
+use crate::{tuner_val::S, safety_tuning::LayerSums};
 
 use crate::safety_tuning::Net;
 
@@ -655,19 +655,24 @@ impl Tuner {
             ("8/8/3bk2p/1r2p1pP/p1p3P1/P1B1K3/1PP5/5R2 b - - 25 52", ""),
         ];
 
+        let net = &self.weights.safety_net;
+
         writeln!(output, "/*").unwrap();
         for s in samples {
             let board = Board::from_fen(s.0);
             let entry = Entry::new(&board, 0.5);
 
-            let eval = self.weights.safety_net.calc_both_sides(&entry) * self.weights.safety_weight;
+            let (mut w_sums, mut b_sums) = (LayerSums::new(net), LayerSums::new(net));
+            let white = net.calculate_color(&mut w_sums, &entry, Color::White) * self.weights.safety_weight;
+            let black = net.calculate_color(&mut b_sums, &entry, Color::Black) * self.weights.safety_weight;
+
             let desc = if s.1.is_empty() {
                 String::new()
             } else {
                 format!("desc: {}\n", s.1)
             };
 
-            writeln!(output, "fen: {}\n{}output: S({}, {})\n", s.0, desc, eval.mg(), eval.eg()).unwrap();
+            writeln!(output, "fen: {}\n{}output: S({}, {}) - S({}, {})\n", s.0, desc, white.mg(), white.eg(), black.mg(), black.eg()).unwrap();
         }
         writeln!(output, "*/").unwrap();
     }
