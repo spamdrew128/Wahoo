@@ -485,10 +485,10 @@ mod tests {
             let desc = if s.1.is_empty() {
                 String::new()
             } else {
-                format!("desc: {}", s.1)
+                format!("desc: {}\n", s.1)
             };
 
-            println!("fen: {} {} output: {}", s.0, desc, output);
+            println!("fen: {}\n{}output: {}\n", s.0, desc, output);
         }
     }
 }
