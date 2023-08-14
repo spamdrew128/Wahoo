@@ -388,7 +388,7 @@ mod tests {
                 AttackingPawnLocations, Attacks, DefendingPawnLocations, Defenses, EnemyKingRank,
                 Trace, Tropism, SAFETY_TRACE_LEN,
             },
-        },
+        }, bitloop,
     };
 
     use super::{one_sided_eval, tropism};
@@ -404,6 +404,16 @@ mod tests {
         one_sided_eval::<false>(board, &mut safety_net, them, &mut t);
 
         safety_net[us.as_index()].calculate() - safety_net[them.as_index()].calculate()
+    }
+
+    fn full_tropism(board: &Board, color: Color) -> i16 {
+        let king_sq = board.color_king_sq(color.flip());
+        let mut pieces_bb = board.all[color.as_index()] ^ board.piece_bb(Piece::PAWN, color) ^ board.piece_bb(Piece::KING, color);
+        let mut trop = 0;
+        bitloop!(|sq| pieces_bb, {
+            trop += tropism(king_sq, sq);
+        });
+        trop
     }
 
     #[test]
@@ -429,7 +439,7 @@ mod tests {
         let mut w_expected = [0; SAFETY_TRACE_LEN];
         w_expected[Attacks::index(Piece::KNIGHT)] += 2;
         w_expected[Defenses::index(Piece::BISHOP)] += 4;
-        w_expected[Tropism::index()] += tropism(b_king, Square::D4);
+        w_expected[Tropism::index()] += full_tropism(&board, Color::White);
         w_expected[EnemyKingRank::index(b_king.mirror().rank())] += 1;
         w_expected[DefendingPawnLocations::index(0)] += 1;
         w_expected[DefendingPawnLocations::index(2)] += 1;
@@ -438,9 +448,43 @@ mod tests {
         let mut b_expected = [0; SAFETY_TRACE_LEN];
         b_expected[Attacks::index(Piece::BISHOP)] += 1;
         b_expected[Defenses::index(Piece::KNIGHT)] += 1;
-        b_expected[Tropism::index()] += tropism(w_king, Square::H7);
+        b_expected[Tropism::index()] += full_tropism(&board, Color::Black);
         b_expected[EnemyKingRank::index(w_king.rank())] += 1;
         b_expected[AttackingPawnLocations::index(9)] += 1;
+        b_expected[DefendingPawnLocations::index(2)] += 1;
+
+        assert_eq!(actual, [w_expected, b_expected]);
+    }
+
+    #[test]
+    fn safety_trace_test_2() {
+        let board = Board::from_fen("r1bq1b1r/ppp2kpp/2n5/3np3/2B5/8/PPPP1PPP/RNBQK2R w KQ - 0 7");
+        let actual = trace_of_position(&board).safety;
+
+        let mut w_expected = [0; SAFETY_TRACE_LEN];
+        w_expected[Attacks::index(Piece::QUEEN)] += 1;
+        w_expected[Defenses::index(Piece::BISHOP)] += 4;
+        w_expected[Defenses::index(Piece::KNIGHT)] += 4;
+        w_expected[Defenses::index(Piece::QUEEN)] += 4;
+        w_expected[Defenses::index(Piece::ROOK)] += 1;
+        w_expected[Tropism::index()] += full_tropism(&board, Color::White);
+        w_expected[EnemyKingRank::index(1)] += 1;
+
+        w_expected[AttackingPawnLocations::index(16)] += 1;
+        w_expected[AttackingPawnLocations::index(17)] += 1;
+        w_expected[DefendingPawnLocations::index(2)] += 1;
+        w_expected[DefendingPawnLocations::index(6)] += 1;
+
+        let mut b_expected = [0; SAFETY_TRACE_LEN];
+        b_expected[Attacks::index(Piece::KNIGHT)] += 2;
+        b_expected[Defenses::index(Piece::BISHOP)] += 3;
+        b_expected[Defenses::index(Piece::QUEEN)] += 2;
+        b_expected[Defenses::index(Piece::ROOK)] += 1;
+        b_expected[Tropism::index()] += full_tropism(&board, Color::Black);
+        b_expected[EnemyKingRank::index(0)] += 1;
+
+        b_expected[AttackingPawnLocations::index(10)] += 1;
+        b_expected[DefendingPawnLocations::index(0)] += 1;
         b_expected[DefendingPawnLocations::index(2)] += 1;
 
         assert_eq!(actual, [w_expected, b_expected]);

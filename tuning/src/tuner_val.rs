@@ -35,26 +35,14 @@ impl S {
         Self(self.0.max(m), self.1.max(m))
     }
 
-    fn clamp(self, min: f64, max: f64) -> Self {
-        Self(self.0.clamp(min, max), self.1.clamp(min, max))
-    }
-
     pub fn activation(self) -> S {
-        self.clamp(0.0, 1.0)
+        self.max(0.0)
     }
 
     pub fn activation_prime(self) -> S {
         S::new(
-            if self.mg() > 0.0 && self.mg() < 1.0 {
-                1.0
-            } else {
-                0.0
-            },
-            if self.eg() > 0.0 && self.eg() < 1.0 {
-                1.0
-            } else {
-                0.0
-            },
+            if self.mg() > 0.0 { 1.0 } else { 0.0 },
+            if self.eg() > 0.0 { 1.0 } else { 0.0 },
         )
     }
 }

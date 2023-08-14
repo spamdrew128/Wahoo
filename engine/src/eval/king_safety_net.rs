@@ -7,7 +7,7 @@ use crate::{bitloop, trace_safety_update};
 
 use super::eval_constants::{
     ATTACKING_PAWN_LOCATIONS, ATTACKS, DEFENDING_PAWN_LOCATIONS, DEFENSES, ENEMY_KING_RANK,
-    HIDDEN_BIASES, OUTPUT_BIAS, OUTPUT_WEIGHTS, SAFETY_WEIGHT, TROPISM,
+    HIDDEN_BIASES, OUTPUT_BIAS, OUTPUT_WEIGHTS, TROPISM,
 };
 use super::trace::Trace;
 
@@ -138,10 +138,10 @@ impl SafetyNet {
 
         for (i, &sum) in self.hidden_sums.iter().enumerate() {
             let weight = OUTPUT_WEIGHTS[i];
-            let activation = sum.activation(SCALE);
+            let activation = sum.activation();
             output += activation * weight;
         }
 
-        output.activation(SCALE.pow(2)) * SAFETY_WEIGHT / SCALE.pow(2)
+        output / SCALE.pow(2)
     }
 }

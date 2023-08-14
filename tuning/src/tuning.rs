@@ -1,4 +1,4 @@
-use crate::{tuner_val::S, safety_tuning::LayerSums};
+use crate::{safety_tuning::LayerSums, tuner_val::S};
 
 use crate::safety_tuning::Net;
 
@@ -30,12 +30,11 @@ use std::{
 struct TunerStruct {
     linear: [S; LINEAR_TRACE_LEN],
     safety_net: Net,
-    safety_weight: S,
 }
 
 macro_rules! flatten_tuner_struct {
     ($self:expr, $result:ident) => {
-        let mut $result = vec![&mut $self.safety_weight, &mut $self.safety_net.output_bias];
+        let mut $result = vec![&mut $self.safety_net.output_bias];
 
         for v in $self.linear.iter_mut() {
             $result.push(v);
@@ -60,7 +59,6 @@ impl TunerStruct {
         Self {
             linear: [S::new(0.0, 0.0); LINEAR_TRACE_LEN],
             safety_net: Net::new(),
-            safety_weight: S::new(0.0, 0.0),
         }
     }
 
@@ -99,8 +97,6 @@ impl TunerStruct {
         }
 
         result.safety_net.output_bias += rhs.safety_net.output_bias;
-
-        result.safety_weight += rhs.safety_weight;
 
         result
     }
@@ -153,7 +149,7 @@ impl Entry {
     }
 
     fn evaluation(&self, weights: &TunerStruct, net_output: S) -> f64 {
-        let mut score = net_output * weights.safety_weight;
+        let mut score = net_output;
 
         for feature in &self.feature_vec {
             score += f64::from(feature.value) * weights.linear[feature.index];
@@ -203,8 +199,6 @@ impl Tuner {
                 result.linear[MaterialPst::index(piece, Square::new(sq))] = S::new(w, w);
             }
         }
-
-        result.safety_weight = S::new(100.0, 25.0);
 
         result.safety_net = Net::new_randomized();
 
@@ -265,12 +259,7 @@ impl Tuner {
             gradient.linear[feature.index] += coeff * f64::from(feature.value);
         }
 
-        gradient.safety_weight += coeff * net_output;
-
-        let safety_coeff = coeff * weights.safety_weight;
-        gradient
-            .safety_net
-            .gradient_update(&net_partials, safety_coeff);
+        gradient.safety_net.gradient_update(&net_partials, coeff);
     }
 
     fn update_gradient(&mut self) {
@@ -600,7 +589,6 @@ impl Tuner {
         writeln!(output).unwrap();
 
         writeln!(output, "pub const OUTPUT_BIAS: ScoreTuple = {};\n", self.weights.safety_net.output_bias).unwrap();
-        writeln!(output, "pub const SAFETY_WEIGHT: ScoreTuple = {};\n", self.weights.safety_weight).unwrap();
     }
 
     fn create_output_file(&self) {
@@ -663,8 +651,9 @@ impl Tuner {
             let entry = Entry::new(&board, 0.5);
 
             let (mut w_sums, mut b_sums) = (LayerSums::new(net), LayerSums::new(net));
-            let white = net.calculate_color(&mut w_sums, &entry, Color::White) * self.weights.safety_weight;
-            let black = net.calculate_color(&mut b_sums, &entry, Color::Black) * self.weights.safety_weight;
+            let white = net.calculate_color(&mut w_sums, &entry, Color::White);
+            let black = net.calculate_color(&mut b_sums, &entry, Color::Black);
+            let total = white - black;
 
             let desc = if s.1.is_empty() {
                 String::new()
@@ -672,7 +661,19 @@ impl Tuner {
                 format!("desc: {}\n", s.1)
             };
 
-            writeln!(output, "fen: {}\n{}output: S({}, {}) - S({}, {})\n", s.0, desc, white.mg(), white.eg(), black.mg(), black.eg()).unwrap();
+            writeln!(
+                output,
+                "fen: {}\n{}output: S({}, {}) - S({}, {})\n= S({}, {})\n",
+                s.0,
+                desc,
+                white.mg(),
+                white.eg(),
+                black.mg(),
+                black.eg(),
+                total.mg(),
+                total.eg()
+            )
+            .unwrap();
         }
         writeln!(output, "*/").unwrap();
     }
