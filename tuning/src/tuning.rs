@@ -206,7 +206,7 @@ impl Tuner {
 
     pub fn new(threads: usize) -> Self {
         Self {
-            entries: vec![vec![]],
+            entries: vec![],
             gradient: TunerStruct::new(),
             weights: Self::new_weights(),
             momentum: TunerStruct::new(),
