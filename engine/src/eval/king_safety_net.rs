@@ -7,7 +7,7 @@ use crate::{bitloop, trace_safety_update};
 
 use super::eval_constants::{
     ATTACKING_PAWN_LOCATIONS, ATTACKS, DEFENDING_PAWN_LOCATIONS, DEFENSES, ENEMY_KING_RANK,
-    HIDDEN_BIASES, OUTPUT_BIAS, OUTPUT_WEIGHTS, TROPISM,
+    HIDDEN_BIASES, OUTPUT_BIAS, OUTPUT_WEIGHTS,
 };
 use super::trace::Trace;
 
@@ -112,12 +112,6 @@ impl SafetyNet {
     pub fn update_enemy_king_rank(&mut self, sq: Square, color: Color) {
         for (i, &weight) in ENEMY_KING_RANK.access(color, sq).iter().enumerate() {
             self.hidden_sums[i] += weight;
-        }
-    }
-
-    pub fn update_tropism(&mut self, trop: i16) {
-        for (i, &weight) in TROPISM.iter().enumerate() {
-            self.hidden_sums[i] += weight.mult(trop.into());
         }
     }
 
