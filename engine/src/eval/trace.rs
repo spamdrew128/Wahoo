@@ -20,7 +20,6 @@ pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
 pub const SAFETY_TRACE_LEN: usize = Attacks::LEN
     + Defenses::LEN
     + EnemyKingRank::LEN
-    + Tropism::LEN
     + AttackingPawnLocations::LEN
     + DefendingPawnLocations::LEN;
 
@@ -260,20 +259,9 @@ impl EnemyKingRank {
     }
 }
 
-pub struct Tropism;
-impl Tropism {
-    pub const START: usize = EnemyKingRank::START + EnemyKingRank::LEN;
-    pub const LEN: usize = 1;
-    pub const END: usize = Self::START + Self::LEN;
-
-    pub const fn index() -> usize {
-        Self::START
-    }
-}
-
 pub struct AttackingPawnLocations;
 impl AttackingPawnLocations {
-    pub const START: usize = Tropism::START + Tropism::LEN;
+    pub const START: usize = EnemyKingRank::START + EnemyKingRank::LEN;
     pub const LEN: usize = 18;
     pub const END: usize = Self::START + Self::LEN;
 

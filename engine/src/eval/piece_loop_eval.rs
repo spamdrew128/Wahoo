@@ -9,10 +9,10 @@ use crate::{
         PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY,
         QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
     },
+    eval::evaluation::ScoreTuple,
     eval::trace::{
         color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace,
     },
-    eval::{evaluation::ScoreTuple, trace::Tropism},
     trace_safety_update, trace_threat_update, trace_update,
 };
 
@@ -80,9 +80,6 @@ const KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = king
 
 const FORWARD_MASKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = forward_masks_init();
 
-const TROPISM_LOOKUP: [[i16; NUM_SQUARES as usize]; NUM_SQUARES as usize] =
-    include!(concat!(env!("OUT_DIR"), "/trophism_init.rs"));
-
 const fn king_zone(board: &Board, color: Color) -> Bitboard {
     let king_sq = board.color_king_sq(color);
     KING_ZONES[color.as_index()][king_sq.as_index()]
@@ -92,10 +89,6 @@ const fn forward_mobility(moves: Bitboard, sq: Square, color: Color) -> usize {
     moves
         .intersection(FORWARD_MASKS[color.as_index()][sq.as_index()])
         .popcount() as usize
-}
-
-const fn tropism(king_sq: Square, piece_sq: Square) -> i16 {
-    TROPISM_LOOKUP[king_sq.as_index()][piece_sq.as_index()]
 }
 
 const fn availible(board: &Board, color: Color) -> Bitboard {
@@ -151,8 +144,6 @@ struct LoopEvaluator {
     enemy_queens: Bitboard,
     hv_occupied: Bitboard,
     d12_occupied: Bitboard,
-
-    tropism: i16,
 }
 
 impl LoopEvaluator {
@@ -189,7 +180,6 @@ impl LoopEvaluator {
             enemy_queens,
             hv_occupied,
             d12_occupied,
-            tropism: 0,
         }
     }
     const fn moves<const PIECE: u8>(&self, sq: Square) -> Bitboard {
@@ -222,7 +212,7 @@ impl LoopEvaluator {
         safety_net[color.as_index()].update_attacks(piece, kz_attacks);
         safety_net[opp_color.as_index()].update_defenses(piece, kz_defenses);
 
-        self.tropism += tropism(self.enemy_king_sq, sq);
+        // self.tropism += tropism(self.enemy_king_sq, sq);
 
         match PIECE {
             ConstPiece::KNIGHT => {
@@ -346,14 +336,14 @@ fn one_sided_eval<const TRACE: bool>(
     let opp_king_sq = looper.enemy_king_sq;
     safety_net[color.as_index()].update_enemy_king_rank(opp_king_sq, color);
 
-    let trop = looper.tropism;
-    safety_net[color.as_index()].update_tropism(trop);
+    // let trop = looper.tropism;
+    // safety_net[color.as_index()].update_tropism(trop);
 
     if TRACE {
         let rank = color_adjust(opp_king_sq, color).rank();
         trace_safety_update!(t, EnemyKingRank, (rank), color, 1);
 
-        trace_safety_update!(t, Tropism, (), color, trop);
+        // trace_safety_update!(t, Tropism, (), color, trop);
     }
 
     score
@@ -386,12 +376,12 @@ mod tests {
             piece_loop_eval::forward_mobility,
             trace::{
                 AttackingPawnLocations, Attacks, DefendingPawnLocations, Defenses, EnemyKingRank,
-                Trace, Tropism, SAFETY_TRACE_LEN,
+                Trace, SAFETY_TRACE_LEN,
             },
-        }, bitloop,
+        },
     };
 
-    use super::{one_sided_eval, tropism};
+    use super::one_sided_eval;
 
     fn safety_only(board: &Board) -> ScoreTuple {
         let mut safety_net = [SafetyNet::new(), SafetyNet::new()];
@@ -404,16 +394,6 @@ mod tests {
         one_sided_eval::<false>(board, &mut safety_net, them, &mut t);
 
         safety_net[us.as_index()].calculate() - safety_net[them.as_index()].calculate()
-    }
-
-    fn full_tropism(board: &Board, color: Color) -> i16 {
-        let king_sq = board.color_king_sq(color.flip());
-        let mut pieces_bb = board.all[color.as_index()] ^ board.piece_bb(Piece::PAWN, color) ^ board.piece_bb(Piece::KING, color);
-        let mut trop = 0;
-        bitloop!(|sq| pieces_bb, {
-            trop += tropism(king_sq, sq);
-        });
-        trop
     }
 
     #[test]
@@ -439,7 +419,6 @@ mod tests {
         let mut w_expected = [0; SAFETY_TRACE_LEN];
         w_expected[Attacks::index(Piece::KNIGHT)] += 2;
         w_expected[Defenses::index(Piece::BISHOP)] += 4;
-        w_expected[Tropism::index()] += full_tropism(&board, Color::White);
         w_expected[EnemyKingRank::index(b_king.mirror().rank())] += 1;
         w_expected[DefendingPawnLocations::index(0)] += 1;
         w_expected[DefendingPawnLocations::index(2)] += 1;
@@ -448,7 +427,6 @@ mod tests {
         let mut b_expected = [0; SAFETY_TRACE_LEN];
         b_expected[Attacks::index(Piece::BISHOP)] += 1;
         b_expected[Defenses::index(Piece::KNIGHT)] += 1;
-        b_expected[Tropism::index()] += full_tropism(&board, Color::Black);
         b_expected[EnemyKingRank::index(w_king.rank())] += 1;
         b_expected[AttackingPawnLocations::index(9)] += 1;
         b_expected[DefendingPawnLocations::index(2)] += 1;
@@ -467,7 +445,6 @@ mod tests {
         w_expected[Defenses::index(Piece::KNIGHT)] += 4;
         w_expected[Defenses::index(Piece::QUEEN)] += 4;
         w_expected[Defenses::index(Piece::ROOK)] += 1;
-        w_expected[Tropism::index()] += full_tropism(&board, Color::White);
         w_expected[EnemyKingRank::index(1)] += 1;
 
         w_expected[AttackingPawnLocations::index(16)] += 1;
@@ -480,7 +457,6 @@ mod tests {
         b_expected[Defenses::index(Piece::BISHOP)] += 3;
         b_expected[Defenses::index(Piece::QUEEN)] += 2;
         b_expected[Defenses::index(Piece::ROOK)] += 1;
-        b_expected[Tropism::index()] += full_tropism(&board, Color::Black);
         b_expected[EnemyKingRank::index(0)] += 1;
 
         b_expected[AttackingPawnLocations::index(10)] += 1;

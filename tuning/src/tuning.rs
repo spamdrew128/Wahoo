@@ -13,10 +13,7 @@ use engine::{
     },
     eval::{
         king_safety_net::{HIDDEN_LAYER_SIZE, SCALE},
-        trace::{
-            AttackingPawnLocations, Attacks, DefendingPawnLocations, Defenses, PasserSqRule,
-            Tropism,
-        },
+        trace::{AttackingPawnLocations, Attacks, DefendingPawnLocations, Defenses, PasserSqRule},
     },
 };
 use std::{
@@ -188,7 +185,7 @@ impl Tuner {
     const CONVERGENCE_DELTA: f64 = 1e-7;
     const CONVERGENCE_CHECK_FREQ: u32 = 50;
     const MAX_EPOCHS: u32 = 20000;
-    const LEARN_RATE: f64 = 0.12;
+    const LEARN_RATE: f64 = 0.01;
 
     fn new_weights() -> TunerStruct {
         let mut result = TunerStruct::new();
@@ -567,10 +564,6 @@ impl Tuner {
         writeln!(output, "pub const ENEMY_KING_RANK: SafetyPrt = SafetyPrt::new([").unwrap();
         Self::write_net_rows(&self.weights.safety_net.hidden_weights[EnemyKingRank::START..EnemyKingRank::END], output);
         writeln!(output, "]);\n",).unwrap();
-
-        writeln!(output, "pub const TROPISM: [ScoreTuple; {}] = ", HIDDEN_LAYER_SIZE).unwrap();
-        Self::write_net_rows(&self.weights.safety_net.hidden_weights[Tropism::START..Tropism::END], output);
-        writeln!(output).unwrap();
 
         writeln!(output, "pub const ATTACKING_PAWN_LOCATIONS: [[ScoreTuple; {}]; {}] = [", HIDDEN_LAYER_SIZE, AttackingPawnLocations::LEN).unwrap();
         Self::write_net_rows(&self.weights.safety_net.hidden_weights[AttackingPawnLocations::START..AttackingPawnLocations::END], output);
