@@ -53,7 +53,8 @@ const PIECE_MASKS: [Bitboard; NUM_FILES as usize] = {
 };
 
 const PAWN_LOCATIONS: [[[usize; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_COLORS as usize] = {
-    let mut result = [[[INVALID_LOCATION; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_COLORS as usize];
+    let mut result =
+        [[[INVALID_LOCATION; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_COLORS as usize];
 
     let mut i = 0;
     while i < (NUM_FILES as usize) {
@@ -73,7 +74,8 @@ const PAWN_LOCATIONS: [[[usize; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_
 };
 
 const PIECE_LOCATIONS: [[[usize; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_COLORS as usize] = {
-    let mut result = [[[INVALID_LOCATION; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_COLORS as usize];
+    let mut result =
+        [[[INVALID_LOCATION; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_COLORS as usize];
 
     let mut i = 0;
     while i < (NUM_FILES as usize) {
@@ -175,11 +177,11 @@ impl SafetyNet {
     ) {
         let location =
             PIECE_LOCATIONS[color.as_index()][enemy_king_sq.file() as usize][sq.as_index()];
-                        
+
         if location == INVALID_LOCATION {
             return;
         }
-        
+
         for (i, &weight) in ATTACKING_PIECE_LOCATIONS[piece.as_index()][location]
             .iter()
             .enumerate()
@@ -202,7 +204,7 @@ impl SafetyNet {
     ) {
         let location =
             PIECE_LOCATIONS[color.as_index()][friendly_king_sq.file() as usize][sq.as_index()];
-            
+
         if location == INVALID_LOCATION {
             return;
         }

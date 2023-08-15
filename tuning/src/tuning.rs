@@ -188,6 +188,7 @@ impl Tuner {
     const BATCH_SIZE: usize = 16384;
     const MAX_EPOCHS: u32 = 20000;
     const LEARN_RATE: f64 = 0.01;
+    const CHECK_FREQ: u32 = 10;
 
     fn new_weights() -> TunerStruct {
         let mut result = TunerStruct::new();
@@ -340,32 +341,34 @@ impl Tuner {
                 .into_iter()
                 .map(|p| p.join().unwrap_or_default())
                 .sum::<f64>()
-        }) / (self.entries.len() as f64)
+        }) / (entries.len() as f64)
     }
 
     pub fn train(&mut self) {
         let mut prev_mse = self.mse();
         let batch_count = self.entries.len();
         for epoch in 0..Self::MAX_EPOCHS {
-            for _ in 0..batch_count {
+            for i in 0..batch_count {
+                self.batch = i;
                 self.update_gradient();
                 self.update_weights();
-                self.batch += 1;
             }
 
-            let mse = self.mse();
-            let delta_mse = prev_mse - mse;
-            println!("Epoch: {epoch}");
-            println!("MSE: {mse}");
-            println!("MSE change since previous: {delta_mse}\n");
+            if epoch % Self::CHECK_FREQ == 0 {
+                let mse = self.mse();
+                let delta_mse = prev_mse - mse;
+                println!("Epoch: {epoch}");
+                println!("MSE: {mse}");
+                println!("MSE change since previous: {delta_mse}\n");
 
-            self.create_output_file();
-            // self.create_weights_file();
+                self.create_output_file();
+                // self.create_weights_file();
 
-            if delta_mse < Self::CONVERGENCE_DELTA {
-                return;
+                if delta_mse < Self::CONVERGENCE_DELTA {
+                    return;
+                }
+                prev_mse = mse;
             }
-            prev_mse = mse;
         }
     }
 
