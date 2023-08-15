@@ -576,7 +576,7 @@ impl Tuner {
 
         writeln!(output, "pub const ATTACKING_PIECE_LOCATIONS: [[[ScoreTuple; {}]; 24]; 4] = [", HIDDEN_LAYER_SIZE).unwrap();
         for &piece in Piece::LIST.iter().take(4) {
-            let (start, end) = (AttackingPieceLocations::index(piece, 0), AttackingPieceLocations::index(piece, 23));
+            let (start, end) = (AttackingPieceLocations::index(piece, 0), AttackingPieceLocations::index(piece, 24));
             writeln!(output, "[").unwrap();
             Self::write_net_rows(&self.weights.safety_net.hidden_weights[start..end], output);
             writeln!(output, "],").unwrap();
@@ -585,7 +585,7 @@ impl Tuner {
 
         writeln!(output, "pub const DEFENDING_PIECE_LOCATIONS: [[[ScoreTuple; {}]; 24]; 4] = [", HIDDEN_LAYER_SIZE).unwrap();
         for &piece in Piece::LIST.iter().take(4) {
-            let (start, end) = (DefendingPieceLocations::index(piece, 0), DefendingPieceLocations::index(piece, 23));
+            let (start, end) = (DefendingPieceLocations::index(piece, 0), DefendingPieceLocations::index(piece, 24));
             writeln!(output, "[").unwrap();
             Self::write_net_rows(&self.weights.safety_net.hidden_weights[start..end], output);
             writeln!(output, "],").unwrap();
