@@ -19,6 +19,8 @@ pub const HIDDEN_LAYER_SIZE: usize = 8;
 
 pub const SCALE: i32 = 128;
 
+const INVALID_LOCATION: usize = 64;
+
 const PAWN_MASKS: [Bitboard; NUM_FILES as usize] = {
     let mut masks = [Bitboard::EMPTY; NUM_FILES as usize];
 
@@ -51,7 +53,7 @@ const PIECE_MASKS: [Bitboard; NUM_FILES as usize] = {
 };
 
 const PAWN_LOCATIONS: [[[usize; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_COLORS as usize] = {
-    let mut result = [[[0; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_COLORS as usize];
+    let mut result = [[[INVALID_LOCATION; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_COLORS as usize];
 
     let mut i = 0;
     while i < (NUM_FILES as usize) {
@@ -71,7 +73,7 @@ const PAWN_LOCATIONS: [[[usize; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_
 };
 
 const PIECE_LOCATIONS: [[[usize; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_COLORS as usize] = {
-    let mut result = [[[0; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_COLORS as usize];
+    let mut result = [[[INVALID_LOCATION; NUM_SQUARES as usize]; NUM_FILES as usize]; NUM_COLORS as usize];
 
     let mut i = 0;
     while i < (NUM_FILES as usize) {
@@ -173,12 +175,18 @@ impl SafetyNet {
     ) {
         let location =
             PIECE_LOCATIONS[color.as_index()][enemy_king_sq.file() as usize][sq.as_index()];
+                        
+        if location == INVALID_LOCATION {
+            return;
+        }
+        
         for (i, &weight) in ATTACKING_PIECE_LOCATIONS[piece.as_index()][location]
             .iter()
             .enumerate()
         {
             self.hidden_sums[i] += weight;
         }
+
         if TRACE {
             trace_safety_update!(t, AttackingPieceLocations, (location), color, 1);
         }
@@ -194,12 +202,18 @@ impl SafetyNet {
     ) {
         let location =
             PIECE_LOCATIONS[color.as_index()][friendly_king_sq.file() as usize][sq.as_index()];
+            
+        if location == INVALID_LOCATION {
+            return;
+        }
+
         for (i, &weight) in DEFENDING_PIECE_LOCATIONS[piece.as_index()][location]
             .iter()
             .enumerate()
         {
             self.hidden_sums[i] += weight;
         }
+
         if TRACE {
             trace_safety_update!(t, DefendingPieceLocations, (location), color, 1);
         }
