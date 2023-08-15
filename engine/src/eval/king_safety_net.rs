@@ -188,7 +188,7 @@ impl SafetyNet {
         }
 
         if TRACE {
-            trace_safety_update!(t, AttackingPieceLocations, (location), color, 1);
+            trace_safety_update!(t, AttackingPieceLocations, (piece, location), color, 1);
         }
     }
 
@@ -215,7 +215,7 @@ impl SafetyNet {
         }
 
         if TRACE {
-            trace_safety_update!(t, DefendingPieceLocations, (location), color, 1);
+            trace_safety_update!(t, DefendingPieceLocations, (piece, location), color, 1);
         }
     }
 

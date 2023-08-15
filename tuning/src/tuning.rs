@@ -2,6 +2,7 @@ use crate::{safety_tuning::LayerSums, tuner_val::S};
 
 use crate::safety_tuning::Net;
 
+use engine::eval::trace::{AttackingPieceLocations, DefendingPieceLocations};
 use engine::{
     board::board_representation::{
         Board, Color, Piece, Square, NUM_COLORS, NUM_RANKS, NUM_SQUARES,
@@ -572,6 +573,25 @@ impl Tuner {
         writeln!(output, "pub const DEFENDING_PAWN_LOCATIONS: [[ScoreTuple; {}]; {}] = [", HIDDEN_LAYER_SIZE, DefendingPawnLocations::LEN).unwrap();
         Self::write_net_rows(&self.weights.safety_net.hidden_weights[DefendingPawnLocations::START..DefendingPawnLocations::END], output);
         writeln!(output, "];\n",).unwrap();
+
+        writeln!(output, "pub const ATTACKING_PIECE_LOCATIONS: [[[ScoreTuple; {}]; 24]; 4] = [", HIDDEN_LAYER_SIZE).unwrap();
+        for &piece in Piece::LIST.iter().take(4) {
+            let (start, end) = (AttackingPieceLocations::index(piece, 0), AttackingPieceLocations::index(piece, 23));
+            writeln!(output, "[").unwrap();
+            Self::write_net_rows(&self.weights.safety_net.hidden_weights[start..end], output);
+            writeln!(output, "],").unwrap();
+        }
+        writeln!(output, "];\n",).unwrap();
+
+        writeln!(output, "pub const DEFENDING_PIECE_LOCATIONS: [[[ScoreTuple; {}]; 24]; 4] = [", HIDDEN_LAYER_SIZE).unwrap();
+        for &piece in Piece::LIST.iter().take(4) {
+            let (start, end) = (DefendingPieceLocations::index(piece, 0), DefendingPieceLocations::index(piece, 23));
+            writeln!(output, "[").unwrap();
+            Self::write_net_rows(&self.weights.safety_net.hidden_weights[start..end], output);
+            writeln!(output, "],").unwrap();
+        }
+        writeln!(output, "];\n",).unwrap();
+
 
         writeln!(output, "pub const HIDDEN_BIASES: [ScoreTuple; {}] = ", HIDDEN_LAYER_SIZE).unwrap();
         Self::write_net_rows(&[self.weights.safety_net.hidden_biases], output);

@@ -21,7 +21,9 @@ pub const SAFETY_TRACE_LEN: usize = Attacks::LEN
     + Defenses::LEN
     + EnemyKingRank::LEN
     + AttackingPawnLocations::LEN
-    + DefendingPawnLocations::LEN;
+    + DefendingPawnLocations::LEN
+    + AttackingPieceLocations::LEN
+    + DefendingPieceLocations::LEN;
 
 pub struct Trace {
     pub linear: [i16; LINEAR_TRACE_LEN],
@@ -284,21 +286,19 @@ impl DefendingPawnLocations {
 pub struct AttackingPieceLocations;
 impl AttackingPieceLocations {
     pub const START: usize = DefendingPawnLocations::START + DefendingPawnLocations::LEN;
-    pub const LEN: usize = 24;
-    pub const END: usize = Self::START + Self::LEN;
+    pub const LEN: usize = (NUM_PIECES - 2) as usize * 24;
 
-    pub const fn index(location: usize) -> usize {
-        Self::START + location
+    pub const fn index(piece: Piece, location: usize) -> usize {
+        Self::START + (NUM_PIECES - 2) as usize * piece.as_index() + location
     }
 }
 
 pub struct DefendingPieceLocations;
 impl DefendingPieceLocations {
     pub const START: usize = AttackingPieceLocations::START + AttackingPieceLocations::LEN;
-    pub const LEN: usize = 24;
-    pub const END: usize = Self::START + Self::LEN;
+    pub const LEN: usize = (NUM_PIECES - 2) as usize * 24;
 
-    pub const fn index(location: usize) -> usize {
-        Self::START + location
+    pub const fn index(piece: Piece, location: usize) -> usize {
+        Self::START + (NUM_PIECES - 2) as usize * piece.as_index() + location
     }
 }
