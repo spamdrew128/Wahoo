@@ -280,3 +280,25 @@ impl DefendingPawnLocations {
         Self::START + location
     }
 }
+
+pub struct AttackingPieceLocations;
+impl AttackingPieceLocations {
+    pub const START: usize = DefendingPawnLocations::START + DefendingPawnLocations::LEN;
+    pub const LEN: usize = 24;
+    pub const END: usize = Self::START + Self::LEN;
+
+    pub const fn index(location: usize) -> usize {
+        Self::START + location
+    }
+}
+
+pub struct DefendingPieceLocations;
+impl DefendingPieceLocations {
+    pub const START: usize = AttackingPieceLocations::START + AttackingPieceLocations::LEN;
+    pub const LEN: usize = 24;
+    pub const END: usize = Self::START + Self::LEN;
+
+    pub const fn index(location: usize) -> usize {
+        Self::START + location
+    }
+}

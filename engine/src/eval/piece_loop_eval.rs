@@ -212,8 +212,6 @@ impl LoopEvaluator {
         safety_net[color.as_index()].update_attacks(piece, kz_attacks);
         safety_net[opp_color.as_index()].update_defenses(piece, kz_defenses);
 
-        // self.tropism += tropism(self.enemy_king_sq, sq);
-
         match PIECE {
             ConstPiece::KNIGHT => {
                 score += KNIGHT_MOBILITY[mobility];
