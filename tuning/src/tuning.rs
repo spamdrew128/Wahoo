@@ -188,7 +188,7 @@ impl Tuner {
     const CONVERGENCE_DELTA: f64 = 1e-7;
     const CONVERGENCE_CHECK_FREQ: u32 = 50;
     const MAX_EPOCHS: u32 = 20000;
-    const LEARN_RATE: f64 = 0.12;
+    const LEARN_RATE: f64 = 0.01;
 
     fn new_weights() -> TunerStruct {
         let mut result = TunerStruct::new();
