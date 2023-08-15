@@ -9,10 +9,10 @@ use crate::{
         PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY,
         QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
     },
+    eval::evaluation::ScoreTuple,
     eval::trace::{
         color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace,
     },
-    eval::evaluation::ScoreTuple,
     trace_safety_update, trace_threat_update, trace_update,
 };
 
