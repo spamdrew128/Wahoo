@@ -140,12 +140,13 @@ impl Entry {
 }
 
 pub struct Tuner {
-    entries: Vec<Entry>,
+    entries: Vec<Vec<Entry>>,
     gradient: TunerStruct,
     weights: TunerStruct,
     momentum: TunerStruct,
     velocity: TunerStruct,
     threads: usize,
+    batch: usize,
 }
 
 macro_rules! update_weights {
@@ -174,9 +175,10 @@ macro_rules! update_weights {
 impl Tuner {
     const K: f64 = 0.006634;
     const CONVERGENCE_DELTA: f64 = 7e-7;
-    const CONVERGENCE_CHECK_FREQ: u32 = 50;
-    const MAX_EPOCHS: u32 = 20000;
-    const LEARN_RATE: f64 = 0.12;
+    const BATCH_SIZE: usize = 16384;
+    const MAX_EPOCHS: u32 = 5000;
+    const LEARN_RATE: f64 = 0.01;
+    const CHECK_FREQ: u32 = 10;
 
     fn new_weights() -> TunerStruct {
         let mut result = TunerStruct::new();
@@ -203,20 +205,33 @@ impl Tuner {
             momentum: TunerStruct::new(),
             velocity: TunerStruct::new(),
             threads,
+            batch: 0,
         }
     }
 
     pub fn load_from_file(&mut self, file_name: &str) {
+        let mut batch = vec![];
+        let mut entry_count = 0;
+        let mut batch_count = 0;
         for line in read_to_string(file_name).unwrap().lines() {
             let (fen, r) = line.split_once('[').unwrap();
             let game_result = r.split_once(']').unwrap().0.parse::<f64>().unwrap();
 
             let board = Board::from_fen(fen);
-            self.entries.push(Entry::new(&board, game_result));
-        }
-        println!("Loaded file: begin tuning...\n");
-    }
+            batch.push(Entry::new(&board, game_result));
+            entry_count += 1;
 
+            if batch.len() == Self::BATCH_SIZE {
+                self.entries.push(batch);
+                batch = vec![];
+                batch_count += 1;
+            }
+        }
+        self.entries.push(batch);
+        batch_count += 1;
+        println!("Loaded {entry_count} entries in {batch_count} batches\nbegin tuning...\n");
+    }
+    
     fn sigmoid(e: f64) -> f64 {
         1.0 / (1.0 + (f64::exp(-Self::K * e)))
     }
@@ -272,9 +287,9 @@ impl Tuner {
     }
 
     fn update_gradient(&mut self) {
-        let size = self.entries.len() / self.threads;
+        let size = self.entries[self.batch].len() / self.threads;
         self.gradient = thread::scope(|s| {
-            self.entries
+            self.entries[self.batch]
                 .chunks(size)
                 .map(|chunk| {
                     s.spawn(|| {
@@ -296,16 +311,11 @@ impl Tuner {
         });
     }
 
-    #[rustfmt::skip]
-    fn update_weights(&mut self) {
-        update_weights!(self, linear);
-        update_weights!(self, safety);
-    }
-
     fn mse(&self) -> f64 {
-        let size = self.entries.len() / self.threads;
+        let entries: Vec<&Entry> = self.entries.iter().flatten().collect();
+        let size = entries.len() / self.threads;
         thread::scope(|s| {
-            self.entries
+            entries
                 .chunks(size)
                 .map(|chunk| {
                     s.spawn(|| {
@@ -319,16 +329,26 @@ impl Tuner {
                 .into_iter()
                 .map(|p| p.join().unwrap_or_default())
                 .sum::<f64>()
-        }) / (self.entries.len() as f64)
+        }) / (entries.len() as f64)
+    }
+
+    #[rustfmt::skip]
+    fn update_weights(&mut self) {
+        update_weights!(self, linear);
+        update_weights!(self, safety);
     }
 
     pub fn train(&mut self) {
         let mut prev_mse = self.mse();
+        let batch_count = self.entries.len();
         for epoch in 0..Self::MAX_EPOCHS {
-            self.update_gradient();
-            self.update_weights();
+            for i in 0..batch_count {
+                self.batch = i;
+                self.update_gradient();
+                self.update_weights();
+            }
 
-            if epoch % Self::CONVERGENCE_CHECK_FREQ == 0 {
+            if epoch % Self::CHECK_FREQ == 0 {
                 let mse = self.mse();
                 let delta_mse = prev_mse - mse;
                 println!("Epoch: {epoch}");
@@ -336,7 +356,6 @@ impl Tuner {
                 println!("MSE change since previous: {delta_mse}\n");
 
                 self.create_output_file();
-                // self.create_weights_file();
 
                 if delta_mse < Self::CONVERGENCE_DELTA {
                     return;
