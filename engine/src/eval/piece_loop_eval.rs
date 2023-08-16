@@ -212,7 +212,8 @@ impl LoopEvaluator {
         safety_net[color.as_index()].update_attacks(piece, kz_attacks);
         safety_net[opp_color.as_index()].update_defenses(piece, kz_defenses);
 
-        // self.tropism += tropism(self.enemy_king_sq, sq);
+        safety_net[color.as_index()].update_piece_attacker::<TRACE>(piece, sq, color, self.enemy_king_sq, t);
+        safety_net[opp_color.as_index()].update_piece_defender::<TRACE>(piece, sq, opp_color, self.friendly_king_sq, t);
 
         match PIECE {
             ConstPiece::KNIGHT => {
