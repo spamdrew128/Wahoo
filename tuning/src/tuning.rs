@@ -356,7 +356,6 @@ impl Tuner {
                 println!("MSE change since previous: {delta_mse}\n");
 
                 self.create_output_file();
-                // self.create_weights_file();
 
                 if delta_mse < Self::CONVERGENCE_DELTA {
                     return;
