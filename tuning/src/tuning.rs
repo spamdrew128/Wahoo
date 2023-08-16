@@ -287,9 +287,9 @@ impl Tuner {
     }
 
     fn update_gradient(&mut self) {
-        let size = self.entries.len() / self.threads;
+        let size = self.entries[self.batch].len() / self.threads;
         self.gradient = thread::scope(|s| {
-            self.entries
+            self.entries[self.batch]
                 .chunks(size)
                 .map(|chunk| {
                     s.spawn(|| {
@@ -311,16 +311,11 @@ impl Tuner {
         });
     }
 
-    #[rustfmt::skip]
-    fn update_weights(&mut self) {
-        update_weights!(self, linear);
-        update_weights!(self, safety);
-    }
-
     fn mse(&self) -> f64 {
-        let size = self.entries.len() / self.threads;
+        let entries: Vec<&Entry> = self.entries.iter().flatten().collect();
+        let size = entries.len() / self.threads;
         thread::scope(|s| {
-            self.entries
+            entries
                 .chunks(size)
                 .map(|chunk| {
                     s.spawn(|| {
@@ -334,16 +329,26 @@ impl Tuner {
                 .into_iter()
                 .map(|p| p.join().unwrap_or_default())
                 .sum::<f64>()
-        }) / (self.entries.len() as f64)
+        }) / (entries.len() as f64)
+    }
+
+    #[rustfmt::skip]
+    fn update_weights(&mut self) {
+        update_weights!(self, linear);
+        update_weights!(self, safety);
     }
 
     pub fn train(&mut self) {
         let mut prev_mse = self.mse();
+        let batch_count = self.entries.len();
         for epoch in 0..Self::MAX_EPOCHS {
-            self.update_gradient();
-            self.update_weights();
+            for i in 0..batch_count {
+                self.batch = i;
+                self.update_gradient();
+                self.update_weights();
+            }
 
-            if epoch % Self::CONVERGENCE_CHECK_FREQ == 0 {
+            if epoch % Self::CHECK_FREQ == 0 {
                 let mse = self.mse();
                 let delta_mse = prev_mse - mse;
                 println!("Epoch: {epoch}");
