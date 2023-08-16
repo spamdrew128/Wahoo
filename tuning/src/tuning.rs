@@ -140,12 +140,13 @@ impl Entry {
 }
 
 pub struct Tuner {
-    entries: Vec<Entry>,
+    entries: Vec<Vec<Entry>>,
     gradient: TunerStruct,
     weights: TunerStruct,
     momentum: TunerStruct,
     velocity: TunerStruct,
     threads: usize,
+    batch: usize,
 }
 
 macro_rules! update_weights {
@@ -174,9 +175,10 @@ macro_rules! update_weights {
 impl Tuner {
     const K: f64 = 0.006634;
     const CONVERGENCE_DELTA: f64 = 7e-7;
-    const CONVERGENCE_CHECK_FREQ: u32 = 50;
-    const MAX_EPOCHS: u32 = 20000;
-    const LEARN_RATE: f64 = 0.12;
+    const BATCH_SIZE: usize = 16384;
+    const MAX_EPOCHS: u32 = 5000;
+    const LEARN_RATE: f64 = 0.01;
+    const CHECK_FREQ: u32 = 10;
 
     fn new_weights() -> TunerStruct {
         let mut result = TunerStruct::new();
@@ -203,20 +205,33 @@ impl Tuner {
             momentum: TunerStruct::new(),
             velocity: TunerStruct::new(),
             threads,
+            batch: 0,
         }
     }
 
     pub fn load_from_file(&mut self, file_name: &str) {
+        let mut batch = vec![];
+        let mut entry_count = 0;
+        let mut batch_count = 0;
         for line in read_to_string(file_name).unwrap().lines() {
             let (fen, r) = line.split_once('[').unwrap();
             let game_result = r.split_once(']').unwrap().0.parse::<f64>().unwrap();
 
             let board = Board::from_fen(fen);
-            self.entries.push(Entry::new(&board, game_result));
-        }
-        println!("Loaded file: begin tuning...\n");
-    }
+            batch.push(Entry::new(&board, game_result));
+            entry_count += 1;
 
+            if batch.len() == Self::BATCH_SIZE {
+                self.entries.push(batch);
+                batch = vec![];
+                batch_count += 1;
+            }
+        }
+        self.entries.push(batch);
+        batch_count += 1;
+        println!("Loaded {entry_count} entries in {batch_count} batches\nbegin tuning...\n");
+    }
+    
     fn sigmoid(e: f64) -> f64 {
         1.0 / (1.0 + (f64::exp(-Self::K * e)))
     }
