@@ -5,7 +5,7 @@ use crate::{
     board::board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
     eval::eval_constants::{
         BISHOP_PAIR_BONUS, ISOLATED_PAWNS_PRT, MATERIAL_PSTS, PASSER_BLOCKERS_PRT, PASSER_PST,
-        PHALANX_PAWNS_PRT, TEMPO_BONUS,
+        PHALANX_PAWNS_PRT,
     },
     eval::trace::{
         color_adjust, BishopPair, IsolatedPawns, MaterialPst, Passer, PasserBlocker, PhalanxPawns,
