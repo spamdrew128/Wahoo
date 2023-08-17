@@ -231,7 +231,7 @@ impl Tuner {
         batch_count += 1;
         println!("Loaded {entry_count} entries in {batch_count} batches\nbegin tuning...\n");
     }
-    
+
     fn sigmoid(e: f64) -> f64 {
         1.0 / (1.0 + (f64::exp(-Self::K * e)))
     }

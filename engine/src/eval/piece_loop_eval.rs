@@ -12,9 +12,12 @@ use crate::{
         PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY,
         ROOK_FORWARD_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN, TROPHISM_BONUS,
     },
-    eval::trace::{
-        color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, PawnStorm,
-        Threats, Trace,
+    eval::{
+        eval_constants::FILE_STRUCTURE,
+        trace::{
+            color_adjust, Attacks, Defenses, EnemyKingRank, FileStructure, ForwardMobility,
+            Mobility, PawnStorm, Threats, Trace,
+        },
     },
     eval::{evaluation::ScoreTuple, trace::Tropism},
     trace_safety_update, trace_threat_update, trace_update,
@@ -370,7 +373,11 @@ fn pawn_storm_tropism(enemy_king_sq: Square, pawns: Bitboard) -> usize {
     trop
 }
 
-fn file_types(board: &Board) {
+fn safety_file_stucture<const TRACE: bool>(
+    board: &Board,
+    attack_power: &mut [ScoreTuple; 2],
+    t: &mut Trace,
+) {
     // this is so when we get files setwise we can mask and then count how many there are
     const FILE_MASK: Bitboard = Bitboard::RANK_1.forward_fill(Color::White);
 
@@ -380,9 +387,30 @@ fn file_types(board: &Board) {
     let w_files = w_pawns.file_fill();
     let b_files = b_pawns.file_fill();
 
-    let open = w_files.union(b_files).complement();
-    let w_semi = b_files.without(w_files);
-    let b_semi = w_files.without(b_files);
+    let open = w_files.union(b_files).complement().intersection(FILE_MASK);
+    let semi = [
+        b_files.without(w_files).intersection(FILE_MASK),
+        w_files.without(b_files).intersection(FILE_MASK),
+    ];
+    let locked = w_pawns
+        .north_one()
+        .intersection(b_pawns)
+        .without(attacks::pawn_setwise(w_pawns, Color::White));
+
+    for color in Color::LIST {
+        let attacking_zone = KING_FILE_ZONES[board.color_king_sq(color.flip()).file() as usize];
+        let index = (open.intersection(attacking_zone).popcount()
+            + 3 * semi[color.as_index()]
+                .intersection(attacking_zone)
+                .popcount()
+            + 9 * locked.intersection(attacking_zone).popcount()) as usize;
+
+        attack_power[color.as_index()] += FILE_STRUCTURE[index];
+
+        if TRACE {
+            trace_safety_update!(t, FileStructure, (index), color, 1);
+        }
+    }
 }
 
 fn one_sided_eval<const TRACE: bool>(
@@ -447,6 +475,8 @@ pub fn mobility_threats_safety<const TRACE: bool>(
                 them,
                 t,
             );
+
+    safety_file_stucture::<TRACE>(board, &mut attack_power, t);
 
     let safety = attack_power[us.as_index()].king_safety_formula()
         - attack_power[them.as_index()].king_safety_formula();

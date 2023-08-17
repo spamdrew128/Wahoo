@@ -274,3 +274,12 @@ impl PawnStorm {
         Self::START + trop
     }
 }
+pub struct FileStructure;
+impl FileStructure {
+    pub const START: usize = PawnStorm::START + PawnStorm::LEN;
+    pub const LEN: usize = 3_usize.pow(3);
+
+    pub const fn index(index: usize) -> usize {
+        Self::START + index
+    }
+}
