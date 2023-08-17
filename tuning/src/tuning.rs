@@ -13,10 +13,12 @@ use engine::{
         PasserBlocker, PhalanxPawns, TempoBonus, Threats, LINEAR_TRACE_LEN,
     },
     eval::{
-        king_safety_net::{HIDDEN_LAYER_SIZE, SCALE},
+        king_safety_net::SCALE,
         trace::{AttackingPawnLocations, Attacks, DefendingPawnLocations, Defenses, PasserSqRule},
     },
 };
+use crate::HIDDEN_LAYER_SIZE;
+
 use std::{
     fs::{read_to_string, File},
     io::BufWriter,
@@ -27,7 +29,7 @@ use std::{
 #[derive(Clone)]
 struct TunerStruct {
     linear: [S; LINEAR_TRACE_LEN],
-    safety_net: Net,
+    safety_net: Box<Net>,
 }
 
 macro_rules! flatten_tuner_struct {
@@ -56,7 +58,7 @@ impl TunerStruct {
     fn new() -> Self {
         Self {
             linear: [S::new(0.0, 0.0); LINEAR_TRACE_LEN],
-            safety_net: Net::new(),
+            safety_net: Box::new(Net::new()),
         }
     }
 
@@ -200,7 +202,7 @@ impl Tuner {
             }
         }
 
-        result.safety_net = Net::new_randomized();
+        result.safety_net = Box::new(Net::new_randomized());
 
         result
     }

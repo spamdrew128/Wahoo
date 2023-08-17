@@ -15,7 +15,7 @@ use super::eval_constants::{
 };
 use super::trace::Trace;
 
-pub const HIDDEN_LAYER_SIZE: usize = 8;
+pub const HIDDEN_LAYER_SIZE: usize = 32;
 
 pub const SCALE: i32 = 128;
 
