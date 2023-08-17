@@ -370,6 +370,21 @@ fn pawn_storm_tropism(enemy_king_sq: Square, pawns: Bitboard) -> usize {
     trop
 }
 
+fn file_types(board: &Board) {
+    // this is so when we get files setwise we can mask and then count how many there are
+    const FILE_MASK: Bitboard = Bitboard::RANK_1.forward_fill(Color::White);
+
+    let w_pawns = board.piece_bb(Piece::PAWN, Color::White);
+    let b_pawns = board.piece_bb(Piece::PAWN, Color::Black);
+
+    let w_files = w_pawns.file_fill();
+    let b_files = b_pawns.file_fill();
+
+    let open = w_files.union(b_files).complement();
+    let w_semi = b_files.without(w_files);
+    let b_semi = w_files.without(b_files);
+}
+
 fn one_sided_eval<const TRACE: bool>(
     board: &Board,
     attack_power: &mut [ScoreTuple; 2],
