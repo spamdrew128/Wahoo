@@ -271,12 +271,6 @@ fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
     }
 
     let mut score_tuple = TEMPO_BONUS;
-    score_tuple += pst_eval::<TRACE>(board, us, t) - pst_eval::<TRACE>(board, them, t);
-    score_tuple += bishop_pair::<TRACE>(board, us, t) - bishop_pair::<TRACE>(board, them, t);
-    score_tuple +=
-        passed_pawns::<true, TRACE>(board, us, t) - passed_pawns::<false, TRACE>(board, them, t);
-    score_tuple += isolated_pawns::<TRACE>(board, us, t) - isolated_pawns::<TRACE>(board, them, t);
-    score_tuple += phalanx_pawns::<TRACE>(board, us, t) - phalanx_pawns::<TRACE>(board, them, t);
     score_tuple += mobility_threats_safety::<TRACE>(board, us, them, t);
 
     let mg_phase = i32::from(phase(board));
