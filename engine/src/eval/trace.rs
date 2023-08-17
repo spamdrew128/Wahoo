@@ -17,8 +17,12 @@ pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
     + ForwardMobility::LEN
     + PasserSqRule::LEN;
 
-pub const SAFETY_TRACE_LEN: usize =
-    Attacks::LEN + Defenses::LEN + EnemyKingRank::LEN + Tropism::LEN + PawnStorm::LEN;
+pub const SAFETY_TRACE_LEN: usize = Attacks::LEN
+    + Defenses::LEN
+    + EnemyKingRank::LEN
+    + Tropism::LEN
+    + PawnStorm::LEN
+    + FileStructure::LEN;
 
 pub struct Trace {
     pub linear: [i8; LINEAR_TRACE_LEN],
@@ -277,7 +281,7 @@ impl PawnStorm {
 pub struct FileStructure;
 impl FileStructure {
     pub const START: usize = PawnStorm::START + PawnStorm::LEN;
-    pub const LEN: usize = 3_usize.pow(3);
+    pub const LEN: usize = 4_usize.pow(3);
 
     pub const fn index(index: usize) -> usize {
         Self::START + index
