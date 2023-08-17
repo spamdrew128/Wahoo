@@ -2,11 +2,18 @@ use crate::{
     bitloop,
     board::attacks,
     board::board_representation::{Bitboard, Board, Color, Piece, Square, NUM_COLORS, NUM_SQUARES},
+    eval::eval_constants::{
+        BISHOP_FORWARD_MOBILITY, BISHOP_MOBILITY, BISHOP_THREAT_ON_KNIGHT, BISHOP_THREAT_ON_QUEEN,
+        BISHOP_THREAT_ON_ROOK, KNIGHT_FORWARD_MOBILITY, KNIGHT_MOBILITY, KNIGHT_THREAT_ON_BISHOP,
+        KNIGHT_THREAT_ON_QUEEN, KNIGHT_THREAT_ON_ROOK, PAWN_THREAT_ON_BISHOP,
+        PAWN_THREAT_ON_KNIGHT, PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY,
+        QUEEN_MOBILITY, ROOK_FORWARD_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN,
+    },
     eval::evaluation::ScoreTuple,
     eval::trace::{
-        color_adjust, Attacks, Defenses, EnemyKingRank, Trace,
+        color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, Threats, Trace,
     },
-    trace_safety_update,
+    trace_safety_update, trace_threat_update, trace_update,
 };
 
 use super::king_safety_net::SafetyNet;
@@ -189,12 +196,16 @@ impl LoopEvaluator {
 
     #[allow(clippy::cast_possible_wrap)]
     #[rustfmt::skip]
-    fn single_score<const PIECE: u8, const TRACE: bool>(&mut self, sq: Square, safety_net: &mut [SafetyNet; 2], t: &mut Trace) {
+    fn single_score<const PIECE: u8, const TRACE: bool>(&mut self, sq: Square, safety_net: &mut [SafetyNet; 2], t: &mut Trace) -> ScoreTuple {
+        let mut score = ScoreTuple::new(0, 0);
         let color = self.color;
         let opp_color = self.color.flip();
         let piece = ConstPiece::piece::<PIECE>();
         let attacks = self.moves::<PIECE>(sq);
         let moves = attacks & self.availible;
+
+        let mobility = moves.popcount() as usize;
+        let forward_mobility = forward_mobility(moves, sq, self.color);
 
         let kz_attacks = self.enemy_king_zone.intersection(moves).popcount() as i32;
         let kz_defenses = self.friendly_king_zone.intersection(moves).popcount() as i32;
@@ -204,20 +215,90 @@ impl LoopEvaluator {
         safety_net[color.as_index()].update_piece_attacker::<TRACE>(piece, sq, color, self.enemy_king_sq, t);
         safety_net[opp_color.as_index()].update_piece_defender::<TRACE>(piece, sq, opp_color, self.friendly_king_sq, t);
 
+        match PIECE {
+            ConstPiece::KNIGHT => {
+                score += KNIGHT_MOBILITY[mobility];
+                score += KNIGHT_FORWARD_MOBILITY[forward_mobility];
+
+                score += KNIGHT_THREAT_ON_BISHOP
+                    .mult((attacks & self.enemy_bishops).popcount() as i32)
+                    + KNIGHT_THREAT_ON_ROOK.mult((attacks & self.enemy_rooks).popcount() as i32)
+                    + KNIGHT_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
+
+                if TRACE {
+                    trace_threat_update!(t, KNIGHT_THREAT_ON_BISHOP, color, attacks, self.enemy_bishops);
+                    trace_threat_update!(t, KNIGHT_THREAT_ON_ROOK, color, attacks, self.enemy_rooks);
+                    trace_threat_update!(t, KNIGHT_THREAT_ON_QUEEN, color, attacks, self.enemy_queens);
+                }
+            }
+            ConstPiece::BISHOP => {
+                score += BISHOP_MOBILITY[mobility];
+                score += BISHOP_FORWARD_MOBILITY[forward_mobility];
+
+                score += BISHOP_THREAT_ON_KNIGHT
+                    .mult((attacks & self.enemy_knights).popcount() as i32)
+                    + BISHOP_THREAT_ON_ROOK.mult((attacks & self.enemy_rooks).popcount() as i32)
+                    + BISHOP_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
+
+                    if TRACE {
+                        trace_threat_update!(t, BISHOP_THREAT_ON_KNIGHT, color, attacks, self.enemy_knights);
+                        trace_threat_update!(t, BISHOP_THREAT_ON_ROOK, color, attacks, self.enemy_rooks);
+                        trace_threat_update!(t, BISHOP_THREAT_ON_QUEEN, color, attacks, self.enemy_queens);
+                    }
+            }
+            ConstPiece::ROOK => {
+                score += ROOK_MOBILITY[mobility];
+                score += ROOK_FORWARD_MOBILITY[forward_mobility];
+
+                score += ROOK_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
+
+                if TRACE {
+                    trace_threat_update!(t, ROOK_THREAT_ON_QUEEN, color, attacks, self.enemy_queens);
+                }
+            }
+            ConstPiece::QUEEN => {
+                score += QUEEN_MOBILITY[mobility];
+                score += QUEEN_FORWARD_MOBILITY[forward_mobility];
+            }
+            _ => (),
+        }
 
         if TRACE {
             trace_safety_update!(t, Attacks, (piece), self.color, kz_attacks);
             trace_safety_update!(t, Defenses, (piece), self.color.flip(), kz_defenses);
+
+            // we fix 0 mobility at 0 for eval constants readability
+            if mobility > 0 {
+                trace_update!(t, Mobility, (piece, mobility), self.color, 1);
+            }
+            if forward_mobility > 0 {
+                trace_update!(t, ForwardMobility, (piece, forward_mobility), self.color, 1);
+            }
         }
+
+        score
     }
 
     #[allow(clippy::cast_possible_wrap)]
     #[rustfmt::skip]
-    fn pawn_score<const TRACE: bool>(&self, pawns: Bitboard, color: Color, safety_net: &mut [SafetyNet; 2], t: &mut Trace) {
+    fn pawn_score<const TRACE: bool>(&self, pawns: Bitboard, color: Color, safety_net: &mut [SafetyNet; 2], t: &mut Trace) -> ScoreTuple {
         let us = color;
         let them = color.flip();
         safety_net[us.as_index()].update_attacking_pawns::<TRACE>(pawns, self.enemy_king_sq, us, t);
         safety_net[them.as_index()].update_defending_pawns::<TRACE>(pawns, self.friendly_king_sq, them, t);
+
+        let pawn_attacks = attacks::pawn_setwise(pawns, color);
+        if TRACE {
+            trace_threat_update!(t, PAWN_THREAT_ON_KNIGHT, self.color, pawn_attacks, self.enemy_knights);
+            trace_threat_update!(t, PAWN_THREAT_ON_BISHOP, self.color, pawn_attacks, self.enemy_bishops);
+            trace_threat_update!(t, PAWN_THREAT_ON_ROOK, self.color, pawn_attacks, self.enemy_rooks);
+            trace_threat_update!(t, PAWN_THREAT_ON_QUEEN, self.color, pawn_attacks, self.enemy_queens);
+        }
+
+        PAWN_THREAT_ON_KNIGHT.mult((pawn_attacks & self.enemy_knights).popcount() as i32)
+            + PAWN_THREAT_ON_BISHOP.mult((pawn_attacks & self.enemy_bishops).popcount() as i32)
+            + PAWN_THREAT_ON_ROOK.mult((pawn_attacks & self.enemy_rooks).popcount() as i32)
+            + PAWN_THREAT_ON_QUEEN.mult((pawn_attacks & self.enemy_queens).popcount() as i32)
     }
 
     fn piece_loop<const PIECE: u8, const TRACE: bool>(
@@ -225,10 +306,12 @@ impl LoopEvaluator {
         mut piece_bb: Bitboard,
         safety_net: &mut [SafetyNet; 2],
         t: &mut Trace,
-    ) {
+    ) -> ScoreTuple {
+        let mut score = ScoreTuple::new(0, 0);
         bitloop!(|sq| piece_bb, {
-            self.single_score::<PIECE, TRACE>(sq, safety_net, t);
+            score += self.single_score::<PIECE, TRACE>(sq, safety_net, t);
         });
+        score
     }
 }
 
@@ -237,7 +320,7 @@ fn one_sided_eval<const TRACE: bool>(
     safety_net: &mut [SafetyNet; 2],
     color: Color,
     t: &mut Trace,
-) {
+) -> ScoreTuple {
     let knights = board.piece_bb(Piece::KNIGHT, color);
     let bishops = board.piece_bb(Piece::BISHOP, color);
     let rooks = board.piece_bb(Piece::ROOK, color);
@@ -245,19 +328,26 @@ fn one_sided_eval<const TRACE: bool>(
     let pawns = board.piece_bb(Piece::PAWN, color);
 
     let mut looper = LoopEvaluator::new(board, color);
-    looper.piece_loop::<{ ConstPiece::KNIGHT }, TRACE>(knights, safety_net, t);
-    looper.piece_loop::<{ ConstPiece::BISHOP }, TRACE>(bishops, safety_net, t);
-    looper.piece_loop::<{ ConstPiece::ROOK }, TRACE>(rooks, safety_net, t);
-    looper.piece_loop::<{ ConstPiece::QUEEN }, TRACE>(queens, safety_net, t);
-    looper.pawn_score::<TRACE>(pawns, color, safety_net, t);
+    let score = looper.piece_loop::<{ ConstPiece::KNIGHT }, TRACE>(knights, safety_net, t)
+        + looper.piece_loop::<{ ConstPiece::BISHOP }, TRACE>(bishops, safety_net, t)
+        + looper.piece_loop::<{ ConstPiece::ROOK }, TRACE>(rooks, safety_net, t)
+        + looper.piece_loop::<{ ConstPiece::QUEEN }, TRACE>(queens, safety_net, t)
+        + looper.pawn_score::<TRACE>(pawns, color, safety_net, t);
 
     let opp_king_sq = looper.enemy_king_sq;
     safety_net[color.as_index()].update_enemy_king_rank(opp_king_sq, color);
 
+    // let trop = looper.tropism;
+    // safety_net[color.as_index()].update_tropism(trop);
+
     if TRACE {
         let rank = color_adjust(opp_king_sq, color).rank();
         trace_safety_update!(t, EnemyKingRank, (rank), color, 1);
+
+        // trace_safety_update!(t, Tropism, (), color, trop);
     }
+
+    score
 }
 
 pub fn mobility_threats_safety<const TRACE: bool>(
@@ -268,10 +358,12 @@ pub fn mobility_threats_safety<const TRACE: bool>(
 ) -> ScoreTuple {
     let mut safety_net = [SafetyNet::new(), SafetyNet::new()];
 
-    one_sided_eval::<TRACE>(board, &mut safety_net, us, t);
-    one_sided_eval::<TRACE>(board, &mut safety_net, them, t);
+    let mobility_and_threats = one_sided_eval::<TRACE>(board, &mut safety_net, us, t)
+        - one_sided_eval::<TRACE>(board, &mut safety_net, them, t);
 
-    safety_net[us.as_index()].calculate() - safety_net[them.as_index()].calculate()
+    let safety = safety_net[us.as_index()].calculate() - safety_net[them.as_index()].calculate();
+
+    mobility_and_threats + safety
 }
 
 #[cfg(test)]
@@ -280,7 +372,7 @@ mod tests {
         board::attacks,
         board::board_representation::{Board, Color, Piece, Square},
         eval::{
-            evaluation::{trace_of_position, ScoreTuple, evaluate},
+            evaluation::{trace_of_position, ScoreTuple},
             king_safety_net::SafetyNet,
             piece_loop_eval::forward_mobility,
             trace::{
@@ -410,7 +502,7 @@ mod tests {
 
         for s in samples {
             let board = Board::from_fen(s.0);
-            let output = evaluate(&board);
+            let output = safety_only(&board);
             let desc = if s.1.is_empty() {
                 String::new()
             } else {
