@@ -379,7 +379,7 @@ fn safety_file_stucture<const TRACE: bool>(
     t: &mut Trace,
 ) {
     // this is so when we get files setwise we can mask and then count how many there are
-    const FILE_MASK: Bitboard = Bitboard::RANK_1.forward_fill(Color::White);
+    const FILE_MASK: Bitboard = Bitboard::RANK_1;
 
     let w_pawns = board.piece_bb(Piece::PAWN, Color::White);
     let b_pawns = board.piece_bb(Piece::PAWN, Color::Black);
@@ -562,7 +562,7 @@ mod tests {
     #[test]
     fn safety_files_test() {
         let board =
-            Board::from_fen("1k3bn1/1p1rq2r/p2pb3/PP2ppPp/3N3P/2N5/B1QP1P2/R1B1R1K1 w - - 3 22");
+            Board::from_fen("1k3bn1/1p1rq2r/p2p4/PP1bppPp/7P/2N5/B1Q1NP2/R1B1R1K1 w - - 0 25");
         let expected_open = [1, 0];
         let expected_semi = [0, 1];
         let expected_locked = [0, 1];
