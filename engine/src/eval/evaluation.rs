@@ -270,8 +270,7 @@ fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
         trace_update!(t, TempoBonus, (), color, 1);
     }
 
-    let mut score_tuple = TEMPO_BONUS;
-    score_tuple += mobility_threats_safety::<TRACE>(board, us, them, t);
+    let score_tuple = mobility_threats_safety::<TRACE>(board, us, them, t);
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
