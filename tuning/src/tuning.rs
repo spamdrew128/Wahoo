@@ -6,7 +6,9 @@ use engine::{
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
     eval::{
         evaluation::SAFETY_LIMIT,
-        trace::{Attacks, Defenses, PasserSqRule, PawnStorm, Tropism, SAFETY_TRACE_LEN, FileStructure},
+        trace::{
+            Attacks, Defenses, FileStructure, PasserSqRule, PawnStorm, Tropism, SAFETY_TRACE_LEN,
+        },
     },
     eval::{
         piece_loop_eval::MoveCounts,
@@ -615,7 +617,7 @@ impl Tuner {
 
         write!(
             output,
-            "\npub const FILE_STRUCTURE: [[ScoreTuple; {}] = [\n  ",
+            "\npub const FILE_STRUCTURE: [ScoreTuple; {}] = [\n  ",
             FileStructure::LEN
         )
         .unwrap();

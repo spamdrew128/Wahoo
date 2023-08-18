@@ -392,10 +392,12 @@ fn safety_file_stucture<const TRACE: bool>(
         b_files.without(w_files).intersection(FILE_MASK),
         w_files.without(b_files).intersection(FILE_MASK),
     ];
-    let locked = w_pawns
+    let locked_pawns = w_pawns
         .north_one()
         .intersection(b_pawns)
         .without(attacks::pawn_setwise(w_pawns, Color::White));
+
+    let locked_files = locked_pawns.file_fill().intersection(FILE_MASK); // need to make sure we dont count more than 3, so we convert to files
 
     for color in Color::LIST {
         let attacking_zone = KING_FILE_ZONES[board.color_king_sq(color.flip()).file() as usize];
@@ -403,7 +405,8 @@ fn safety_file_stucture<const TRACE: bool>(
             + 4 * semi[color.as_index()]
                 .intersection(attacking_zone)
                 .popcount()
-            + 16 * locked.intersection(attacking_zone).popcount()) as usize;
+            + 16 * locked_files.intersection(attacking_zone).popcount())
+            as usize;
 
         attack_power[color.as_index()] += FILE_STRUCTURE[index];
 
