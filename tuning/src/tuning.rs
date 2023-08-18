@@ -6,7 +6,9 @@ use engine::{
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
     eval::{
         evaluation::SAFETY_LIMIT,
-        trace::{Attacks, Defenses, PasserSqRule, PawnStorm, Tropism, SAFETY_TRACE_LEN},
+        trace::{
+            Attacks, Defenses, FileStructure, PasserSqRule, PawnStorm, Tropism, SAFETY_TRACE_LEN,
+        },
     },
     eval::{
         piece_loop_eval::MoveCounts,
@@ -231,7 +233,7 @@ impl Tuner {
         batch_count += 1;
         println!("Loaded {entry_count} entries in {batch_count} batches\nbegin tuning...\n");
     }
-    
+
     fn sigmoid(e: f64) -> f64 {
         1.0 / (1.0 + (f64::exp(-Self::K * e)))
     }
@@ -609,6 +611,18 @@ impl Tuner {
         .unwrap();
         for i in 0..PawnStorm::LEN {
             let w = self.weights.safety[PawnStorm::index(i)];
+            write!(output, "{w}, ",).unwrap();
+        }
+        writeln!(output, "\n];").unwrap();
+
+        write!(
+            output,
+            "\npub const FILE_STRUCTURE: [ScoreTuple; {}] = [\n  ",
+            FileStructure::LEN
+        )
+        .unwrap();
+        for i in 0..FileStructure::LEN {
+            let w = self.weights.safety[FileStructure::index(i)];
             write!(output, "{w}, ",).unwrap();
         }
         writeln!(output, "\n];").unwrap();

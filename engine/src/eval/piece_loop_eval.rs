@@ -12,9 +12,12 @@ use crate::{
         PAWN_THREAT_ON_QUEEN, PAWN_THREAT_ON_ROOK, QUEEN_FORWARD_MOBILITY, QUEEN_MOBILITY,
         ROOK_FORWARD_MOBILITY, ROOK_MOBILITY, ROOK_THREAT_ON_QUEEN, TROPHISM_BONUS,
     },
-    eval::trace::{
-        color_adjust, Attacks, Defenses, EnemyKingRank, ForwardMobility, Mobility, PawnStorm,
-        Threats, Trace,
+    eval::{
+        eval_constants::FILE_STRUCTURE,
+        trace::{
+            color_adjust, Attacks, Defenses, EnemyKingRank, FileStructure, ForwardMobility,
+            Mobility, PawnStorm, Threats, Trace,
+        },
     },
     eval::{evaluation::ScoreTuple, trace::Tropism},
     trace_safety_update, trace_threat_update, trace_update,
@@ -370,6 +373,49 @@ fn pawn_storm_tropism(enemy_king_sq: Square, pawns: Bitboard) -> usize {
     trop
 }
 
+fn safety_file_stucture<const TRACE: bool>(
+    board: &Board,
+    attack_power: &mut [ScoreTuple; 2],
+    t: &mut Trace,
+) {
+    // this is so when we get files setwise we can mask and then count how many there are
+    const FILE_MASK: Bitboard = Bitboard::RANK_1;
+
+    let w_pawns = board.piece_bb(Piece::PAWN, Color::White);
+    let b_pawns = board.piece_bb(Piece::PAWN, Color::Black);
+
+    let w_files = w_pawns.file_fill();
+    let b_files = b_pawns.file_fill();
+
+    let open = w_files.union(b_files).complement().intersection(FILE_MASK);
+    let semi = [
+        b_files.without(w_files).intersection(FILE_MASK),
+        w_files.without(b_files).intersection(FILE_MASK),
+    ];
+    let locked_pawns = w_pawns
+        .north_one()
+        .intersection(b_pawns)
+        .without(attacks::pawn_setwise(w_pawns, Color::White));
+
+    let locked_files = locked_pawns.file_fill().intersection(FILE_MASK); // need to make sure we dont count more than 3, so we convert to files
+
+    for color in Color::LIST {
+        let attacking_zone = KING_FILE_ZONES[board.color_king_sq(color.flip()).file() as usize];
+        let index = (open.intersection(attacking_zone).popcount()
+            + 4 * semi[color.as_index()]
+                .intersection(attacking_zone)
+                .popcount()
+            + 16 * locked_files.intersection(attacking_zone).popcount())
+            as usize;
+
+        attack_power[color.as_index()] += FILE_STRUCTURE[index];
+
+        if TRACE {
+            trace_safety_update!(t, FileStructure, (index), color, 1);
+        }
+    }
+}
+
 fn one_sided_eval<const TRACE: bool>(
     board: &Board,
     attack_power: &mut [ScoreTuple; 2],
@@ -433,6 +479,8 @@ pub fn mobility_threats_safety<const TRACE: bool>(
                 t,
             );
 
+    safety_file_stucture::<TRACE>(board, &mut attack_power, t);
+
     let safety = attack_power[us.as_index()].king_safety_formula()
         - attack_power[them.as_index()].king_safety_formula();
 
@@ -445,11 +493,13 @@ mod tests {
         board::attacks,
         board::board_representation::{Board, Color, Piece, Square},
         eval::{
-            evaluation::trace_of_position,
+            evaluation::{trace_of_position, ScoreTuple},
             piece_loop_eval::{forward_mobility, virtual_mobility},
-            trace::{Attacks, Defenses, EnemyKingRank, SAFETY_TRACE_LEN},
+            trace::{Attacks, Defenses, EnemyKingRank, FileStructure, Trace, SAFETY_TRACE_LEN},
         },
     };
+
+    use super::safety_file_stucture;
 
     #[test]
     fn virtual_mobility_test() {
@@ -509,6 +559,25 @@ mod tests {
                     color.as_index()
                 );
             }
+        }
+    }
+
+    #[test]
+    fn safety_files_test() {
+        let board =
+            Board::from_fen("1k3bn1/1p1rq2r/p2p4/PP1bppPp/7P/2N5/B1Q1NP2/R1B1R1K1 w - - 0 25");
+        let expected_open = [1, 0];
+        let expected_semi = [0, 1];
+        let expected_locked = [0, 1];
+
+        let mut power = [ScoreTuple::new(0, 0), ScoreTuple::new(0, 0)];
+        let mut t = Trace::empty();
+        safety_file_stucture::<true>(&board, &mut power, &mut t);
+
+        for color in Color::LIST {
+            let i = color.as_index();
+            let index = expected_open[i] + 4 * expected_semi[i] + 16 * expected_locked[i];
+            assert_eq!(t.safety[i][FileStructure::index(index)], 1);
         }
     }
 }
