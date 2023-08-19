@@ -287,3 +287,13 @@ impl FileStructure {
         Self::START + index
     }
 }
+
+pub struct QueenContactChecks;
+impl QueenContactChecks {
+    pub const START: usize = FileStructure::START + FileStructure::LEN;
+    pub const LEN: usize = 1;
+
+    pub const fn index() -> usize {
+        Self::START
+    }
+}
