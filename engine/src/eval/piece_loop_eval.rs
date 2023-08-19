@@ -388,9 +388,13 @@ fn safety_file_stucture<const TRACE: bool>(
     let b_files = b_pawns.file_fill();
 
     let open = w_files.union(b_files).complement().intersection(FILE_MASK);
-    let semi = [
+    let semi_open = [
         b_files.without(w_files).intersection(FILE_MASK),
         w_files.without(b_files).intersection(FILE_MASK),
+    ];
+    let semi_closed = [
+        w_files.without(b_files).intersection(FILE_MASK),
+        b_files.without(w_files).intersection(FILE_MASK),
     ];
     let locked_pawns = w_pawns
         .north_one()
@@ -402,10 +406,15 @@ fn safety_file_stucture<const TRACE: bool>(
     for color in Color::LIST {
         let attacking_zone = KING_FILE_ZONES[board.color_king_sq(color.flip()).file() as usize];
         let index = (open.intersection(attacking_zone).popcount()
-            + 4 * semi[color.as_index()]
-                .intersection(attacking_zone)
-                .popcount()
-            + 16 * locked_files.intersection(attacking_zone).popcount())
+            + 4_u32.pow(1)
+                * semi_open[color.as_index()]
+                    .intersection(attacking_zone)
+                    .popcount()
+            + 4_u32.pow(2)
+                * semi_closed[color.as_index()]
+                    .intersection(attacking_zone)
+                    .popcount()
+            + 4_u32.pow(3) * locked_files.intersection(attacking_zone).popcount())
             as usize;
 
         attack_power[color.as_index()] += FILE_STRUCTURE[index];
