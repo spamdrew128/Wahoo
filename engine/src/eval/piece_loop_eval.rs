@@ -559,7 +559,7 @@ pub fn mobility_threats_safety<const TRACE: bool>(
     safety_file_stucture::<TRACE>(board, &mut attack_power, t);
 
     let our_safe_contacts = safe_queen_contact_checks(board, &attack_info, us);
-    let their_safe_contacts = safe_queen_contact_checks(board, &attack_info, us);
+    let their_safe_contacts = safe_queen_contact_checks(board, &attack_info, them);
 
     if TRACE {
         trace_safety_update!(t, QueenContactChecks, (), us, our_safe_contacts);
@@ -669,12 +669,10 @@ mod tests {
     #[test]
     fn contact_checks() {
         let board = Board::from_fen("8/1q6/4k3/8/2N2Q2/8/8/K4R2 w - - 0 1");
-        let w_expected = 3;
+        let w_expected = 4;
         let b_expected = 0;
 
-        let mut power = [ScoreTuple::new(0, 0), ScoreTuple::new(0, 0)];
-        let mut t = Trace::empty();
-        safety_file_stucture::<true>(&board, &mut power, &mut t);
+        let t = trace_of_position(&board);
 
         assert_eq!(t.safety[Color::White.as_index()][QueenContactChecks::index()], w_expected);
         assert_eq!(t.safety[Color::Black.as_index()][QueenContactChecks::index()], b_expected);
