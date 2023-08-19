@@ -23,7 +23,7 @@ use crate::{
     trace_safety_update, trace_threat_update, trace_update,
 };
 
-use super::eval_constants::QUEEN_CONTACT_CHECKS;
+use super::eval_constants::{STM_QUEEN_CONTACT_CHECKS, NON_STM_QUEEN_CONTACT_CHECKS};
 
 const fn king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
     let mut king_zones = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
@@ -563,8 +563,8 @@ pub fn mobility_threats_safety<const TRACE: bool>(
     let our_safe_contacts = safe_queen_contact_checks(board, &attack_info, us);
     let their_safe_contacts = safe_queen_contact_checks(board, &attack_info, them);
 
-    // attack_power[us.as_index()] += QUEEN_CONTACT_CHECKS.mult(our_safe_contacts);
-    // attack_power[them.as_index()] += QUEEN_CONTACT_CHECKS.mult(their_safe_contacts);
+    attack_power[us.as_index()] += STM_QUEEN_CONTACT_CHECKS.mult(our_safe_contacts);
+    attack_power[them.as_index()] += NON_STM_QUEEN_CONTACT_CHECKS.mult(their_safe_contacts);
 
     if TRACE {
         trace_safety_update!(t, StmQueenContactChecks, (), us, our_safe_contacts);
@@ -585,7 +585,7 @@ mod tests {
         eval::{
             evaluation::{trace_of_position, ScoreTuple},
             piece_loop_eval::{forward_mobility, virtual_mobility},
-            trace::{Attacks, Defenses, EnemyKingRank, FileStructure, Trace, SAFETY_TRACE_LEN, QueenContactChecks},
+            trace::{Attacks, Defenses, EnemyKingRank, FileStructure, Trace, SAFETY_TRACE_LEN, StmQueenContactChecks, NonStmQueenContactChecks},
         },
     };
 
@@ -679,7 +679,7 @@ mod tests {
 
         let t = trace_of_position(&board);
 
-        assert_eq!(t.safety[Color::White.as_index()][QueenContactChecks::index()], w_expected);
-        assert_eq!(t.safety[Color::Black.as_index()][QueenContactChecks::index()], b_expected);
+        assert_eq!(t.safety[Color::White.as_index()][StmQueenContactChecks::index()], w_expected);
+        assert_eq!(t.safety[Color::Black.as_index()][NonStmQueenContactChecks::index()], b_expected);
     }
 }
