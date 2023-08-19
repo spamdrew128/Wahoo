@@ -16,7 +16,7 @@ use crate::{
         eval_constants::FILE_STRUCTURE,
         trace::{
             color_adjust, Attacks, Defenses, EnemyKingRank, FileStructure, ForwardMobility,
-            Mobility, PawnStorm, Threats, Trace, QueenContactChecks,
+            Mobility, PawnStorm, Threats, Trace, StmQueenContactChecks, NonStmQueenContactChecks,
         },
     },
     eval::{evaluation::ScoreTuple, trace::Tropism},
@@ -563,12 +563,12 @@ pub fn mobility_threats_safety<const TRACE: bool>(
     let our_safe_contacts = safe_queen_contact_checks(board, &attack_info, us);
     let their_safe_contacts = safe_queen_contact_checks(board, &attack_info, them);
 
-    attack_power[us.as_index()] += QUEEN_CONTACT_CHECKS.mult(our_safe_contacts);
-    attack_power[them.as_index()] += QUEEN_CONTACT_CHECKS.mult(their_safe_contacts);
+    // attack_power[us.as_index()] += QUEEN_CONTACT_CHECKS.mult(our_safe_contacts);
+    // attack_power[them.as_index()] += QUEEN_CONTACT_CHECKS.mult(their_safe_contacts);
 
     if TRACE {
-        trace_safety_update!(t, QueenContactChecks, (), us, our_safe_contacts);
-        trace_safety_update!(t, QueenContactChecks, (), them, their_safe_contacts);
+        trace_safety_update!(t, StmQueenContactChecks, (), us, our_safe_contacts);
+        trace_safety_update!(t, NonStmQueenContactChecks, (), them, their_safe_contacts);
     }
 
     let safety = attack_power[us.as_index()].king_safety_formula()
