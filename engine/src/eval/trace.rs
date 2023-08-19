@@ -22,7 +22,8 @@ pub const SAFETY_TRACE_LEN: usize = Attacks::LEN
     + EnemyKingRank::LEN
     + Tropism::LEN
     + PawnStorm::LEN
-    + FileStructure::LEN;
+    + FileStructure::LEN
+    + QueenContactChecks::LEN;
 
 pub struct Trace {
     pub linear: [i8; LINEAR_TRACE_LEN],
