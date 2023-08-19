@@ -23,6 +23,8 @@ use crate::{
     trace_safety_update, trace_threat_update, trace_update,
 };
 
+use super::eval_constants::QUEEN_CONTACT_CHECKS;
+
 const fn king_zones_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] {
     let mut king_zones = [[Bitboard::EMPTY; NUM_SQUARES as usize]; NUM_COLORS as usize];
     let mut i = 0;
@@ -560,6 +562,9 @@ pub fn mobility_threats_safety<const TRACE: bool>(
 
     let our_safe_contacts = safe_queen_contact_checks(board, &attack_info, us);
     let their_safe_contacts = safe_queen_contact_checks(board, &attack_info, them);
+
+    attack_power[us.as_index()] += QUEEN_CONTACT_CHECKS.mult(our_safe_contacts);
+    attack_power[them.as_index()] += QUEEN_CONTACT_CHECKS.mult(their_safe_contacts);
 
     if TRACE {
         trace_safety_update!(t, QueenContactChecks, (), us, our_safe_contacts);
