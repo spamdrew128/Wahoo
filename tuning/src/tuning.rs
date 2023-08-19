@@ -7,7 +7,7 @@ use engine::{
     eval::{
         evaluation::SAFETY_LIMIT,
         trace::{
-            Attacks, Defenses, FileStructure, PasserSqRule, PawnStorm, Tropism, SAFETY_TRACE_LEN, QueenContactChecks,
+            Attacks, Defenses, FileStructure, PasserSqRule, PawnStorm, Tropism, SAFETY_TRACE_LEN, StmQueenContactChecks, NonStmQueenContactChecks,
         },
     },
     eval::{
@@ -629,8 +629,15 @@ impl Tuner {
 
         writeln!(
             output,
-            "\npub const QUEEN_CONTACT_CHECKS: ScoreTuple = {};",
-            self.weights.safety[QueenContactChecks::index()]
+            "\npub const STM_QUEEN_CONTACT_CHECKS: ScoreTuple = {};",
+            self.weights.safety[StmQueenContactChecks::index()]
+        )
+        .unwrap();
+
+        writeln!(
+            output,
+            "\npub const NON_STM_QUEEN_CONTACT_CHECKS: ScoreTuple = {};",
+            self.weights.safety[NonStmQueenContactChecks::index()]
         )
         .unwrap();
     }
