@@ -580,7 +580,7 @@ mod tests {
         eval::{
             evaluation::{trace_of_position, ScoreTuple},
             piece_loop_eval::{forward_mobility, virtual_mobility},
-            trace::{Attacks, Defenses, EnemyKingRank, FileStructure, Trace, SAFETY_TRACE_LEN},
+            trace::{Attacks, Defenses, EnemyKingRank, FileStructure, Trace, SAFETY_TRACE_LEN, QueenContactChecks},
         },
     };
 
@@ -664,5 +664,19 @@ mod tests {
             let index = expected_open[i] + 4 * expected_semi[i] + 16 * expected_locked[i];
             assert_eq!(t.safety[i][FileStructure::index(index)], 1);
         }
+    }
+
+    #[test]
+    fn contact_checks() {
+        let board = Board::from_fen("8/1q6/4k3/8/2N2Q2/8/8/K4R2 w - - 0 1");
+        let w_expected = 3;
+        let b_expected = 0;
+
+        let mut power = [ScoreTuple::new(0, 0), ScoreTuple::new(0, 0)];
+        let mut t = Trace::empty();
+        safety_file_stucture::<true>(&board, &mut power, &mut t);
+
+        assert_eq!(t.safety[Color::White.as_index()][QueenContactChecks::index()], w_expected);
+        assert_eq!(t.safety[Color::Black.as_index()][QueenContactChecks::index()], b_expected);
     }
 }
