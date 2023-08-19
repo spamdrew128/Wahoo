@@ -281,7 +281,7 @@ impl PawnStorm {
 pub struct FileStructure;
 impl FileStructure {
     pub const START: usize = PawnStorm::START + PawnStorm::LEN;
-    pub const LEN: usize = 4_usize.pow(4);
+    pub const LEN: usize = 64 * 3 + 1;
 
     pub const fn index(index: usize) -> usize {
         Self::START + index
