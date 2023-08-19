@@ -373,7 +373,7 @@ impl LoopEvaluator {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Copy, Clone)]
 struct AttackInfo {
     non_queen: Bitboard,
     queen: Bitboard,
@@ -444,11 +444,13 @@ fn safety_file_stucture<const TRACE: bool>(
 
 fn queen_contact_checks<const TRACE: bool>(
     board: &Board,
-    attack_info: &mut [AttackInfo; 2],
+    attack_info: &[AttackInfo; 2],
     color: Color,
     t: &mut Trace,
 ) {
-    let our_king_attacks = attacks::king(board.color_king_sq(color));
+    let our_king_defended = attacks::king(board.color_king_sq(color));
+    let (our_info, their_info) = (attack_info[color.as_index()], attack_info[color.flip().as_index()]);
+    let (defended, attacked) = (our_info.non_queen.union(our_king_defended), their_info.non_queen.union(their_info.queen));
 }
 
 fn one_sided_eval<const TRACE: bool>(
