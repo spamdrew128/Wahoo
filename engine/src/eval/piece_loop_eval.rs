@@ -281,10 +281,10 @@ impl LoopEvaluator {
                 score += KNIGHT_MOBILITY[mobility];
                 score += KNIGHT_FORWARD_MOBILITY[forward_mobility];
 
-                score += KNIGHT_THREAT_ON_BISHOP
+                score += KNIGHT_THREAT_ON_BISHOP[self.stm]
                     .mult((attacks & self.enemy_bishops).popcount() as i32)
-                    + KNIGHT_THREAT_ON_ROOK.mult((attacks & self.enemy_rooks).popcount() as i32)
-                    + KNIGHT_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
+                    + KNIGHT_THREAT_ON_ROOK[self.stm].mult((attacks & self.enemy_rooks).popcount() as i32)
+                    + KNIGHT_THREAT_ON_QUEEN[self.stm].mult((attacks & self.enemy_queens).popcount() as i32);
 
                 if TRACE {
                     trace_threat_update!(t, KNIGHT_THREAT_ON_BISHOP, color, attacks, self.enemy_bishops, self.stm);
@@ -298,10 +298,10 @@ impl LoopEvaluator {
                 score += BISHOP_MOBILITY[mobility];
                 score += BISHOP_FORWARD_MOBILITY[forward_mobility];
 
-                score += BISHOP_THREAT_ON_KNIGHT
+                score += BISHOP_THREAT_ON_KNIGHT[self.stm]
                     .mult((attacks & self.enemy_knights).popcount() as i32)
-                    + BISHOP_THREAT_ON_ROOK.mult((attacks & self.enemy_rooks).popcount() as i32)
-                    + BISHOP_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
+                    + BISHOP_THREAT_ON_ROOK[self.stm].mult((attacks & self.enemy_rooks).popcount() as i32)
+                    + BISHOP_THREAT_ON_QUEEN[self.stm].mult((attacks & self.enemy_queens).popcount() as i32);
 
                     if TRACE {
                         trace_threat_update!(t, BISHOP_THREAT_ON_KNIGHT, color, attacks, self.enemy_knights, self.stm);
@@ -315,7 +315,7 @@ impl LoopEvaluator {
                 score += ROOK_MOBILITY[mobility];
                 score += ROOK_FORWARD_MOBILITY[forward_mobility];
 
-                score += ROOK_THREAT_ON_QUEEN.mult((attacks & self.enemy_queens).popcount() as i32);
+                score += ROOK_THREAT_ON_QUEEN[self.stm].mult((attacks & self.enemy_queens).popcount() as i32);
 
                 if TRACE {
                     trace_threat_update!(t, ROOK_THREAT_ON_QUEEN, color, attacks, self.enemy_queens, self.stm);
@@ -376,10 +376,10 @@ impl LoopEvaluator {
             trace_threat_update!(t, PAWN_THREAT_ON_QUEEN, self.color, pawn_attacks, self.enemy_queens, self.stm);
         }
 
-        PAWN_THREAT_ON_KNIGHT.mult((pawn_attacks & self.enemy_knights).popcount() as i32)
-            + PAWN_THREAT_ON_BISHOP.mult((pawn_attacks & self.enemy_bishops).popcount() as i32)
-            + PAWN_THREAT_ON_ROOK.mult((pawn_attacks & self.enemy_rooks).popcount() as i32)
-            + PAWN_THREAT_ON_QUEEN.mult((pawn_attacks & self.enemy_queens).popcount() as i32)
+        PAWN_THREAT_ON_KNIGHT[self.stm].mult((pawn_attacks & self.enemy_knights).popcount() as i32)
+            + PAWN_THREAT_ON_BISHOP[self.stm].mult((pawn_attacks & self.enemy_bishops).popcount() as i32)
+            + PAWN_THREAT_ON_ROOK[self.stm].mult((pawn_attacks & self.enemy_rooks).popcount() as i32)
+            + PAWN_THREAT_ON_QUEEN[self.stm].mult((pawn_attacks & self.enemy_queens).popcount() as i32)
     }
 
     fn piece_loop<const PIECE: u8, const TRACE: bool>(
