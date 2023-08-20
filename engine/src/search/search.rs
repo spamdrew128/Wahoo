@@ -420,7 +420,8 @@ impl<'a> Searcher<'a> {
             // NULL MOVE PRUNING
             const NMP_MIN_DEPTH: Depth = 3;
             if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH && !board.we_only_have_pawns() && static_eval >= beta {
-                let mut reduction = 3 + depth / 3 + (3.min((static_eval - beta) / 200) as Depth);
+                let divisor = if improving { 275 } else { 200 }; 
+                let mut reduction = 3 + depth / 3 + (3.min((static_eval - beta) / divisor) as Depth);
                 reduction = reduction.min(depth);
 
                 let mut nmp_board = board.clone();
