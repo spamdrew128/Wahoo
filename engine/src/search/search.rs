@@ -423,7 +423,7 @@ impl<'a> Searcher<'a> {
             if DO_NULL_MOVE
                 && depth >= NMP_MIN_DEPTH
                 && !board.we_only_have_pawns()
-                && static_eval >= beta + 108 - threshold * i32::from(depth)
+                && static_eval >= beta + (108 - threshold * i32::from(depth)).max(0)
             {
                 let mut reduction = 3 + depth / 3 + (3.min((static_eval - beta) / divisor) as Depth);
                 reduction = reduction.min(depth);
