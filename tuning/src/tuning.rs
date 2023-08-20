@@ -7,7 +7,8 @@ use engine::{
     eval::{
         evaluation::SAFETY_LIMIT,
         trace::{
-            Attacks, Defenses, FileStructure, PasserSqRule, PawnStorm, Tropism, SAFETY_TRACE_LEN, StmQueenContactChecks, NonStmQueenContactChecks,
+            Attacks, Defenses, FileStructure, NonStmQueenContactChecks, PasserSqRule, PawnStorm,
+            StmQueenContactChecks, Tropism, SAFETY_TRACE_LEN,
         },
     },
     eval::{

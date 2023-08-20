@@ -165,7 +165,7 @@ impl PhalanxPawns {
 pub struct Threats;
 impl Threats {
     pub const START: usize = PhalanxPawns::START + PhalanxPawns::LEN;
-    pub const LEN: usize = 11;
+    pub const LEN: usize = 11 * NUM_COLORS as usize;
 
     pub const PAWN_THREAT_ON_KNIGHT: usize = Self::START;
     pub const PAWN_THREAT_ON_BISHOP: usize = Self::START + 1;
