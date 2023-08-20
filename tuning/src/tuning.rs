@@ -528,8 +528,9 @@ impl Tuner {
 
         for (i, s) in strings.iter().enumerate() {
             let index = Threats::START + i;
-            let w = self.weights.linear[index];
-            writeln!(output, "pub const {s}: ScoreTuple = {w};",).unwrap();
+            let w1 = self.weights.linear[index];
+            let w2 = self.weights.linear[index + 1];
+            writeln!(output, "pub const {s}: [ScoreTuple; 2] = [{w1}, {w2}];",).unwrap();
         }
     }
 

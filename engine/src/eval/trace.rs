@@ -61,13 +61,13 @@ macro_rules! trace_update {
 
 #[macro_export]
 macro_rules! trace_threat_update {
-    ($trace:ident, $index_name:ident, $color:expr, $attacks:expr, $enemy:expr) => {
+    ($trace:ident, $index_name:ident, $color:expr, $attacks:expr, $enemy:expr, $stm_index:expr) => {
         let mult = match $color {
             Color::White => 1,
             Color::Black => -1,
         };
         let val = ($attacks & $enemy).popcount();
-        $trace.linear[Threats::$index_name] += mult * (val as i8);
+        $trace.linear[Threats::$index_name + $stm_index] += mult * (val as i8);
     };
 }
 
@@ -168,19 +168,19 @@ impl Threats {
     pub const LEN: usize = 11 * NUM_COLORS as usize;
 
     pub const PAWN_THREAT_ON_KNIGHT: usize = Self::START;
-    pub const PAWN_THREAT_ON_BISHOP: usize = Self::START + 1;
-    pub const PAWN_THREAT_ON_ROOK: usize = Self::START + 2;
-    pub const PAWN_THREAT_ON_QUEEN: usize = Self::START + 3;
+    pub const PAWN_THREAT_ON_BISHOP: usize = Self::START + 2;
+    pub const PAWN_THREAT_ON_ROOK: usize = Self::START + 4;
+    pub const PAWN_THREAT_ON_QUEEN: usize = Self::START + 6;
 
-    pub const KNIGHT_THREAT_ON_BISHOP: usize = Self::START + 4;
-    pub const KNIGHT_THREAT_ON_ROOK: usize = Self::START + 5;
-    pub const KNIGHT_THREAT_ON_QUEEN: usize = Self::START + 6;
+    pub const KNIGHT_THREAT_ON_BISHOP: usize = Self::START + 8;
+    pub const KNIGHT_THREAT_ON_ROOK: usize = Self::START + 10;
+    pub const KNIGHT_THREAT_ON_QUEEN: usize = Self::START + 12;
 
-    pub const BISHOP_THREAT_ON_KNIGHT: usize = Self::START + 7;
-    pub const BISHOP_THREAT_ON_ROOK: usize = Self::START + 8;
-    pub const BISHOP_THREAT_ON_QUEEN: usize = Self::START + 9;
+    pub const BISHOP_THREAT_ON_KNIGHT: usize = Self::START + 14;
+    pub const BISHOP_THREAT_ON_ROOK: usize = Self::START + 16;
+    pub const BISHOP_THREAT_ON_QUEEN: usize = Self::START + 18;
 
-    pub const ROOK_THREAT_ON_QUEEN: usize = Self::START + 10;
+    pub const ROOK_THREAT_ON_QUEEN: usize = Self::START + 20;
 }
 
 pub struct TempoBonus;
