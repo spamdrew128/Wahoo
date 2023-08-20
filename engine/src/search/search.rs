@@ -419,8 +419,12 @@ impl<'a> Searcher<'a> {
 
             // NULL MOVE PRUNING
             const NMP_MIN_DEPTH: Depth = 3;
-            if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH && !board.we_only_have_pawns() && static_eval >= beta {
-                let divisor = if improving { 275 } else { 200 }; 
+            let threshold = if improving { 19 } else { 12 };
+            if DO_NULL_MOVE
+                && depth >= NMP_MIN_DEPTH
+                && !board.we_only_have_pawns()
+                && static_eval >= beta + 108 - threshold * i32::from(depth)
+            {
                 let mut reduction = 3 + depth / 3 + (3.min((static_eval - beta) / divisor) as Depth);
                 reduction = reduction.min(depth);
 
