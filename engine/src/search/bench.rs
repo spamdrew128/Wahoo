@@ -31,7 +31,7 @@ pub fn bench() {
             Syzygy::new(),
             thread_data,
         );
-        nodes +=  searcher.bench(&board, 15);
+        nodes += searcher.bench(&board, 15);
     }
 
     let nps = (u128::from(nodes) * 1_000_000) / stopwatch.elapsed().as_micros();
