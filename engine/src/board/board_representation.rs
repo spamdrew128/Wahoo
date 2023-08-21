@@ -153,6 +153,10 @@ impl Square {
         Self(self.0 ^ 0b111000)
     }
 
+    pub const fn y_mirror(self) -> Self {
+        Self(self.0 + 7 - 2 * self.file())
+    }
+
     pub const fn row_swap(self) -> Self {
         // even rows become odd, odd rows become even
         Self::new(self.0 ^ 0b1000)
@@ -1113,6 +1117,12 @@ mod tests {
 
         assert_eq!(bb, expected_bb);
         assert_eq!(sq, expected_sq);
+    }
+
+    #[test]
+    fn sq_y_mirror_works() {
+        assert_eq!(Square::G4.y_mirror(), Square::B4);
+        assert_eq!(Square::A1.y_mirror(), Square::H1);
     }
 
     #[test]

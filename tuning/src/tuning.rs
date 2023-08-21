@@ -5,7 +5,7 @@ use engine::{
     },
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
     eval::{
-        evaluation::SAFETY_LIMIT,
+        evaluation::{KINGSIDE_INDEX, QUEENSIDE_INDEX, SAFETY_LIMIT},
         trace::{
             Attacks, Defenses, FileStructure, NonStmQueenContactChecks, PasserSqRule, PawnStorm,
             StmQueenContactChecks, Tropism, SAFETY_TRACE_LEN,
@@ -416,7 +416,7 @@ impl Tuner {
     fn write_material_psts(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
-            "pub const MATERIAL_PSTS: [Pst; NUM_PIECES as usize] = ["
+            "pub const MATERIAL_PSTS: [[Pst; NUM_PIECES as usize]; 2] = ["
         )
         .unwrap();
 

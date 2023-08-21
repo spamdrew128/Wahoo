@@ -5,6 +5,8 @@ use crate::{
     eval::piece_loop_eval::MoveCounts,
 };
 
+use super::evaluation::QUEENSIDE_INDEX;
+
 pub const LINEAR_TRACE_LEN: usize = MaterialPst::LEN
     + Passer::LEN
     + PasserBlocker::LEN
@@ -49,14 +51,14 @@ pub const fn color_adjust(sq: Square, color: Color) -> Square {
 
 #[macro_export]
 macro_rules! trace_update {
-    ($trace:ident, $name:ident, ($($arg:ident),*), $color:expr, $val:expr) => {
+    ($trace:ident, $name:ident, ($($arg:ident),*), $color:expr, $val:expr) => {{
         let mult = match $color {
             Color::White => 1,
             Color::Black => -1,
         };
         let index = $name::index($($arg,)*);
         $trace.linear[index] += mult * ($val as i8);
-    };
+    }};
 }
 
 #[macro_export]
@@ -84,8 +86,13 @@ impl MaterialPst {
     pub const START: usize = 0;
     pub const LEN: usize = (NUM_PIECES as usize) * (NUM_SQUARES as usize);
 
-    pub fn index(piece: Piece, sq: Square) -> usize {
-        Self::START + usize::from(NUM_SQUARES) * piece.as_index() + sq.as_index()
+    pub fn index(king_index: usize, piece: Piece, sq: Square) -> usize {
+        let offset = if king_index == QUEENSIDE_INDEX {
+            sq.as_index()
+        } else {
+            sq.y_mirror().as_index()
+        };
+        Self::START + usize::from(NUM_SQUARES) * piece.as_index() + offset
     }
 }
 
