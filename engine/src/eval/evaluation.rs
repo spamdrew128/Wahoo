@@ -140,6 +140,7 @@ fn king_index(board: &Board, color: Color) -> usize {
 fn pst_eval<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
     let king_index = king_index(board, color);
+
     for piece in Piece::LIST {
         let mut pieces = board.piece_bb(piece, color);
         let pst = &MATERIAL_PSTS[piece.as_index()];
