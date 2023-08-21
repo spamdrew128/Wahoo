@@ -189,7 +189,8 @@ impl Tuner {
         for piece in Piece::LIST {
             let w = vals[piece.as_index()];
             for sq in 0..NUM_SQUARES {
-                result.linear[MaterialPst::index(piece, Square::new(sq))] = S::new(w, w);
+                result.linear[MaterialPst::index(KINGSIDE_INDEX, piece, Square::new(sq))] =
+                    S::new(w, w);
             }
         }
 
