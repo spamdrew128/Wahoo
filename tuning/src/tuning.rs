@@ -420,11 +420,15 @@ impl Tuner {
         )
         .unwrap();
 
-        for piece in Piece::LIST {
-            writeln!(output, "// {} PST", piece.as_string().unwrap()).unwrap();
-            self.write_pst(output, ",", self.weights.linear.as_slice(), |sq| {
-                MaterialPst::index(piece, sq)
-            });
+        for i in [QUEENSIDE_INDEX, KINGSIDE_INDEX] {
+            writeln!(output, "[").unwrap();
+            for piece in Piece::LIST {
+                writeln!(output, "// {} PST", piece.as_string().unwrap()).unwrap();
+                self.write_pst(output, ",", self.weights.linear.as_slice(), |sq| {
+                    MaterialPst::index(i, piece, sq)
+                });
+            }
+            writeln!(output, "],\n").unwrap();
         }
 
         writeln!(output, "];\n").unwrap();
