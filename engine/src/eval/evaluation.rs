@@ -133,7 +133,7 @@ fn pst_eval<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) -> Sc
     let mut score = ScoreTuple::new(0, 0);
     for piece in Piece::LIST {
         let mut pieces = board.piece_bb(piece, color);
-        let pst = &MATERIAL_PSTS[piece.as_index()];
+        let pst = &MATERIAL_PSTS[king_index][piece.as_index()];
 
         bitloop!(|sq| pieces, {
             score += pst.access(color, sq);
