@@ -428,7 +428,7 @@ impl Tuner {
                     MaterialPst::index(i, piece, sq)
                 });
             }
-            writeln!(output, "],\n").unwrap();
+            writeln!(output, "],").unwrap();
         }
 
         writeln!(output, "];\n").unwrap();
