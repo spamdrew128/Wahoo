@@ -5,7 +5,7 @@ use engine::{
     },
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
     eval::{
-        evaluation::SAFETY_LIMIT,
+        evaluation::{KINGSIDE_INDEX, QUEENSIDE_INDEX, SAFETY_LIMIT},
         trace::{
             Attacks, Defenses, FileStructure, NonStmQueenContactChecks, PasserSqRule, PawnStorm,
             StmQueenContactChecks, Tropism, SAFETY_TRACE_LEN,
@@ -189,7 +189,8 @@ impl Tuner {
         for piece in Piece::LIST {
             let w = vals[piece.as_index()];
             for sq in 0..NUM_SQUARES {
-                result.linear[MaterialPst::index(piece, Square::new(sq))] = S::new(w, w);
+                result.linear[MaterialPst::index(KINGSIDE_INDEX, piece, Square::new(sq))] =
+                    S::new(w, w);
             }
         }
 
@@ -415,15 +416,19 @@ impl Tuner {
     fn write_material_psts(&self, output: &mut BufWriter<File>) {
         writeln!(
             output,
-            "pub const MATERIAL_PSTS: [Pst; NUM_PIECES as usize] = ["
+            "pub const MATERIAL_PSTS: [[Pst; NUM_PIECES as usize]; 2] = ["
         )
         .unwrap();
 
-        for piece in Piece::LIST {
-            writeln!(output, "// {} PST", piece.as_string().unwrap()).unwrap();
-            self.write_pst(output, ",", self.weights.linear.as_slice(), |sq| {
-                MaterialPst::index(piece, sq)
-            });
+        for i in [QUEENSIDE_INDEX, KINGSIDE_INDEX] {
+            writeln!(output, "[").unwrap();
+            for piece in Piece::LIST {
+                writeln!(output, "// {} PST", piece.as_string().unwrap()).unwrap();
+                self.write_pst(output, ",", self.weights.linear.as_slice(), |sq| {
+                    MaterialPst::index(i, piece, sq)
+                });
+            }
+            writeln!(output, "],").unwrap();
         }
 
         writeln!(output, "];\n").unwrap();

@@ -129,18 +129,28 @@ pub fn phase(board: &Board) -> Phase {
     phase.min(PHASE_MAX)
 }
 
+pub const QUEENSIDE_INDEX: usize = 0;
+pub const KINGSIDE_INDEX: usize = 1;
+
+fn king_index(board: &Board, color: Color) -> usize {
+    let king_sq = board.color_king_sq(color);
+    usize::from(king_sq.file() / 4)
+}
+
 fn pst_eval<const TRACE: bool>(board: &Board, color: Color, t: &mut Trace) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
+    let king_index = king_index(board, color);
+
     for piece in Piece::LIST {
         let mut pieces = board.piece_bb(piece, color);
-        let pst = &MATERIAL_PSTS[piece.as_index()];
+        let pst = &MATERIAL_PSTS[king_index][piece.as_index()];
 
         bitloop!(|sq| pieces, {
             score += pst.access(color, sq);
 
             if TRACE {
                 let sq = color_adjust(sq, color);
-                trace_update!(t, MaterialPst, (piece, sq), color, 1);
+                trace_update!(t, MaterialPst, (king_index, piece, sq), color, 1);
             }
         });
     }
