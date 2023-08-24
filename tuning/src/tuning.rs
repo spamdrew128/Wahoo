@@ -7,8 +7,9 @@ use engine::{
     eval::{
         evaluation::{KINGSIDE_INDEX, QUEENSIDE_INDEX, SAFETY_LIMIT},
         trace::{
-            Attacks, Defenses, FileStructure, NonStmQueenContactChecks, PasserSqRule, PawnStorm,
-            StmQueenContactChecks, Tropism, SAFETY_TRACE_LEN,
+            Attacks, Defenses, FileStructure, NonStmQueenContactChecks, NonStmRookContactChecks,
+            PasserSqRule, PawnStorm, StmQueenContactChecks, StmRookContactChecks, Tropism,
+            SAFETY_TRACE_LEN,
         },
     },
     eval::{
@@ -645,6 +646,20 @@ impl Tuner {
             output,
             "\npub const NON_STM_QUEEN_CONTACT_CHECKS: ScoreTuple = {};",
             self.weights.safety[NonStmQueenContactChecks::index()]
+        )
+        .unwrap();
+
+        writeln!(
+            output,
+            "\npub const STM_ROOK_CONTACT_CHECKS: ScoreTuple = {};",
+            self.weights.safety[StmRookContactChecks::index()]
+        )
+        .unwrap();
+
+        writeln!(
+            output,
+            "\npub const NON_STM_ROOK_CONTACT_CHECKS: ScoreTuple = {};",
+            self.weights.safety[NonStmRookContactChecks::index()]
         )
         .unwrap();
     }
