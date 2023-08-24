@@ -549,7 +549,7 @@ fn safe_contact_checks(board: &Board, attack_info: &[AttackInfo; 2], color: Colo
     let mut r_count = 0;
     let mut attackers = rooks;
     bitloop!(|sq| attackers, {
-        let this_rooks_attacks = attacks::queen(sq, occ);
+        let this_rooks_attacks = attacks::rook(sq, occ);
 
         let rook_defended = self_contact_defended(sq.as_bitboard(), rooks, occ, attacks::rook);
         let all_defended = non_r_defended.union(rook_defended);
