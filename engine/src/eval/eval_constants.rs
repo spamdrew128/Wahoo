@@ -309,3 +309,7 @@ pub const FILE_STRUCTURE: [ScoreTuple; 193] = [
 pub const STM_QUEEN_CONTACT_CHECKS: ScoreTuple = s(51, 90);
 
 pub const NON_STM_QUEEN_CONTACT_CHECKS: ScoreTuple = s(34, -36);
+
+pub const STM_ROOK_CONTACT_CHECKS: ScoreTuple = s(51, 90);
+
+pub const NON_STM_ROOK_CONTACT_CHECKS: ScoreTuple = s(34, -36);

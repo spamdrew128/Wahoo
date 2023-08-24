@@ -26,7 +26,9 @@ pub const SAFETY_TRACE_LEN: usize = Attacks::LEN
     + PawnStorm::LEN
     + FileStructure::LEN
     + StmQueenContactChecks::LEN
-    + NonStmQueenContactChecks::LEN;
+    + NonStmQueenContactChecks::LEN
+    + StmRookContactChecks::LEN
+    + NonStmRookContactChecks::LEN;
 
 pub struct Trace {
     pub linear: [i8; LINEAR_TRACE_LEN],
@@ -310,6 +312,26 @@ impl StmQueenContactChecks {
 pub struct NonStmQueenContactChecks;
 impl NonStmQueenContactChecks {
     pub const START: usize = StmQueenContactChecks::START + StmQueenContactChecks::LEN;
+    pub const LEN: usize = 1;
+
+    pub const fn index() -> usize {
+        Self::START
+    }
+}
+
+pub struct StmRookContactChecks;
+impl StmRookContactChecks {
+    pub const START: usize = NonStmQueenContactChecks::START + NonStmQueenContactChecks::LEN;
+    pub const LEN: usize = 1;
+
+    pub const fn index() -> usize {
+        Self::START
+    }
+}
+
+pub struct NonStmRookContactChecks;
+impl NonStmRookContactChecks {
+    pub const START: usize = StmRookContactChecks::START + StmRookContactChecks::LEN;
     pub const LEN: usize = 1;
 
     pub const fn index() -> usize {

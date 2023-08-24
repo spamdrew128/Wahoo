@@ -16,14 +16,18 @@ use crate::{
         eval_constants::FILE_STRUCTURE,
         trace::{
             color_adjust, Attacks, Defenses, EnemyKingRank, FileStructure, ForwardMobility,
-            Mobility, NonStmQueenContactChecks, PawnStorm, StmQueenContactChecks, Threats, Trace,
+            Mobility, NonStmQueenContactChecks, NonStmRookContactChecks, PawnStorm,
+            StmQueenContactChecks, StmRookContactChecks, Threats, Trace,
         },
     },
     eval::{evaluation::ScoreTuple, trace::Tropism},
     trace_safety_update, trace_threat_update, trace_update,
 };
 
-use super::eval_constants::{NON_STM_QUEEN_CONTACT_CHECKS, STM_QUEEN_CONTACT_CHECKS};
+use super::eval_constants::{
+    NON_STM_QUEEN_CONTACT_CHECKS, NON_STM_ROOK_CONTACT_CHECKS, STM_QUEEN_CONTACT_CHECKS,
+    STM_ROOK_CONTACT_CHECKS,
+};
 
 const STM_US: usize = 0;
 const STM_THEM: usize = 1;
@@ -547,8 +551,8 @@ fn safe_contact_checks(board: &Board, attack_info: &[AttackInfo; 2], color: Colo
     bitloop!(|sq| attackers, {
         let this_rooks_attacks = attacks::queen(sq, occ);
 
-        let queen_defended = self_contact_defended(sq.as_bitboard(), rooks, occ, attacks::rook);
-        let all_defended = non_q_defended.union(queen_defended);
+        let rook_defended = self_contact_defended(sq.as_bitboard(), rooks, occ, attacks::rook);
+        let all_defended = non_r_defended.union(rook_defended);
 
         let contacts = this_rooks_attacks & rook_contact_zone;
         let safe = all_defended.without(attacked);
@@ -655,9 +659,15 @@ pub fn mobility_threats_safety<const TRACE: bool>(
     attack_power[us.as_index()] += STM_QUEEN_CONTACT_CHECKS.mult(our_queen_contacts);
     attack_power[them.as_index()] += NON_STM_QUEEN_CONTACT_CHECKS.mult(their_queen_contacts);
 
+    attack_power[us.as_index()] += STM_ROOK_CONTACT_CHECKS.mult(our_rook_contacts);
+    attack_power[them.as_index()] += NON_STM_ROOK_CONTACT_CHECKS.mult(their_rook_contacts);
+
     if TRACE {
         trace_safety_update!(t, StmQueenContactChecks, (), us, our_queen_contacts);
         trace_safety_update!(t, NonStmQueenContactChecks, (), them, their_queen_contacts);
+
+        trace_safety_update!(t, StmRookContactChecks, (), us, our_rook_contacts);
+        trace_safety_update!(t, NonStmRookContactChecks, (), them, their_rook_contacts);
     }
 
     let safety = attack_power[us.as_index()].king_safety_formula()
