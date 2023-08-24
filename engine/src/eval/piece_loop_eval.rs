@@ -294,7 +294,7 @@ impl LoopEvaluator {
 
         match PIECE {
             ConstPiece::KNIGHT => {
-                attack_info[color.as_index()].non_queen |= attacks;
+                attack_info[color.as_index()].non_qr_defenders |= attacks;
 
                 score += KNIGHT_MOBILITY[mobility];
                 score += KNIGHT_FORWARD_MOBILITY[forward_mobility];
@@ -311,7 +311,7 @@ impl LoopEvaluator {
                 }
             }
             ConstPiece::BISHOP => {
-                attack_info[color.as_index()].non_queen |= attacks;
+                attack_info[color.as_index()].non_qr_defenders |= attacks;
 
                 score += BISHOP_MOBILITY[mobility];
                 score += BISHOP_FORWARD_MOBILITY[forward_mobility];
@@ -328,7 +328,7 @@ impl LoopEvaluator {
                     }
             }
             ConstPiece::ROOK => {
-                attack_info[color.as_index()].non_queen |= attacks;
+                attack_info[color.as_index()].rook |= attacks;
 
                 score += ROOK_MOBILITY[mobility];
                 score += ROOK_FORWARD_MOBILITY[forward_mobility];
@@ -381,7 +381,7 @@ impl LoopEvaluator {
         attack_power[color.as_index()] += ATTACKS[piece.as_index()][self.enemy_virt_mob].mult(kz_attacks);
         attack_power[color.flip().as_index()] += DEFENSES[piece.as_index()][self.own_virt_mob].mult(kz_defenses);
 
-        attack_info[color.as_index()].non_queen |= pawn_attacks;
+        attack_info[color.as_index()].non_qr_defenders |= pawn_attacks;
 
         if TRACE {
             let (own_vm, enemy_vm) = (self.own_virt_mob, self.enemy_virt_mob);
@@ -417,7 +417,8 @@ impl LoopEvaluator {
 
 #[derive(Default, Copy, Clone)]
 struct AttackInfo {
-    non_queen: Bitboard,
+    non_qr_defenders: Bitboard,
+    rook: Bitboard,
     queen: Bitboard,
 }
 
@@ -485,31 +486,50 @@ fn safety_file_stucture<const TRACE: bool>(
 }
 
 #[allow(clippy::cast_possible_wrap)]
-fn safe_queen_contact_checks(board: &Board, attack_info: &[AttackInfo; 2], color: Color) -> i32 {
+fn safe_contact_checks(board: &Board, attack_info: &[AttackInfo; 2], color: Color) -> i32 {
     let our_king_defended = attacks::king(board.color_king_sq(color));
-    let enemy_contact_zone = attacks::king(board.color_king_sq(color.flip()));
+
     let (our_info, their_info) = (
         attack_info[color.as_index()],
         attack_info[color.flip().as_index()],
     );
-    let (defended, attacked) = (
-        our_info.non_queen.union(our_king_defended),
-        their_info.non_queen.union(their_info.queen),
+
+    let base = our_info.non_qr_defenders.union(our_king_defended);
+    let (non_q_defended, non_r_defended, attacked) = (
+        base.union(our_info.rook),
+        base.union(our_info.queen),
+        their_info.non_qr_defenders.union(their_info.rook).union(their_info.queen),
     );
 
     let occ = board.occupied();
+    let enemy_king = board.color_king_sq(color.flip());
 
-    let mut count = 0;
+    let mut q_count = 0;
     let mut queens = board.piece_bb(Piece::QUEEN, color);
+    let queen_contact_zone = attacks::king(enemy_king);
     bitloop!(|sq| queens, {
-        let queen_attacks = attacks::queen(sq, occ);
-        let queen_defended = our_info.queen.without(queen_attacks); // we remove our attacking queen since it cant defend itself
-        let all_defended = defended.union(queen_defended);
+        let this_queens_attacks = attacks::queen(sq, occ);
+        let queen_defended = our_info.queen.without(this_queens_attacks); // we remove our attacking queen since it cant defend itself
+        let all_defended = non_q_defended.union(queen_defended);
 
-        let contacts = queen_attacks & enemy_contact_zone;
+        let contacts = this_queens_attacks & queen_contact_zone;
         let safe = all_defended.without(attacked);
         let safe_contacts = safe & contacts;
-        count += safe_contacts.popcount();
+        q_count += safe_contacts.popcount();
+    });
+
+    let mut r_count = 0;
+    let mut rooks = board.piece_bb(Piece::ROOK, color);
+    let rook_contact_zone = ROOK_CONTACT_ZONES[enemy_king.as_index()];
+    bitloop!(|sq| queens, {
+        let this_rooks_attacks = attacks::rook(sq, occ);
+        let rook_defended = our_info.rook.without(this_rooks_attacks);
+        let all_defended = non_r_defended.union(rook_defended);
+
+        let contacts = this_rooks_attacks & rook_contact_zone;
+        let safe = all_defended.without(attacked);
+        let safe_contacts = safe & contacts;
+        r_count += safe_contacts.popcount();
     });
 
     count as i32
@@ -604,8 +624,8 @@ pub fn mobility_threats_safety<const TRACE: bool>(
 
     safety_file_stucture::<TRACE>(board, &mut attack_power, t);
 
-    let our_safe_contacts = safe_queen_contact_checks(board, &attack_info, us);
-    let their_safe_contacts = safe_queen_contact_checks(board, &attack_info, them);
+    let our_safe_contacts = safe_contact_checks(board, &attack_info, us);
+    let their_safe_contacts = safe_contact_checks(board, &attack_info, them);
 
     attack_power[us.as_index()] += STM_QUEEN_CONTACT_CHECKS.mult(our_safe_contacts);
     attack_power[them.as_index()] += NON_STM_QUEEN_CONTACT_CHECKS.mult(their_safe_contacts);
