@@ -686,7 +686,8 @@ mod tests {
             piece_loop_eval::{forward_mobility, virtual_mobility},
             trace::{
                 Attacks, Defenses, EnemyKingRank, FileStructure, NonStmQueenContactChecks,
-                StmQueenContactChecks, Trace, SAFETY_TRACE_LEN,
+                NonStmRookContactChecks, StmQueenContactChecks, StmRookContactChecks, Trace,
+                SAFETY_TRACE_LEN,
             },
         },
     };
@@ -774,7 +775,7 @@ mod tests {
     }
 
     #[test]
-    fn contact_checks() {
+    fn q_contact_checks() {
         let board = Board::from_fen("8/1q6/4k3/8/2N2Q2/8/8/K4R2 w - - 0 1");
         let w_expected = 4;
         let b_expected = 0;
@@ -787,6 +788,24 @@ mod tests {
         );
         assert_eq!(
             t.safety[Color::Black.as_index()][NonStmQueenContactChecks::index()],
+            b_expected
+        );
+    }
+
+    #[test]
+    fn r_contact_checks() {
+        let board = Board::from_fen("8/8/3k4/8/8/8/2K1R3/4R3 w - - 0 1");
+        let w_expected = 1;
+        let b_expected = 0;
+
+        let t = trace_of_position(&board);
+
+        assert_eq!(
+            t.safety[Color::White.as_index()][StmRookContactChecks::index()],
+            w_expected
+        );
+        assert_eq!(
+            t.safety[Color::Black.as_index()][NonStmRookContactChecks::index()],
             b_expected
         );
     }
