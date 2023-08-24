@@ -99,11 +99,29 @@ const fn forward_masks_init() -> [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS a
     result
 }
 
+const fn rook_contact_zones_init() -> [Bitboard; NUM_SQUARES as usize] {
+    let mut result = [Bitboard::EMPTY; NUM_SQUARES as usize];
+    let mut i = 0;
+    while i < NUM_SQUARES {
+        let bb = Square::new(i).as_bitboard();
+        result[i as usize] = bb
+            .north_one()
+            .union(bb.south_one())
+            .union(bb.east_one())
+            .union(bb.west_one());
+        i += 1;
+    }
+
+    result
+}
+
 const KING_ZONES: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = king_zones_init();
 
 const KING_FILE_ZONES: [Bitboard; NUM_FILES as usize] = king_file_zones_init();
 
 const FORWARD_MASKS: [[Bitboard; NUM_SQUARES as usize]; NUM_COLORS as usize] = forward_masks_init();
+
+const ROOK_CONTACT_ZONES: [Bitboard; NUM_SQUARES as usize] = rook_contact_zones_init();
 
 const TROPISM: [[usize; NUM_SQUARES as usize]; NUM_SQUARES as usize] =
     include!(concat!(env!("OUT_DIR"), "/trophism_init.rs"));
