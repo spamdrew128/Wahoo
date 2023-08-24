@@ -485,8 +485,25 @@ fn safety_file_stucture<const TRACE: bool>(
     }
 }
 
+fn self_contact_defended<F: Fn(Square, Bitboard) -> Bitboard>(
+    attacker: Bitboard,
+    same_type_defenders: Bitboard,
+    occ: Bitboard,
+    attacks_fn: F,
+) -> Bitboard {
+    let new_occ = occ ^ attacker; // we remove the attacking piece for xray defenses
+
+    let mut defenders = same_type_defenders ^ attacker; // we remove attacking piece because it can't defend itself
+    let mut contact_defended = Bitboard::EMPTY;
+    bitloop!(|sq| defenders, {
+        contact_defended |= attacks_fn(sq, new_occ);
+    });
+
+    contact_defended
+}
+
 #[allow(clippy::cast_possible_wrap)]
-fn safe_contact_checks(board: &Board, attack_info: &[AttackInfo; 2], color: Color) -> i32 {
+fn safe_contact_checks(board: &Board, attack_info: &[AttackInfo; 2], color: Color) -> (i32, i32) {
     let our_king_defended = attacks::king(board.color_king_sq(color));
 
     let (our_info, their_info) = (
@@ -498,18 +515,23 @@ fn safe_contact_checks(board: &Board, attack_info: &[AttackInfo; 2], color: Colo
     let (non_q_defended, non_r_defended, attacked) = (
         base.union(our_info.rook),
         base.union(our_info.queen),
-        their_info.non_qr_defenders.union(their_info.rook).union(their_info.queen),
+        their_info
+            .non_qr_defenders
+            .union(their_info.rook)
+            .union(their_info.queen),
     );
 
     let occ = board.occupied();
     let enemy_king = board.color_king_sq(color.flip());
 
-    let mut q_count = 0;
-    let mut queens = board.piece_bb(Piece::QUEEN, color);
+    let queens = board.piece_bb(Piece::QUEEN, color);
     let queen_contact_zone = attacks::king(enemy_king);
-    bitloop!(|sq| queens, {
+    let mut q_count = 0;
+    let mut attackers = queens;
+    bitloop!(|sq| attackers, {
         let this_queens_attacks = attacks::queen(sq, occ);
-        let queen_defended = our_info.queen.without(this_queens_attacks); // we remove our attacking queen since it cant defend itself
+
+        let queen_defended = self_contact_defended(sq.as_bitboard(), queens, occ, attacks::queen);
         let all_defended = non_q_defended.union(queen_defended);
 
         let contacts = this_queens_attacks & queen_contact_zone;
@@ -518,13 +540,15 @@ fn safe_contact_checks(board: &Board, attack_info: &[AttackInfo; 2], color: Colo
         q_count += safe_contacts.popcount();
     });
 
-    let mut r_count = 0;
-    let mut rooks = board.piece_bb(Piece::ROOK, color);
+    let rooks = board.piece_bb(Piece::ROOK, color);
     let rook_contact_zone = ROOK_CONTACT_ZONES[enemy_king.as_index()];
-    bitloop!(|sq| queens, {
-        let this_rooks_attacks = attacks::rook(sq, occ);
-        let rook_defended = our_info.rook.without(this_rooks_attacks);
-        let all_defended = non_r_defended.union(rook_defended);
+    let mut r_count = 0;
+    let mut attackers = rooks;
+    bitloop!(|sq| attackers, {
+        let this_rooks_attacks = attacks::queen(sq, occ);
+
+        let queen_defended = self_contact_defended(sq.as_bitboard(), rooks, occ, attacks::rook);
+        let all_defended = non_q_defended.union(queen_defended);
 
         let contacts = this_rooks_attacks & rook_contact_zone;
         let safe = all_defended.without(attacked);
@@ -532,7 +556,7 @@ fn safe_contact_checks(board: &Board, attack_info: &[AttackInfo; 2], color: Colo
         r_count += safe_contacts.popcount();
     });
 
-    count as i32
+    (q_count as i32, r_count as i32)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -624,15 +648,16 @@ pub fn mobility_threats_safety<const TRACE: bool>(
 
     safety_file_stucture::<TRACE>(board, &mut attack_power, t);
 
-    let our_safe_contacts = safe_contact_checks(board, &attack_info, us);
-    let their_safe_contacts = safe_contact_checks(board, &attack_info, them);
+    let (our_queen_contacts, our_rook_contacts) = safe_contact_checks(board, &attack_info, us);
+    let (their_queen_contacts, their_rook_contacts) =
+        safe_contact_checks(board, &attack_info, them);
 
-    attack_power[us.as_index()] += STM_QUEEN_CONTACT_CHECKS.mult(our_safe_contacts);
-    attack_power[them.as_index()] += NON_STM_QUEEN_CONTACT_CHECKS.mult(their_safe_contacts);
+    attack_power[us.as_index()] += STM_QUEEN_CONTACT_CHECKS.mult(our_queen_contacts);
+    attack_power[them.as_index()] += NON_STM_QUEEN_CONTACT_CHECKS.mult(their_queen_contacts);
 
     if TRACE {
-        trace_safety_update!(t, StmQueenContactChecks, (), us, our_safe_contacts);
-        trace_safety_update!(t, NonStmQueenContactChecks, (), them, their_safe_contacts);
+        trace_safety_update!(t, StmQueenContactChecks, (), us, our_queen_contacts);
+        trace_safety_update!(t, NonStmQueenContactChecks, (), them, their_queen_contacts);
     }
 
     let safety = attack_power[us.as_index()].king_safety_formula()
