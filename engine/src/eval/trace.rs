@@ -28,9 +28,12 @@ pub const SAFETY_TRACE_LEN: usize = Attacks::LEN
     + StmQueenContactChecks::LEN
     + NonStmQueenContactChecks::LEN;
 
+pub const DRAWISHNESS_TRACE_LEN: usize = OppBishop::LEN;
+
 pub struct Trace {
     pub linear: [i8; LINEAR_TRACE_LEN],
     pub safety: [[i8; SAFETY_TRACE_LEN]; NUM_COLORS as usize],
+    pub drawishness: [i8; DRAWISHNESS_TRACE_LEN],
 }
 
 impl Trace {
@@ -38,6 +41,7 @@ impl Trace {
         Self {
             linear: [0; LINEAR_TRACE_LEN],
             safety: [[0; SAFETY_TRACE_LEN]; NUM_COLORS as usize],
+            drawishness: [0; DRAWISHNESS_TRACE_LEN],
         }
     }
 }
@@ -79,6 +83,14 @@ macro_rules! trace_safety_update {
         let index = $name::index($($arg,)*);
         $trace.safety[$color.as_index()][index] += $val as i8;
     };
+}
+
+#[macro_export]
+macro_rules! trace_drawishness_update {
+    ($trace:ident, $name:ident, ($($arg:ident),*), $val:expr) => {{
+        let index = $name::index($($arg,)*);
+        $trace.linear[index] += $val as i8;
+    }};
 }
 
 pub struct MaterialPst;
@@ -310,6 +322,17 @@ impl StmQueenContactChecks {
 pub struct NonStmQueenContactChecks;
 impl NonStmQueenContactChecks {
     pub const START: usize = StmQueenContactChecks::START + StmQueenContactChecks::LEN;
+    pub const LEN: usize = 1;
+
+    pub const fn index() -> usize {
+        Self::START
+    }
+}
+
+// DRAWISHNESS STUFF
+pub struct OppBishop;
+impl OppBishop {
+    pub const START: usize = 0;
     pub const LEN: usize = 1;
 
     pub const fn index() -> usize {

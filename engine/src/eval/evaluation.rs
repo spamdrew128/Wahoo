@@ -295,7 +295,7 @@ fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
     score_tuple += phalanx_pawns::<TRACE>(board, us, t) - phalanx_pawns::<TRACE>(board, them, t);
     score_tuple += mobility_threats_safety::<TRACE>(board, us, them, t);
 
-    score_tuple = score_tuple.drawishness_adjustment(board);
+    score_tuple = score_tuple.drawishness_adjustment::<TRACE>(board, t);
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
