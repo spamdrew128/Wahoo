@@ -694,7 +694,7 @@ impl Tuner {
         writeln!(
             output,
             "\npub const OPPOSITE_BISHOPS: ScoreTuple = {};\n",
-            S::new(0.0, 0.0)
+            self.weights.drawishness[OppBishop::index()]
         )
         .unwrap();
 
@@ -707,10 +707,9 @@ impl Tuner {
             writeln!(output, "// {} imbalance", piece.as_string().unwrap(),).unwrap();
             write!(output, "[\n  ").unwrap();
 
-            for _i in 0..16 {
-                // let index = index_fn(piece, i);
-                // let w = self.weights.safety[index];
-                let w = S::new(0.0, 0.0);
+            for i in 0..16 {
+                let index = MaterialImbalance::index(piece, i);
+                let w = self.weights.drawishness[index];
                 write!(output, "{w}, ",).unwrap();
             }
             writeln!(output, "\n],").unwrap();
