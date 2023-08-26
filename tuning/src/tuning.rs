@@ -276,6 +276,7 @@ impl Tuner {
     }
 
     fn safety_prime(x: f64) -> f64 {
+        // min(max(x, 0)^2 / 100), SAFETY_LIMIT)
         if x > 0.0 && x < 10.0 * f64::from(SAFETY_LIMIT).sqrt() {
             0.01 * 2.0 * x
         } else {
@@ -284,6 +285,7 @@ impl Tuner {
     }
 
     fn drawishness_prime(x: f64) -> f64 {
+        // (SCALE - x).clamp(SCALE / 4, SCALE) / SCALE
         if x > 0.0 && x < f64::from(DRAWISHNESS_SCALE - DRAWISHNESS_MIN) {
             -1.0 / f64::from(DRAWISHNESS_SCALE)
         } else {

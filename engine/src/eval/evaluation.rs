@@ -97,6 +97,7 @@ impl ScoreTuple {
     }
 
     pub fn king_safety_formula(self) -> Self {
+        // min(max(x, 0)^2 / 100), SAFETY_LIMIT)
         let mg = self.mg().max(0);
         let eg = self.eg().max(0);
         Self(
