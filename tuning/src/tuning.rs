@@ -10,7 +10,8 @@ use engine::{
         },
         trace::{
             Attacks, Defenses, FileStructure, MaterialImbalance, NonStmQueenContactChecks,
-            OppBishop, PasserSqRule, PawnStorm, StmQueenContactChecks, Tropism, SAFETY_TRACE_LEN, DRAWISHNESS_TRACE_LEN,
+            OppBishop, PasserSqRule, PawnStorm, StmQueenContactChecks, Tropism,
+            DRAWISHNESS_TRACE_LEN, SAFETY_TRACE_LEN,
         },
     },
     eval::{
@@ -142,8 +143,7 @@ impl Entry {
         let bias = S::new(scale, scale);
 
         let inner = self.inner_drawishness_score(weights);
-        (bias - inner).clamp(f64::from(DRAWISHNESS_MIN), scale)
-            / scale
+        (bias - inner).clamp(f64::from(DRAWISHNESS_MIN), scale) / scale
     }
 
     fn pre_drawishness_eval(&self, weights: &TunerStruct) -> S {
@@ -345,17 +345,19 @@ impl Tuner {
             };
 
             for feature in &entry.safety_feature_vec[color.as_index()] {
-                gradient.safety[feature.index] += coeff * drawishness * x_prime * f64::from(feature.value);
+                gradient.safety[feature.index] +=
+                    coeff * drawishness * x_prime * f64::from(feature.value);
             }
         }
 
         let inner = entry.inner_drawishness_score(weights);
         let d_prime = S::new(
             Self::drawishness_prime(inner.mg()),
-            Self::drawishness_prime(inner.eg())
+            Self::drawishness_prime(inner.eg()),
         );
         for feature in &entry.drawishness_feature_vec {
-            gradient.drawishness[feature.index] += coeff * pre_drawishness * d_prime * f64::from(feature.value);
+            gradient.drawishness[feature.index] +=
+                coeff * pre_drawishness * d_prime * f64::from(feature.value);
         }
     }
 
@@ -720,7 +722,6 @@ impl Tuner {
     }
 
     fn write_drawishness(&self, output: &mut BufWriter<File>) {
-        println!("{:?}", self.weights.drawishness);
         writeln!(
             output,
             "pub const OPPOSITE_BISHOPS: ScoreTuple = {};\n",
