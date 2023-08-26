@@ -309,3 +309,6 @@ pub const FILE_STRUCTURE: [ScoreTuple; 193] = [
 pub const STM_QUEEN_CONTACT_CHECKS: ScoreTuple = s(51, 90);
 
 pub const NON_STM_QUEEN_CONTACT_CHECKS: ScoreTuple = s(34, -36);
+
+// DRAWISHNESS FEATURES
+pub const OPPOSITE_BISHOPS: ScoreTuple = s(34, -36);

@@ -72,6 +72,8 @@ pub const TB_LOSS_SCORE: EvalScore = -TB_WIN_SCORE;
 pub struct ScoreTuple(EvalScore, EvalScore);
 
 pub const SAFETY_LIMIT: i32 = 720;
+pub const DRAWISHNESS_SCALE: i32 = 128;
+
 impl ScoreTuple {
     pub const fn new(mg: EvalScore, eg: EvalScore) -> Self {
         Self(mg, eg)
@@ -272,6 +274,8 @@ fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
     score_tuple += isolated_pawns::<TRACE>(board, us, t) - isolated_pawns::<TRACE>(board, them, t);
     score_tuple += phalanx_pawns::<TRACE>(board, us, t) - phalanx_pawns::<TRACE>(board, them, t);
     score_tuple += mobility_threats_safety::<TRACE>(board, us, them, t);
+
+    
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
