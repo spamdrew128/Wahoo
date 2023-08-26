@@ -328,6 +328,8 @@ mod tests {
         eval::evaluation::STM_PASSER_SQ,
     };
 
+    use super::evaluate;
+
     #[test]
     fn passer_sq_test() {
         let board = Board::from_fen("8/8/8/2k2PP1/8/8/8/K7 w - - 0 1");
@@ -341,5 +343,58 @@ mod tests {
         assert!(STM_PASSER_SQ[Color::White.as_index()][p2]
             .intersection(k_sq)
             .is_empty());
+    }
+
+    #[test]
+    fn test_positions() {
+        let samples = [
+            (
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                "startpos",
+            ),
+            (
+                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+                "kiwipete",
+            ),
+            (
+                "r1bq1b1r/ppp2kpp/2n5/3np3/2B5/8/PPPP1PPP/RNBQK2R w KQ - 0 7",
+                "fried liver attack",
+            ),
+            (
+                "1r2r1k1/pbp1qpp1/1p1p4/4nPR1/4P3/P1N4P/1PPQB3/1K1R4 w - - 1 24",
+                "wahoo vs akimbo",
+            ),
+            (
+                "2kr3r/ppp1qppp/2b2n2/4p3/4P3/P1P2Q2/P1B2PPP/R1B2RK1 w - - 7 14",
+                "",
+            ),
+            (
+                "rnbq1b1r/ppPknQ1p/3pp3/1B6/5pp1/BP2P3/P1PK1PPP/RN4NR b - - 4 11",
+                "",
+            ),
+            ("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", ""),
+            ("8/3kp1p1/8/1p6/4PP2/5K2/1P6/8 w - - 0 1", ""),
+            ("2k1n3/3bp1p1/8/1p6/4PP2/5K2/1P2R3/8 w - - 0 1", ""),
+            ("8/8/3bk2p/1r2p1pP/p1p3P1/P1B1K3/1PP5/5R2 b - - 25 52", ""),
+        ];
+
+        for s in samples {
+            let board = Board::from_fen(s.0);
+
+            let score = evaluate(&board);
+
+            let desc = if s.1.is_empty() {
+                String::new()
+            } else {
+                format!("desc: {}\n", s.1)
+            };
+
+            println!(
+                "fen: {}\n{}output: {}\n",
+                s.0,
+                desc,
+                score
+            );
+        }
     }
 }
