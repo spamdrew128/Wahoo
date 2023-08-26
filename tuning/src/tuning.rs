@@ -10,7 +10,7 @@ use engine::{
         },
         trace::{
             Attacks, Defenses, FileStructure, MaterialImbalance, NonStmQueenContactChecks,
-            PasserSqRule, PawnStorm, StmQueenContactChecks, Tropism, SAFETY_TRACE_LEN,
+            OppBishop, PasserSqRule, PawnStorm, StmQueenContactChecks, Tropism, SAFETY_TRACE_LEN,
         },
     },
     eval::{
@@ -129,13 +129,19 @@ impl Entry {
 
     fn inner_drawishness_score(&self, weights: &TunerStruct) -> S {
         let scale = f64::from(DRAWISHNESS_SCALE);
-        let mut drawishness = S::new(scale, scale);
+        let mut score = S::new(scale, scale);
 
         for feature in &self.drawishness_feature_vec {
-            drawishness -= f64::from(feature.value) * weights.drawishness[feature.index];
+            score -= f64::from(feature.value) * weights.drawishness[feature.index];
         }
 
-        drawishness.clamp(f64::from(DRAWISHNESS_MIN), scale) / scale
+        score
+    }
+
+    fn drawishness(&self, weights: &TunerStruct) -> S {
+        let inner = self.inner_drawishness_score(weights);
+        inner.clamp(f64::from(DRAWISHNESS_MIN), f64::from(DRAWISHNESS_SCALE))
+            / f64::from(DRAWISHNESS_SCALE)
     }
 
     fn evaluation(&self, weights: &TunerStruct) -> f64 {
@@ -149,6 +155,9 @@ impl Entry {
         let limit = f64::from(SAFETY_LIMIT);
         score +=
             (0.01 * w_ap.max(0.0).square()).min(limit) - (0.01 * b_ap.max(0.0).square()).min(limit);
+
+        let drawishness = self.drawishness(weights);
+        score = score * drawishness;
 
         (score.mg() * self.mg_phase() + score.eg() * self.eg_phase()) / f64::from(PHASE_MAX)
     }
