@@ -10,7 +10,7 @@ use engine::{
         },
         trace::{
             Attacks, Defenses, FileStructure, MaterialImbalance, NonStmQueenContactChecks,
-            OppBishop, PasserSqRule, PawnStorm, StmQueenContactChecks, Tropism, SAFETY_TRACE_LEN,
+            OppBishop, PasserSqRule, PawnStorm, StmQueenContactChecks, Tropism, SAFETY_TRACE_LEN, DRAWISHNESS_TRACE_LEN,
         },
     },
     eval::{
@@ -32,7 +32,7 @@ use std::{
 struct TunerStruct {
     linear: [S; LINEAR_TRACE_LEN],
     safety: [S; SAFETY_TRACE_LEN],
-    drawishness: [S; SAFETY_TRACE_LEN],
+    drawishness: [S; DRAWISHNESS_TRACE_LEN],
 }
 
 impl TunerStruct {
@@ -40,7 +40,7 @@ impl TunerStruct {
         Self {
             linear: [S::new(0.0, 0.0); LINEAR_TRACE_LEN],
             safety: [S::new(0.0, 0.0); SAFETY_TRACE_LEN],
-            drawishness: [S::new(0.0, 0.0); SAFETY_TRACE_LEN],
+            drawishness: [S::new(0.0, 0.0); DRAWISHNESS_TRACE_LEN],
         }
     }
 
@@ -354,7 +354,7 @@ impl Tuner {
             Self::drawishness_prime(inner.mg()),
             Self::drawishness_prime(inner.eg())
         );
-        for feature in &entry.feature_vec {
+        for feature in &entry.drawishness_feature_vec {
             gradient.drawishness[feature.index] += coeff * pre_drawishness * d_prime * f64::from(feature.value);
         }
     }
@@ -720,9 +720,10 @@ impl Tuner {
     }
 
     fn write_drawishness(&self, output: &mut BufWriter<File>) {
+        println!("{:?}", self.weights.drawishness);
         writeln!(
             output,
-            "\npub const OPPOSITE_BISHOPS: ScoreTuple = {};\n",
+            "pub const OPPOSITE_BISHOPS: ScoreTuple = {};\n",
             self.weights.drawishness[OppBishop::index()]
         )
         .unwrap();
