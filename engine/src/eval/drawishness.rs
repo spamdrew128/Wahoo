@@ -6,7 +6,7 @@ use crate::{
 
 use super::{
     eval_constants::{MATERIAL_IMBALANCE, OPPOSITE_BISHOPS},
-    evaluation::{ScoreTuple, DRAWISHNESS_SCALE},
+    evaluation::{ScoreTuple, DRAWISHNESS_MIN, DRAWISHNESS_SCALE},
     trace::Trace,
 };
 
@@ -50,7 +50,7 @@ impl ScoreTuple {
         drawishness += opp_bishops::<TRACE>(board, t);
         drawishness += material_imbalance::<TRACE>(board, t);
 
-        drawishness = drawishness.clamp(DRAWISHNESS_SCALE / 4, DRAWISHNESS_SCALE);
+        drawishness = drawishness.clamp(DRAWISHNESS_MIN, DRAWISHNESS_SCALE);
         self * drawishness / DRAWISHNESS_SCALE
     }
 }

@@ -34,6 +34,10 @@ impl S {
     pub fn max(self, m: f64) -> Self {
         Self(self.0.max(m), self.1.max(m))
     }
+
+    pub fn clamp(self, min: f64, max: f64) -> Self {
+        Self(self.0.clamp(min, max), self.1.clamp(min, max))
+    }
 }
 
 impl Display for S {

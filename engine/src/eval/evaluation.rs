@@ -73,6 +73,7 @@ pub struct ScoreTuple(EvalScore, EvalScore);
 
 pub const SAFETY_LIMIT: i32 = 720;
 pub const DRAWISHNESS_SCALE: i32 = 128;
+pub const DRAWISHNESS_MIN: i32 = DRAWISHNESS_SCALE / 4;
 
 impl ScoreTuple {
     pub const fn new(mg: EvalScore, eg: EvalScore) -> Self {

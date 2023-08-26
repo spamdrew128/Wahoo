@@ -5,7 +5,9 @@ use engine::{
     },
     eval::evaluation::{phase, trace_of_position, Phase, PHASE_MAX},
     eval::{
-        evaluation::{KINGSIDE_INDEX, QUEENSIDE_INDEX, SAFETY_LIMIT},
+        evaluation::{
+            DRAWISHNESS_MIN, DRAWISHNESS_SCALE, KINGSIDE_INDEX, QUEENSIDE_INDEX, SAFETY_LIMIT,
+        },
         trace::{
             Attacks, Defenses, FileStructure, MaterialImbalance, NonStmQueenContactChecks,
             PasserSqRule, PawnStorm, StmQueenContactChecks, Tropism, SAFETY_TRACE_LEN,
@@ -125,6 +127,17 @@ impl Entry {
         )
     }
 
+    fn inner_drawishness_score(&self, weights: &TunerStruct) -> S {
+        let scale = f64::from(DRAWISHNESS_SCALE);
+        let mut drawishness = S::new(scale, scale);
+
+        for feature in &self.drawishness_feature_vec {
+            drawishness += f64::from(feature.value) * weights.drawishness[feature.index];
+        }
+
+        drawishness.clamp(f64::from(DRAWISHNESS_MIN), scale) / scale
+    }
+
     fn evaluation(&self, weights: &TunerStruct) -> f64 {
         let mut score = S::new(0.0, 0.0);
 
@@ -209,6 +222,10 @@ impl Tuner {
 
         for w in result.safety.iter_mut() {
             *w = S::new(1.0, 1.0);
+        }
+
+        for w in result.drawishness.iter_mut() {
+            *w = S::new(-1.0, -1.0);
         }
 
         result
