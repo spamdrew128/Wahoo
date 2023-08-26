@@ -67,10 +67,10 @@ impl SearchTimer {
 
     #[allow(clippy::cast_sign_loss)]
     #[allow(clippy::cast_precision_loss)]
-    pub fn update_soft_limit(&mut self, widenings: &[u16]) {
+    pub fn update_soft_limit(&mut self, widenings: &[u16], node_percent: f64) {
         let avg_w = f64::from(widenings.iter().sum::<u16>()) / widenings.len() as f64;
         let scale: f64 = (0.06 * avg_w).mul_add(avg_w, 0.50);
         self.soft_limit = ((self.hard_limit as f64) * scale) as u128;
-        println!("{scale}");
+        println!("{scale}, {:?}", node_percent);
     }
 }
