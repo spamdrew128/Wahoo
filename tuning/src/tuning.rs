@@ -144,7 +144,7 @@ impl Entry {
             / f64::from(DRAWISHNESS_SCALE)
     }
 
-    fn evaluation(&self, weights: &TunerStruct) -> f64 {
+    fn pre_drawishness_eval(&self, weights: &TunerStruct) -> S {
         let mut score = S::new(0.0, 0.0);
 
         for feature in &self.feature_vec {
@@ -156,8 +156,14 @@ impl Entry {
         score +=
             (0.01 * w_ap.max(0.0).square()).min(limit) - (0.01 * b_ap.max(0.0).square()).min(limit);
 
+        score
+    }
+
+    fn evaluation(&self, weights: &TunerStruct) -> f64 {
+        let pre_draw = self.pre_drawishness_eval(weights);
         let drawishness = self.drawishness(weights);
-        score = score * drawishness;
+
+        let score = drawishness * pre_draw;
 
         (score.mg() * self.mg_phase() + score.eg() * self.eg_phase()) / f64::from(PHASE_MAX)
     }
@@ -308,7 +314,10 @@ impl Tuner {
         weights: &TunerStruct,
     ) {
         let r = entry.game_result;
+        let drawishness = entry.drawishness(weights);
+        let pre_drawishness = entry.pre_drawishness_eval(weights);
         let eval = entry.evaluation(weights);
+
         let sigmoid = Self::sigmoid(eval);
         let sigmoid_prime = Self::sigmoid_prime(sigmoid);
 
@@ -318,7 +327,7 @@ impl Tuner {
         );
 
         for feature in &entry.feature_vec {
-            gradient.linear[feature.index] += coeff * f64::from(feature.value);
+            gradient.linear[feature.index] += coeff * drawishness * f64::from(feature.value);
         }
 
         let (x_w, x_b) = entry.inner_safety_score(weights);
@@ -334,8 +343,17 @@ impl Tuner {
             };
 
             for feature in &entry.safety_feature_vec[color.as_index()] {
-                gradient.safety[feature.index] += coeff * x_prime * f64::from(feature.value);
+                gradient.safety[feature.index] += coeff * drawishness * x_prime * f64::from(feature.value);
             }
+        }
+
+        let inner = entry.inner_drawishness_score(weights);
+        let d_prime = S::new(
+            Self::drawishness_prime(inner.mg()),
+            Self::drawishness_prime(inner.eg())
+        );
+        for feature in &entry.feature_vec {
+            gradient.drawishness[feature.index] += coeff * pre_drawishness * d_prime * f64::from(feature.value);
         }
     }
 
