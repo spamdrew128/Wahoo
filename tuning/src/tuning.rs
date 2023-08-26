@@ -7,8 +7,8 @@ use engine::{
     eval::{
         evaluation::{KINGSIDE_INDEX, QUEENSIDE_INDEX, SAFETY_LIMIT},
         trace::{
-            Attacks, Defenses, FileStructure, NonStmQueenContactChecks, PasserSqRule, PawnStorm,
-            StmQueenContactChecks, Tropism, SAFETY_TRACE_LEN,
+            Attacks, Defenses, FileStructure, MaterialImbalance, NonStmQueenContactChecks,
+            PasserSqRule, PawnStorm, StmQueenContactChecks, Tropism, SAFETY_TRACE_LEN,
         },
     },
     eval::{
@@ -649,6 +649,35 @@ impl Tuner {
         .unwrap();
     }
 
+    fn write_drawishness(&self, output: &mut BufWriter<File>) {
+        writeln!(
+            output,
+            "\npub const OPPOSITE_BISHOPS: ScoreTuple = {};\n",
+            S::new(0.0, 0.0)
+        )
+        .unwrap();
+
+        writeln!(
+            output,
+            "pub const MATERIAL_IMBALANCE: [[{}; 16]; (NUM_PIECES - 1) as usize] = [",
+            MaterialImbalance::LEN
+        )
+        .unwrap();
+        for &piece in Piece::LIST.iter().take(5) {
+            writeln!(output, "// {} imbalance", piece.as_string().unwrap(),).unwrap();
+            write!(output, "[\n  ").unwrap();
+
+            for _i in 0..MaterialImbalance::LEN {
+                // let index = index_fn(piece, i);
+                // let w = self.weights.safety[index];
+                let w = S::new(0.0, 0.0);
+                write!(output, "{w}, ",).unwrap();
+            }
+            writeln!(output, "\n],").unwrap();
+        }
+        writeln!(output, "];\n").unwrap();
+    }
+
     fn create_output_file(&self) {
         let mut output = BufWriter::new(File::create("eval_constants.rs").unwrap());
         self.write_header(&mut output);
@@ -666,5 +695,8 @@ impl Tuner {
 
         writeln!(output, "\n// KING SAFETY FEATURES").unwrap();
         self.write_safety(&mut output);
+
+        writeln!(output, "\n// DRAWISHNESS FEATURES").unwrap();
+        self.write_drawishness(&mut output);
     }
 }

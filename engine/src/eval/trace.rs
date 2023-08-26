@@ -28,7 +28,7 @@ pub const SAFETY_TRACE_LEN: usize = Attacks::LEN
     + StmQueenContactChecks::LEN
     + NonStmQueenContactChecks::LEN;
 
-pub const DRAWISHNESS_TRACE_LEN: usize = OppBishop::LEN;
+pub const DRAWISHNESS_TRACE_LEN: usize = OppBishop::LEN + MaterialImbalance::LEN;
 
 pub struct Trace {
     pub linear: [i8; LINEAR_TRACE_LEN],
@@ -89,7 +89,7 @@ macro_rules! trace_safety_update {
 macro_rules! trace_drawishness_update {
     ($trace:ident, $name:ident, ($($arg:ident),*), $val:expr) => {{
         let index = $name::index($($arg,)*);
-        $trace.linear[index] += $val as i8;
+        $trace.drawishness[index] += $val as i8;
     }};
 }
 
@@ -334,6 +334,16 @@ pub struct OppBishop;
 impl OppBishop {
     pub const START: usize = 0;
     pub const LEN: usize = 1;
+
+    pub const fn index() -> usize {
+        Self::START
+    }
+}
+
+pub struct MaterialImbalance;
+impl MaterialImbalance {
+    pub const START: usize = OppBishop::START + OppBishop::LEN;
+    pub const LEN: usize = 16 * (NUM_PIECES - 1) as usize;
 
     pub const fn index() -> usize {
         Self::START
