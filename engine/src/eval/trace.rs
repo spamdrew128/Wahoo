@@ -345,7 +345,7 @@ impl MaterialImbalance {
     pub const START: usize = OppBishop::START + OppBishop::LEN;
     pub const LEN: usize = 16 * (NUM_PIECES - 1) as usize;
 
-    pub const fn index() -> usize {
-        Self::START
+    pub const fn index(piece: Piece, imbalance: usize) -> usize {
+        Self::START + 16 * piece.as_index() + imbalance
     }
 }

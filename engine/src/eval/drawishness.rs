@@ -1,11 +1,11 @@
 use crate::{
     board::board_representation::{Bitboard, Board, Color, Piece, NUM_PIECES},
-    eval::trace::OppBishop,
+    eval::trace::{MaterialImbalance, OppBishop},
     trace_drawishness_update,
 };
 
 use super::{
-    eval_constants::OPPOSITE_BISHOPS,
+    eval_constants::{MATERIAL_IMBALANCE, OPPOSITE_BISHOPS},
     evaluation::{ScoreTuple, DRAWISHNESS_SCALE},
     trace::Trace,
 };
@@ -28,11 +28,19 @@ fn opp_bishops<const TRACE: bool>(board: &Board, t: &mut Trace) -> ScoreTuple {
 }
 
 fn material_imbalance<const TRACE: bool>(board: &Board, t: &mut Trace) -> ScoreTuple {
-    let imbalance = ScoreTuple::new(0, 0);
-    for piece in Piece::LIST.iter().take(NUM_PIECES as usize - 1) { // exclude king
+    let mut score = ScoreTuple::new(0, 0);
+    for &piece in Piece::LIST.iter().take(NUM_PIECES as usize - 1) {
+        // exclude king
+        let imbalance = (board.piece_bb(piece, Color::White).popcount()
+            - board.piece_bb(piece, Color::Black).popcount()) as usize;
+        score += MATERIAL_IMBALANCE[piece.as_index()][imbalance];
+
+        if TRACE {
+            trace_drawishness_update!(t, MaterialImbalance, (piece, imbalance), 1);
+        }
     }
 
-    imbalance
+    score
 }
 
 impl ScoreTuple {
@@ -40,6 +48,7 @@ impl ScoreTuple {
         let mut drawishness = Self::new(DRAWISHNESS_SCALE, DRAWISHNESS_SCALE);
 
         drawishness += opp_bishops::<TRACE>(board, t);
+        drawishness += material_imbalance::<TRACE>(board, t);
 
         drawishness = drawishness.clamp(DRAWISHNESS_SCALE / 4, DRAWISHNESS_SCALE);
         self * drawishness / DRAWISHNESS_SCALE

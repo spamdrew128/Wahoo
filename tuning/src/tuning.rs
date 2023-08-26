@@ -659,15 +659,14 @@ impl Tuner {
 
         writeln!(
             output,
-            "pub const MATERIAL_IMBALANCE: [[{}; 16]; (NUM_PIECES - 1) as usize] = [",
-            MaterialImbalance::LEN
+            "pub const MATERIAL_IMBALANCE: [[ScoreTuple; 16]; (NUM_PIECES - 1) as usize] = [",
         )
         .unwrap();
         for &piece in Piece::LIST.iter().take(5) {
             writeln!(output, "// {} imbalance", piece.as_string().unwrap(),).unwrap();
             write!(output, "[\n  ").unwrap();
 
-            for _i in 0..MaterialImbalance::LEN {
+            for _i in 0..16 {
                 // let index = index_fn(piece, i);
                 // let w = self.weights.safety[index];
                 let w = S::new(0.0, 0.0);
