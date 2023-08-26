@@ -289,9 +289,9 @@ impl<'a> Searcher<'a> {
 
             const TM_UPDATE_DEPTH: Depth = 10;
             if depth >= TM_UPDATE_DEPTH {
-                let percentage_best_move = *best_move_count as f64 / total_nodes as f64;
-                
-                timer.update_soft_limit(widenings.as_slice(), percentage_best_move);
+                let best_move_node_fraction = *best_move_count as f64 / total_nodes as f64;
+
+                timer.update_soft_limit(widenings.as_slice(), best_move_node_fraction);
             }
         }
     }
