@@ -30,6 +30,7 @@ use std::{
 struct TunerStruct {
     linear: [S; LINEAR_TRACE_LEN],
     safety: [S; SAFETY_TRACE_LEN],
+    drawishness: [S; SAFETY_TRACE_LEN],
 }
 
 impl TunerStruct {
@@ -37,6 +38,7 @@ impl TunerStruct {
         Self {
             linear: [S::new(0.0, 0.0); LINEAR_TRACE_LEN],
             safety: [S::new(0.0, 0.0); SAFETY_TRACE_LEN],
+            drawishness: [S::new(0.0, 0.0); SAFETY_TRACE_LEN],
         }
     }
 
@@ -46,6 +48,9 @@ impl TunerStruct {
             *r += a;
         }
         for (r, &a) in result.safety.iter_mut().zip(rhs.safety.iter()) {
+            *r += a;
+        }
+        for (r, &a) in result.drawishness.iter_mut().zip(rhs.drawishness.iter()) {
             *r += a;
         }
         result
@@ -348,6 +353,7 @@ impl Tuner {
     fn update_weights(&mut self) {
         update_weights!(self, linear);
         update_weights!(self, safety);
+        update_weights!(self, drawishness);
     }
 
     pub fn train(&mut self) {
