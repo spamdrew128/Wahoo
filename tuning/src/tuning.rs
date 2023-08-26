@@ -240,7 +240,7 @@ impl Tuner {
         }
 
         for w in result.drawishness.iter_mut() {
-            *w = S::new(-1.0, -1.0);
+            *w = S::new(1.0, 1.0);
         }
 
         result
