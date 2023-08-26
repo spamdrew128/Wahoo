@@ -1,5 +1,5 @@
 use crate::{
-    board::board_representation::{Bitboard, Board, Color, Piece},
+    board::board_representation::{Bitboard, Board, Color, Piece, NUM_PIECES},
     eval::trace::OppBishop,
     trace_drawishness_update,
 };
@@ -27,7 +27,13 @@ fn opp_bishops<const TRACE: bool>(board: &Board, t: &mut Trace) -> ScoreTuple {
     ScoreTuple::new(0, 0)
 }
 
-fn material_imbalance<const TRACE: bool>(board: &Board, t: &mut Trace) -> ScoreTuple {}
+fn material_imbalance<const TRACE: bool>(board: &Board, t: &mut Trace) -> ScoreTuple {
+    let imbalance = ScoreTuple::new(0, 0);
+    for piece in Piece::LIST.iter().take(NUM_PIECES as usize - 1) { // exclude king
+    }
+
+    imbalance
+}
 
 impl ScoreTuple {
     pub fn drawishness_adjustment<const TRACE: bool>(self, board: &Board, t: &mut Trace) -> Self {
