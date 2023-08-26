@@ -128,20 +128,22 @@ impl Entry {
     }
 
     fn inner_drawishness_score(&self, weights: &TunerStruct) -> S {
-        let scale = f64::from(DRAWISHNESS_SCALE);
-        let mut score = S::new(scale, scale);
+        let mut score = S::new(0.0, 0.0);
 
         for feature in &self.drawishness_feature_vec {
-            score -= f64::from(feature.value) * weights.drawishness[feature.index];
+            score += f64::from(feature.value) * weights.drawishness[feature.index];
         }
 
         score
     }
 
     fn drawishness(&self, weights: &TunerStruct) -> S {
+        let scale = f64::from(DRAWISHNESS_SCALE);
+        let bias = S::new(scale, scale);
+
         let inner = self.inner_drawishness_score(weights);
-        inner.clamp(f64::from(DRAWISHNESS_MIN), f64::from(DRAWISHNESS_SCALE))
-            / f64::from(DRAWISHNESS_SCALE)
+        (bias - inner).clamp(f64::from(DRAWISHNESS_MIN), scale)
+            / scale
     }
 
     fn pre_drawishness_eval(&self, weights: &TunerStruct) -> S {

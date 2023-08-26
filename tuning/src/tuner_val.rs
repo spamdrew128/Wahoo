@@ -3,7 +3,7 @@ use std::{
     ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign},
 };
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct S(f64, f64);
 
 impl S {
