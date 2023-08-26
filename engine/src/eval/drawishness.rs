@@ -6,7 +6,7 @@ use super::{
 };
 
 impl ScoreTuple {
-    fn drawishness_adjustment(&mut self, board: &Board) {
+    pub fn drawishness_adjustment(self, board: &Board) -> ScoreTuple {
         let mut drawishness = Self::new(DRAWISHNESS_SCALE, DRAWISHNESS_SCALE);
 
         let w_bishops = board.piece_bb(Piece::BISHOP, Color::White);
@@ -20,5 +20,8 @@ impl ScoreTuple {
         {
             drawishness += OPPOSITE_BISHOPS;
         }
+
+        drawishness = drawishness.clamp(DRAWISHNESS_SCALE / 4, DRAWISHNESS_SCALE);
+        self * drawishness / DRAWISHNESS_SCALE
     }
 }

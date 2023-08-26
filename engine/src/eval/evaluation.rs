@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Sub};
+use std::ops::{Add, AddAssign, Div, Mul, Sub};
 
 use crate::{
     bitloop,
@@ -79,16 +79,20 @@ impl ScoreTuple {
         Self(mg, eg)
     }
 
-    const fn mg(self) -> EvalScore {
+    pub const fn mg(self) -> EvalScore {
         self.0
     }
 
-    const fn eg(self) -> EvalScore {
+    pub const fn eg(self) -> EvalScore {
         self.1
     }
 
     pub const fn mult(self, multiplier: i32) -> Self {
         Self(self.0 * multiplier, self.1 * multiplier)
+    }
+
+    pub fn clamp(self, min: i32, max: i32) -> Self {
+        Self(self.mg().clamp(min, max), self.eg().clamp(min, max))
     }
 
     pub fn king_safety_formula(self) -> Self {
@@ -120,6 +124,22 @@ impl Sub for ScoreTuple {
 
     fn sub(self, rhs: Self) -> Self {
         Self(self.0 - rhs.0, self.1 - rhs.1)
+    }
+}
+
+impl Mul for ScoreTuple {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self {
+        Self(self.0 * rhs.0, self.1 * rhs.1)
+    }
+}
+
+impl Div<i32> for ScoreTuple {
+    type Output = Self;
+
+    fn div(self, rhs: i32) -> Self {
+        Self(self.0 / rhs, self.1 / rhs)
     }
 }
 
@@ -274,6 +294,8 @@ fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
     score_tuple += isolated_pawns::<TRACE>(board, us, t) - isolated_pawns::<TRACE>(board, them, t);
     score_tuple += phalanx_pawns::<TRACE>(board, us, t) - phalanx_pawns::<TRACE>(board, them, t);
     score_tuple += mobility_threats_safety::<TRACE>(board, us, them, t);
+
+    score_tuple = score_tuple.drawishness_adjustment(board);
 
     let mg_phase = i32::from(phase(board));
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
