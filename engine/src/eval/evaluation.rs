@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Div, Mul, Sub};
+use std::ops::{Add, AddAssign, Div, Mul, Sub, SubAssign};
 
 use crate::{
     bitloop,
@@ -117,6 +117,12 @@ impl Add for ScoreTuple {
 impl AddAssign for ScoreTuple {
     fn add_assign(&mut self, rhs: Self) {
         *self = Self(self.0 + rhs.0, self.1 + rhs.1);
+    }
+}
+
+impl SubAssign for ScoreTuple {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = Self(self.0 - rhs.0, self.1 - rhs.1);
     }
 }
 

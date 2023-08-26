@@ -132,7 +132,7 @@ impl Entry {
         let mut drawishness = S::new(scale, scale);
 
         for feature in &self.drawishness_feature_vec {
-            drawishness += f64::from(feature.value) * weights.drawishness[feature.index];
+            drawishness -= f64::from(feature.value) * weights.drawishness[feature.index];
         }
 
         drawishness.clamp(f64::from(DRAWISHNESS_MIN), scale) / scale
@@ -285,7 +285,7 @@ impl Tuner {
 
     fn drawishness_prime(x: f64) -> f64 {
         if x > 0.0 && x < f64::from(DRAWISHNESS_SCALE - DRAWISHNESS_MIN) {
-            -1.0
+            -1.0 / f64::from(DRAWISHNESS_SCALE)
         } else {
             0.0
         }

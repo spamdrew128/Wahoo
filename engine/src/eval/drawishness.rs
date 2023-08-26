@@ -27,12 +27,14 @@ fn opp_bishops<const TRACE: bool>(board: &Board, t: &mut Trace) -> ScoreTuple {
     ScoreTuple::new(0, 0)
 }
 
+#[allow(clippy::cast_possible_wrap)]
 fn material_imbalance<const TRACE: bool>(board: &Board, t: &mut Trace) -> ScoreTuple {
     let mut score = ScoreTuple::new(0, 0);
     for &piece in Piece::LIST.iter().take(NUM_PIECES as usize - 1) {
         // exclude king
-        let imbalance = (board.piece_bb(piece, Color::White).popcount()
-            - board.piece_bb(piece, Color::Black).popcount()) as usize;
+        let imbalance = (board.piece_bb(piece, Color::White).popcount() as i32
+            - board.piece_bb(piece, Color::Black).popcount() as i32)
+            .unsigned_abs() as usize;
         score += MATERIAL_IMBALANCE[piece.as_index()][imbalance];
 
         if TRACE {
@@ -47,8 +49,8 @@ impl ScoreTuple {
     pub fn drawishness_adjustment<const TRACE: bool>(self, board: &Board, t: &mut Trace) -> Self {
         let mut drawishness = Self::new(DRAWISHNESS_SCALE, DRAWISHNESS_SCALE);
 
-        drawishness += opp_bishops::<TRACE>(board, t);
-        drawishness += material_imbalance::<TRACE>(board, t);
+        drawishness -= opp_bishops::<TRACE>(board, t);
+        drawishness -= material_imbalance::<TRACE>(board, t);
 
         drawishness = drawishness.clamp(DRAWISHNESS_MIN, DRAWISHNESS_SCALE);
         self * drawishness / DRAWISHNESS_SCALE
