@@ -285,7 +285,7 @@ impl Tuner {
 
     fn drawishness_prime(x: f64) -> f64 {
         if x > 0.0 && x < f64::from(DRAWISHNESS_SCALE - DRAWISHNESS_MIN) {
-            -x
+            -1.0
         } else {
             0.0
         }
