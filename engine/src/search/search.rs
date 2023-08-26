@@ -20,7 +20,7 @@ use crate::{
     board::board_representation::Board,
     board::chess_move::{Move, MAX_MOVECOUNT},
     board::movegen::MoveGenerator,
-    board::zobrist_stack::ZobristStack,
+    board::{board_representation::NUM_SQUARES, zobrist_stack::ZobristStack},
     board::{movegen::MoveStage, zobrist::ZobristHash},
     eval::evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     tablebase::probe::Syzygy,
@@ -190,6 +190,7 @@ impl<'a> Searcher<'a> {
                 d,
                 &mut Move::nullmove(),
                 &mut vec![],
+                &mut Box::new([[0; NUM_SQUARES as usize]; NUM_SQUARES as usize]),
             );
         }
 
@@ -223,6 +224,8 @@ impl<'a> Searcher<'a> {
 
         let mut search_results = SearchResults::new(board);
         let mut widenings = vec![];
+        let mut move_nodes: Box<[[Nodes; NUM_SQUARES as usize]; NUM_SQUARES as usize]> =
+            Box::new([[0; NUM_SQUARES as usize]; NUM_SQUARES as usize]);
         while !self.stop_searching::<IS_PRIMARY>(depth) {
             self.seldepth = 0;
             let score = self.aspiration_window_search(
@@ -231,6 +234,7 @@ impl<'a> Searcher<'a> {
                 depth,
                 &mut search_results.best_move,
                 &mut widenings,
+                &mut move_nodes,
             );
 
             if stop_flag_is_set() {
@@ -259,6 +263,7 @@ impl<'a> Searcher<'a> {
         search_results
     }
 
+    #[allow(clippy::cast_precision_loss)]
     fn aspiration_window_search(
         &mut self,
         board: &Board,
@@ -266,6 +271,7 @@ impl<'a> Searcher<'a> {
         current_depth: Depth,
         best_move: &mut Move,
         widenings: &mut Vec<u16>,
+        move_nodes: &mut Box<[[Nodes; NUM_SQUARES as usize]; NUM_SQUARES as usize]>,
     ) -> EvalScore {
         const ASP_WINDOW_MIN_DEPTH: Depth = 7;
         const ASP_WINDOW_INIT_WINDOW: EvalScore = 12;
@@ -285,6 +291,7 @@ impl<'a> Searcher<'a> {
         }
 
         let mut w = 0;
+        let prev_nodes = self.thread_data.thread_node_count();
         loop {
             if alpha < -ASP_WINDOW_FULL_SEARCH_BOUNDS {
                 alpha = -INF;
@@ -307,6 +314,20 @@ impl<'a> Searcher<'a> {
                 asp_depth = (asp_depth - 1).max(1);
             } else {
                 if let Some(timer) = &mut self.timer {
+                    const NODE_TM_DEPTH: Depth = 10;
+
+                    let total_nodes = self.thread_data.thread_node_count();
+                    let spent_nodes = total_nodes - prev_nodes;
+                    let best_move_count =
+                        &mut move_nodes[best_move.from().as_index()][best_move.to().as_index()];
+                    *best_move_count += spent_nodes;
+                    
+                    let percentage_best_move = if current_depth >= NODE_TM_DEPTH {
+                        Some(*best_move_count as f64 / total_nodes as f64)
+                    } else {
+                        None
+                    };
+
                     widenings.push(w);
                     timer.update_soft_limit(widenings.as_slice());
                 }

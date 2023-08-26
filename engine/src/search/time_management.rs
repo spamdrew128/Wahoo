@@ -71,5 +71,6 @@ impl SearchTimer {
         let avg_w = f64::from(widenings.iter().sum::<u16>()) / widenings.len() as f64;
         let scale: f64 = (0.06 * avg_w).mul_add(avg_w, 0.50);
         self.soft_limit = ((self.hard_limit as f64) * scale) as u128;
+        println!("{scale}");
     }
 }
