@@ -66,6 +66,7 @@ impl Feature {
 struct Entry {
     feature_vec: Vec<Feature>,
     safety_feature_vec: [Vec<Feature>; NUM_COLORS as usize],
+    drawishness_feature_vec: Vec<Feature>,
     phase: Phase,
     game_result: f64,
 }
@@ -75,6 +76,7 @@ impl Entry {
         let mut entry = Self {
             feature_vec: vec![],
             safety_feature_vec: [vec![], vec![]],
+            drawishness_feature_vec: vec![],
             phase: phase(board),
             game_result,
         };
@@ -83,6 +85,12 @@ impl Entry {
         for (i, &value) in trace.linear.iter().enumerate() {
             if value != 0 {
                 entry.feature_vec.push(Feature::new(value, i));
+            }
+        }
+
+        for (i, &value) in trace.drawishness.iter().enumerate() {
+            if value != 0 {
+                entry.drawishness_feature_vec.push(Feature::new(value, i));
             }
         }
 
