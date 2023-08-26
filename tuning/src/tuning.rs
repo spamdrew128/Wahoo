@@ -283,6 +283,14 @@ impl Tuner {
         }
     }
 
+    fn drawishness_prime(x: f64) -> f64 {
+        if x > 0.0 && x < f64::from(DRAWISHNESS_SCALE - DRAWISHNESS_MIN) {
+            -x
+        } else {
+            0.0
+        }
+    }
+
     fn update_entry_gradient_component(
         entry: &Entry,
         gradient: &mut TunerStruct,
