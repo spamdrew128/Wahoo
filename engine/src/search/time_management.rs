@@ -71,7 +71,7 @@ impl SearchTimer {
         let avg_w = f64::from(widenings.iter().sum::<u16>()) / widenings.len() as f64;
 
         let asp_scale: f64 = (0.06 * avg_w).mul_add(avg_w, 0.50);
-        let node_scale: f64 = (1.25 - node_frac).mul_add(0.85, -0.3);
+        let node_scale: f64 = -0.15 + (1.0 - node_frac);
 
         let scale = asp_scale + node_scale;
         self.soft_limit = ((self.hard_limit as f64) * scale) as u128;
