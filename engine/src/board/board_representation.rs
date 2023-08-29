@@ -255,6 +255,9 @@ impl Bitboard {
     pub const RANK_7: Self = Self::new(0x00ff000000000000);
     pub const RANK_8: Self = Self::new(0xff00000000000000);
 
+    pub const LIGHT_SQ: Self = Self::new(0x55aa55aa55aa55aa);
+    pub const DARK_SQ: Self = Self::new(0xaa55aa55aa55aa55);
+
     pub const fn new(data: u64) -> Self {
         Self { data }
     }
