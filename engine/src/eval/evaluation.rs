@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Sub, Div};
+use std::ops::{Add, AddAssign, Div, Sub};
 
 use crate::{
     bitloop,
@@ -18,6 +18,8 @@ use crate::{
     search::search::MAX_PLY,
     trace_update,
 };
+
+use super::drawishness::drawishness_adjustment;
 
 const fn passer_squares_init(
     is_stm: bool,
@@ -281,10 +283,12 @@ fn eval_or_trace<const TRACE: bool>(board: &Board, t: &mut Trace) -> EvalScore {
     score_tuple += phalanx_pawns::<TRACE>(board, us, t) - phalanx_pawns::<TRACE>(board, them, t);
     score_tuple += mobility_threats_safety::<TRACE>(board, us, them, t);
 
-    let mg_phase = i32::from(phase(board));
+    let phase = phase(board);
+    let mg_phase = i32::from(phase);
     let eg_phase = i32::from(PHASE_MAX) - mg_phase;
 
-    (score_tuple.mg() * mg_phase + score_tuple.eg() * eg_phase) / i32::from(PHASE_MAX)
+    let eval = (score_tuple.mg() * mg_phase + score_tuple.eg() * eg_phase) / i32::from(PHASE_MAX);
+    drawishness_adjustment(eval, board, phase)
 }
 
 pub fn evaluate(board: &Board) -> EvalScore {
