@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Div, Sub};
+use std::ops::{Add, AddAssign, Sub};
 
 use crate::{
     bitloop,
@@ -120,14 +120,6 @@ impl Sub for ScoreTuple {
 
     fn sub(self, rhs: Self) -> Self {
         Self(self.0 - rhs.0, self.1 - rhs.1)
-    }
-}
-
-impl Div<i32> for ScoreTuple {
-    type Output = Self;
-
-    fn div(self, rhs: i32) -> Self {
-        Self(self.0 / rhs, self.1 / rhs)
     }
 }
 
