@@ -20,7 +20,7 @@ use crate::{
     board::board_representation::Board,
     board::chess_move::{Move, MAX_MOVECOUNT},
     board::movegen::MoveGenerator,
-    board::zobrist_stack::ZobristStack,
+    board::{board_representation::NUM_SQUARES, zobrist_stack::ZobristStack},
     board::{movegen::MoveStage, zobrist::ZobristHash},
     eval::evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     tablebase::probe::Syzygy,
@@ -223,8 +223,12 @@ impl<'a> Searcher<'a> {
 
         let mut search_results = SearchResults::new(board);
         let mut widenings = vec![];
+        let mut move_node_table: Box<[[Nodes; NUM_SQUARES as usize]; NUM_SQUARES as usize]> =
+            Box::new([[0; NUM_SQUARES as usize]; NUM_SQUARES as usize]);
         while !self.stop_searching::<IS_PRIMARY>(depth) {
             self.seldepth = 0;
+
+            let prev_nodecount = self.thread_data.thread_node_count();
             let score = self.aspiration_window_search(
                 board,
                 search_results.score,
@@ -243,6 +247,14 @@ impl<'a> Searcher<'a> {
             search_results.best_move = self.pv_table.best_move();
             search_results.score = score;
 
+            self.search_time_adjustment(
+                &mut widenings,
+                &mut move_node_table,
+                prev_nodecount,
+                depth,
+                search_results.best_move,
+            );
+
             depth += 1;
         }
         write_stop_flag(true);
@@ -257,6 +269,31 @@ impl<'a> Searcher<'a> {
         }
 
         search_results
+    }
+
+    #[allow(clippy::cast_precision_loss)]
+    fn search_time_adjustment(
+        &mut self,
+        widenings: &mut Vec<u16>,
+        move_node_table: &mut Box<[[Nodes; NUM_SQUARES as usize]; NUM_SQUARES as usize]>,
+        prev_nodecount: Nodes,
+        depth: Depth,
+        best_move: Move,
+    ) {
+        if let Some(timer) = &mut self.timer {
+            let total_nodes = self.thread_data.thread_node_count();
+            let spent_nodes = total_nodes - prev_nodecount;
+            let best_move_count =
+                &mut move_node_table[best_move.from().as_index()][best_move.to().as_index()];
+            *best_move_count += spent_nodes;
+
+            const TM_UPDATE_DEPTH: Depth = 10;
+            if depth >= TM_UPDATE_DEPTH {
+                let best_move_node_fraction = *best_move_count as f64 / total_nodes as f64;
+
+                timer.update_soft_limit(widenings.as_slice(), best_move_node_fraction);
+            }
+        }
     }
 
     fn aspiration_window_search(
@@ -306,11 +343,7 @@ impl<'a> Searcher<'a> {
                 beta = (beta + delta).min(INF);
                 asp_depth = (asp_depth - 1).max(1);
             } else {
-                if let Some(timer) = &mut self.timer {
-                    widenings.push(w);
-                    timer.update_soft_limit(widenings.as_slice());
-                }
-
+                widenings.push(w);
                 return score;
             }
 
