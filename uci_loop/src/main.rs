@@ -14,6 +14,6 @@ fn main() {
 
     let mut uci_handler = uci::UciHandler::new();
     loop {
-        uci_handler.execute_instructions()
+        uci_handler.execute_instructions();
     }
 }

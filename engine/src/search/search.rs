@@ -7,6 +7,7 @@ use arrayvec::ArrayVec;
 
 use super::{
     history_table::History,
+    improving::EvalStack,
     killers::Killers,
     late_move_reductions::get_reduction,
     pv_table::PvTable,
@@ -19,8 +20,8 @@ use crate::{
     board::board_representation::Board,
     board::chess_move::{Move, MAX_MOVECOUNT},
     board::movegen::MoveGenerator,
-    board::zobrist::ZobristHash,
-    board::zobrist_stack::ZobristStack,
+    board::{board_representation::NUM_SQUARES, zobrist_stack::ZobristStack},
+    board::{movegen::MoveStage, zobrist::ZobristHash},
     eval::evaluation::{evaluate, EvalScore, EVAL_MAX, INF, MATE_THRESHOLD},
     tablebase::probe::Syzygy,
 };
@@ -69,6 +70,7 @@ pub struct Searcher<'a> {
     pv_table: PvTable,
     history: History,
     killers: Killers,
+    eval_stack: EvalStack,
     tt: &'a TranspositionTable,
     tb: Syzygy,
 
@@ -93,6 +95,7 @@ impl<'a> Searcher<'a> {
             zobrist_stack: zobrist_stack.clone(),
             history: history.clone(),
             killers: Killers::new(),
+            eval_stack: EvalStack::new(),
             tt,
             tb,
             pv_table: PvTable::new(),
@@ -220,8 +223,12 @@ impl<'a> Searcher<'a> {
 
         let mut search_results = SearchResults::new(board);
         let mut widenings = vec![];
+        let mut move_node_table: Box<[[Nodes; NUM_SQUARES as usize]; NUM_SQUARES as usize]> =
+            Box::new([[0; NUM_SQUARES as usize]; NUM_SQUARES as usize]);
         while !self.stop_searching::<IS_PRIMARY>(depth) {
             self.seldepth = 0;
+
+            let prev_nodecount = self.thread_data.thread_node_count();
             let score = self.aspiration_window_search(
                 board,
                 search_results.score,
@@ -240,6 +247,14 @@ impl<'a> Searcher<'a> {
             search_results.best_move = self.pv_table.best_move();
             search_results.score = score;
 
+            self.search_time_adjustment(
+                &mut widenings,
+                &mut move_node_table,
+                prev_nodecount,
+                depth,
+                search_results.best_move,
+            );
+
             depth += 1;
         }
         write_stop_flag(true);
@@ -254,6 +269,31 @@ impl<'a> Searcher<'a> {
         }
 
         search_results
+    }
+
+    #[allow(clippy::cast_precision_loss)]
+    fn search_time_adjustment(
+        &mut self,
+        widenings: &mut Vec<u16>,
+        move_node_table: &mut Box<[[Nodes; NUM_SQUARES as usize]; NUM_SQUARES as usize]>,
+        prev_nodecount: Nodes,
+        depth: Depth,
+        best_move: Move,
+    ) {
+        if let Some(timer) = &mut self.timer {
+            let total_nodes = self.thread_data.thread_node_count();
+            let spent_nodes = total_nodes - prev_nodecount;
+            let best_move_count =
+                &mut move_node_table[best_move.from().as_index()][best_move.to().as_index()];
+            *best_move_count += spent_nodes;
+
+            const TM_UPDATE_DEPTH: Depth = 10;
+            if depth >= TM_UPDATE_DEPTH {
+                let best_move_node_fraction = *best_move_count as f64 / total_nodes as f64;
+
+                timer.update_soft_limit(widenings.as_slice(), best_move_node_fraction);
+            }
+        }
     }
 
     fn aspiration_window_search(
@@ -278,7 +318,7 @@ impl<'a> Searcher<'a> {
             alpha = (prev_score - ASP_WINDOW_INIT_WINDOW).max(-INF);
             beta = (prev_score + ASP_WINDOW_INIT_WINDOW).min(INF);
         } else {
-            return self.negamax::<false>(board, asp_depth, 0, alpha, beta);
+            return self.negamax::<true, false>(board, asp_depth, 0, alpha, beta);
         }
 
         let mut w = 0;
@@ -290,7 +330,7 @@ impl<'a> Searcher<'a> {
                 beta = INF;
             }
 
-            let score = self.negamax::<false>(board, asp_depth, 0, alpha, beta);
+            let score = self.negamax::<true, false>(board, asp_depth, 0, alpha, beta);
 
             if score <= alpha {
                 alpha = (alpha - delta).max(-INF);
@@ -303,11 +343,7 @@ impl<'a> Searcher<'a> {
                 beta = (beta + delta).min(INF);
                 asp_depth = (asp_depth - 1).max(1);
             } else {
-                if let Some(timer) = &mut self.timer {
-                    widenings.push(w);
-                    timer.update_soft_limit(widenings.as_slice());
-                }
-
+                widenings.push(w);
                 return score;
             }
 
@@ -318,7 +354,7 @@ impl<'a> Searcher<'a> {
 
     #[rustfmt::skip]
     #[allow(clippy::cognitive_complexity)] // lol
-    fn negamax<const DO_NULL_MOVE: bool>(
+    fn negamax<const IS_ROOT: bool, const DO_NULL_MOVE: bool>(
         &mut self,
         board: &Board,
         mut depth: Depth,
@@ -331,25 +367,26 @@ impl<'a> Searcher<'a> {
         let old_alpha = alpha;
         let in_check = board.in_check();
         let is_pv = beta != alpha + 1;
-        let is_root = ply == 0;
         let is_drawn =
             self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
 
-        if !is_root {
+        if !IS_ROOT {
             if is_drawn {
                 return 0;
             }
 
             // MATE DISTANCE PRUNING
-            let mate_alpha = alpha.max(i32::from(ply) - MATE_THRESHOLD);
-            let mate_beta = beta.min(MATE_THRESHOLD - (i32::from(ply) + 1));
+            let mate_alpha = alpha.max(i32::from(ply) - EVAL_MAX);
+            let mate_beta = beta.min(EVAL_MAX - (i32::from(ply) + 1));
             if mate_alpha >= mate_beta {
                 return mate_alpha;
             }
         }
 
         // CHECK EXTENSION
-        if in_check { depth += 1 };
+        if !IS_ROOT && in_check {
+            depth += 1;
+        };
 
         if depth == 0 || ply >= MAX_PLY {
             return self.qsearch(board, ply, alpha, beta);
@@ -365,9 +402,16 @@ impl<'a> Searcher<'a> {
         let hash_base = ZobristHash::incremental_update_base(board);
         let hash = self.zobrist_stack.current_zobrist_hash();
 
+        let mut static_eval = evaluate(board);
         let tt_move = if let Some(entry) = self.tt.probe(hash) {
+            let flag = entry.flag();
+            let tt_score = entry.score_from_tt(ply);
             if !is_pv && entry.cutoff_is_possible(alpha, beta, depth) {
-                return entry.score_from_tt(ply);
+                return tt_score;
+            }
+
+            if !((static_eval > tt_score && flag == TTFlag::LOWER_BOUND) || (static_eval < tt_score && flag == TTFlag::UPPER_BOUND)) {
+                static_eval = tt_score;
             }
 
             entry.best_move
@@ -382,7 +426,7 @@ impl<'a> Searcher<'a> {
         };
 
         // SYZYGY TABLEBASE PROBING
-        if !is_root {
+        if !IS_ROOT {
             if let Some(score) = self.tb.probe_score(board, ply) {
                 self.thread_data.increment_tb_hits();
                 self.tt.store(TTFlag::EXACT, score, hash, ply, depth, Move::nullmove());
@@ -390,8 +434,21 @@ impl<'a> Searcher<'a> {
             }
         }
 
-        if !is_pv && !in_check {
-            let static_eval = evaluate(board);
+        // IMPROVING HEURISTIC
+        let improving = self.eval_stack.improving(static_eval, ply);
+
+        let pruning_allowed = !is_pv && !in_check && alpha.abs() < MATE_THRESHOLD;
+
+        let d = i32::from(depth);
+        if pruning_allowed {
+            // REVERSE FUTILITY PRUNING
+            const RFP_MIN_DEPTH: Depth = 8;
+            const RFP_MARGIN: EvalScore = 90;
+
+            let divisor = if improving {2} else {1};
+            if depth <= RFP_MIN_DEPTH && static_eval >= (beta + (RFP_MARGIN * d / divisor)) {
+                return static_eval;
+            }
 
             // NULL MOVE PRUNING
             const NMP_MIN_DEPTH: Depth = 3;
@@ -401,7 +458,7 @@ impl<'a> Searcher<'a> {
 
                 let mut nmp_board = board.clone();
                 nmp_board.play_nullmove(&mut self.zobrist_stack);
-                let null_move_score = -self.negamax::<false>(
+                let null_move_score = -self.negamax::<false, false>(
                     &nmp_board,
                     depth - reduction,
                     ply + 1,
@@ -415,25 +472,35 @@ impl<'a> Searcher<'a> {
                     return null_move_score;
                 }
             }
-
-            // REVERSE FUTILITY PRUNING
-            const RFP_MAX_DEPTH: Depth = 8;
-            const RFP_MARGIN: EvalScore = 90;
-
-            if depth <= RFP_MAX_DEPTH && static_eval >= (beta + RFP_MARGIN * i32::from(depth)) {
-                return static_eval;
-            }
         }
 
         let mut generator = MoveGenerator::new();
 
         let mut best_move = Move::nullmove();
         let mut best_score = -INF;
-        let mut moves_played = 0;
+        let mut moves_played: i32 = 0;
         let mut quiets: ArrayVec<Move, MAX_MOVECOUNT> = ArrayVec::new();
         while let Some(mv) =
             generator.next::<true>(board, &self.history, self.killers.killer(ply), tt_move)
         {
+            // MOVE PRUNING TECHNIQUES
+            const PRUNING_THRESHOLD: EvalScore = 700;
+            if pruning_allowed && best_score.abs() < PRUNING_THRESHOLD {
+                // QUIET LATE MOVE PRUNING
+                let divisor = if improving {1} else {2};
+                if generator.stage() > MoveStage::KILLER && moves_played > 2 + (d * d / divisor) {
+                    break;
+                }
+
+                // STATIC EXCHANGE EVALUATION (SEE) PRUNING
+                const MIN_SEE_DEPTH: Depth = 6;
+                if generator.stage() > MoveStage::KILLER
+                    && depth <= MIN_SEE_DEPTH
+                    && !board.search_see(mv, -90 * d) {
+                    continue;
+                }
+            }
+
             let mut next_board = board.clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack, hash_base);
             if !is_legal {
@@ -445,7 +512,7 @@ impl<'a> Searcher<'a> {
 
             let mut score = 0;
             if moves_played == 1 {
-                score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -beta, -alpha);
+                score = -self.negamax::<false, true>(&next_board, depth - 1, ply + 1, -beta, -alpha);
             } else {
                 // LATE MOVE REDUCTIONS (heavily inspired by Svart https://github.com/crippa1337/svart/blob/master/src/engine/search.rs)
                 const LMR_MIN_DEPTH: Depth = 3;
@@ -461,18 +528,18 @@ impl<'a> Searcher<'a> {
                     if r > 1 {
                         // REDUCED PVS
                         r = r.min(depth - 1);
-                        score = -self.negamax::<true>(&next_board, depth - r, ply + 1, -alpha - 1, -alpha);
+                        score = -self.negamax::<false, true>(&next_board, depth - r, ply + 1, -alpha - 1, -alpha);
                         do_full_depth_pvs = score > alpha && score < beta; // we want to try again without reductions if we beat alpha
                     }
                 }
 
                 if do_full_depth_pvs {
                     // FULL DEPTH PVS
-                    score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -alpha - 1, -alpha);
+                    score = -self.negamax::<false, true>(&next_board, depth - 1, ply + 1, -alpha - 1, -alpha);
 
                     // if our null-window search beat alpha without failing high, that means we might have a better move and need to re search with full window
                     if score > alpha && score < beta {
-                        score = -self.negamax::<true>(&next_board, depth - 1, ply + 1, -beta, -alpha);
+                        score = -self.negamax::<false, true>(&next_board, depth - 1, ply + 1, -beta, -alpha);
                     }
                 }
             };

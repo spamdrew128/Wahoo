@@ -132,6 +132,10 @@ impl TTEntry {
         }
     }
 
+    pub const fn flag(self) -> TTFlag {
+        self.age_and_flag.flag()
+    }
+
     #[allow(clippy::cast_sign_loss)]
     const fn quality(self) -> u16 {
         let age = self.age_and_flag.age() as u16;

@@ -84,6 +84,16 @@ impl Move {
         (self.flag() >= Flag::KNIGHT_PROMO) && (self.flag() <= Flag::QUEEN_CAPTURE_PROMO)
     }
 
+    pub fn promo_piece(self) -> Piece {
+        match self.flag() {
+            Flag::QUEEN_PROMO | Flag::QUEEN_CAPTURE_PROMO => Piece::QUEEN,
+            Flag::KNIGHT_PROMO | Flag::KNIGHT_CAPTURE_PROMO => Piece::KNIGHT,
+            Flag::ROOK_PROMO | Flag::ROOK_CAPTURE_PROMO => Piece::ROOK,
+            Flag::BISHOP_PROMO | Flag::BISHOP_CAPTURE_PROMO => Piece::BISHOP,
+            _ => panic!("Expected Promotion!"),
+        }
+    }
+
     pub fn is_capture(self) -> bool {
         self.flag() >= Flag::KNIGHT_CAPTURE_PROMO
     }
@@ -162,7 +172,7 @@ impl Move {
                 }
             }
 
-            if from == to.retreat(2, board.color_to_move) {
+            if from == to.double_push_sq() {
                 return Self::new(to, from, Flag::DOUBLE_PUSH);
             }
         }

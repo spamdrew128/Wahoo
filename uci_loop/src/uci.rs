@@ -4,6 +4,7 @@ use engine::{
     board::zobrist::ZobristHash,
     board::zobrist_stack::ZobristStack,
     create_thread_data,
+    eval::evaluation::evaluate,
     search::history_table::History,
     search::search::{self, Depth, SearchLimit, Searcher},
     search::thread_data::Nodes,
@@ -24,6 +25,9 @@ enum UciCommand {
     SetOptionHash(usize),
     SetOptionThreads(usize),
     SetOptionSyzygyPath(String),
+
+    // User Commands
+    StaticEval,
 }
 
 pub struct UciHandler {
@@ -164,6 +168,7 @@ impl UciHandler {
                         _ => (),
                     }
                 }
+                "eval" => self.process_command(UciCommand::StaticEval),
                 "quit" => kill_program(),
                 _ => (),
             }
@@ -173,7 +178,7 @@ impl UciHandler {
     fn process_command(&mut self, command: UciCommand) {
         match command {
             UciCommand::Uci => {
-                println!("id name Wahoo v3.0.0");
+                println!("id name Wahoo Dev");
                 println!("id author Andrew Hockman");
 
                 send_uci_option!(
@@ -358,6 +363,13 @@ impl UciHandler {
                 if path != Self::SYZYGY_PATH_DEFAULT {
                     self.tablebase.activate(path.as_str());
                 }
+            }
+            UciCommand::StaticEval => {
+                println!(
+                    "Position: {}\nStatic eval: {} cp",
+                    self.board.to_fen(),
+                    evaluate(&self.board)
+                );
             }
         }
     }
