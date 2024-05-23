@@ -5,7 +5,7 @@ Name: Wahoo
 Author: Andrew Hockman
 
 # About
-A superhuman chess engine designed to surpass my old C engine (found at https://github.com/spamdrew128/Apotheosis). Currently ranked number 148 and 2876 Elo according to CCRL blitz list (https://ccrl.chessdom.com/ccrl/404/)
+A superhuman chess engine designed to surpass my old C engine (found at https://github.com/spamdrew128/Apotheosis). Currently ranked number 131 and 3082 Elo according to the CCRL blitz list (https://ccrl.chessdom.com/ccrl/404/)
 
 # How to build:
 `make TB=(Y/N)` (TB enables/disables Syzygy tablebase support)
